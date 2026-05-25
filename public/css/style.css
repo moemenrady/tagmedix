@@ -1,0 +1,175 @@
+/* stlye.css */
+:root {
+    --prime: #ddcdbc;
+    --prime-soft: #e6ddd4;
+    --bg: #515831;
+    --bg-dark: #3f4526;
+    --white: #ffffff;
+}
+
+/* الخلفية العامة */
+body {
+    background: linear-gradient(-45deg, var(--bg), var(--bg-dark), var(--bg));
+    background-size: 400% 400%;
+    animation: gradientMove 14s ease infinite;
+    color: var(--white);
+    font-family: system-ui, sans-serif;
+}
+
+@keyframes gradientMove {
+    0% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
+}
+
+/* Drawer */
+.drawer {
+    padding: 18px;
+    width: 260px;
+    background: rgba(221, 205, 188, 0.15);
+    backdrop-filter: blur(14px);
+    border-left: 1px solid rgba(221, 205, 188, 0.3);
+    color: var(--white);
+}
+
+/* Profile */
+.drawer-profile {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+}
+
+.avatar-wrap {
+    position: relative;
+    width: 64px;
+    height: 64px;
+}
+
+.avatar {
+    width: 64px;
+    height: 64px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--prime), var(--prime-soft));
+    color: var(--bg);
+    display: grid;
+    place-items: center;
+    font-weight: 800;
+    font-size: 20px;
+    box-shadow: 0 8px 24px rgba(0,0,0,.25);
+}
+
+/* Badge */
+.role-badge {
+    position: absolute;
+    right: -6px;
+    bottom: -6px;
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    display: grid;
+    place-items: center;
+    background: var(--bg);
+    border: 2px solid var(--prime);
+    color: var(--prime);
+}
+
+/* Admin / Staff */
+.role-admin { background: linear-gradient(180deg, var(--prime), var(--prime-soft)); }
+.role-staff { background: linear-gradient(180deg, var(--bg-dark), var(--bg)); }
+
+.profile-name {
+    font-weight: 800;
+    font-size: 15px;
+    color: var(--prime);
+}
+
+.profile-role {
+    font-size: 13px;
+    color: var(--prime-soft);
+}
+
+/* Separator */
+.drawer-sep {
+    margin: 14px 0;
+    height: 1px;
+    border: none;
+    background: linear-gradient(90deg, transparent, var(--prime), transparent);
+}
+
+/* Links */
+.drawer-links a {
+    display: block;
+    color: var(--white);
+    font-weight: 600;
+    padding: 10px 12px;
+    border-radius: 12px;
+    text-decoration: none;
+    transition: .25s ease;
+}
+
+.drawer-links a:hover {
+    background: rgba(221, 205, 188, 0.25);
+    color: var(--prime);
+    transform: translateX(4px);
+}
+
+/* Back Button */
+.back-btn {
+    position: fixed;
+    top: 20px;
+    left: 20px;
+    background: linear-gradient(135deg, var(--prime), var(--prime-soft));
+    color: var(--bg);
+    border-radius: 50%;
+    padding: 14px;
+    box-shadow: 0 8px 24px rgba(0,0,0,.3);
+    transition: .25s ease;
+}
+
+.back-btn:hover {
+    transform: scale(1.1) rotate(-10deg);
+}
+
+/* Snackbar */
+.snackbar {
+    background: var(--bg-dark);
+    color: var(--white);
+    border-radius: 14px;
+    padding: 14px 18px;
+    box-shadow: 0 12px 30px rgba(0,0,0,.35);
+}
+
+.snackbar.success { border-left: 4px solid var(--prime); }
+.snackbar.error { border-left: 4px solid #b44; }
+
+/* Client Snackbar */
+.client-snackbar {
+    background: rgba(221, 205, 188, 0.95);
+    color: var(--bg);
+    border-radius: 18px;
+    box-shadow: 0 20px 40px rgba(0,0,0,.25);
+}
+
+.client-snackbar h4 {
+    color: var(--bg);
+    font-weight: 900;
+}
+
+.client-snackbar button {
+    background: linear-gradient(135deg, var(--bg), var(--bg-dark));
+    color: var(--prime);
+    border-radius: 14px;
+    font-weight: 800;
+}
+
+/* Footer */
+footer {
+    background: rgba(221, 205, 188, 0.15);
+    backdrop-filter: blur(10px);
+    color: var(--prime);
+}
+
+footer a {
+    color: var(--prime);
+    font-weight: 700;
+}
