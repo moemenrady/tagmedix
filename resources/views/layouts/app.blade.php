@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en" dir="ltr">
+<html id="htmlRoot" lang="ar" dir="rtl">
 
 <head>
     <meta charset="UTF-8">
@@ -8,6 +8,9 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;700&display=swap" rel="stylesheet">
+    <meta name="csrf-token" content="{{ csrf_token() }}">
+
 
     <script>
         tailwind.config = {
@@ -26,6 +29,14 @@
         }
     </script>
     <style>
+        body.ar {
+            font-family: Cairo, sans-serif;
+        }
+
+        body.en {
+            font-family: Inter, sans-serif;
+        }
+
         ::-webkit-scrollbar {
             height: 6px;
             width: 6px;
@@ -72,7 +83,8 @@
         <!-- Sidebar Header (Logo & Close Btn) -->
         <div class="flex items-center justify-between p-6">
             <div class="text-white font-bold text-xl tracking-wider flex items-center gap-3">
-                <i class="fa-solid fa-layer-group text-activeGold"></i> TAGMEDIX
+                <i class="fa-solid fa-layer-group text-activeGold"></i>
+                <span data-ar="تاج ميديكس" data-en="TAGMEDIX">تاج ميديكس</span>
             </div>
             <!-- Close button for mobile -->
             <button id="closeSidebarBtn" class="md:hidden text-gray-400 hover:text-white transition">
@@ -81,69 +93,113 @@
         </div>
 
         <nav class="flex-1 overflow-y-auto px-4 space-y-1 text-sm font-medium pb-4">
-            <a href="{{ route('dashboard') }}"
-                class="flex items-center gap-3 px-4 py-3 rounded-lg hover:text-white transition {{ request()->routeIs('dashboard') ? 'active-tab' : '' }}">
-                <i class="fa-solid fa-chart-line w-5"></i> Dashboard
-            </a>
+
+
             <a href="{{ route('inventory.index') }}"
                 class="flex items-center gap-3 px-4 py-3 rounded-lg hover:text-white transition {{ request()->routeIs('inventory.*') ? 'active-tab' : '' }}">
-                <i class="fa-solid fa-boxes-stacked w-5"></i> Inventory
+                <i class="fa-solid fa-boxes-stacked w-5"></i>
+                <span data-ar="المخزون" data-en="Inventory">المخزون</span>
             </a>
+            <a href="{{ route('item-categories.index') }}"
+                class="flex items-center gap-3 px-4 py-2 mt-1 ml-4 rtl:ml-0 rtl:mr-4 rounded-lg hover:text-white transition text-sm {{ request()->routeIs('item-categories.*') ? 'text-activeGold' : 'text-gray-400' }}">
+                <i class="fa-solid fa-tags w-4"></i>
+                <span data-ar="تصنيفات الأصناف" data-en="Item Categories">تصنيفات الأصناف</span>
+            </a>
+            <a href="{{ route('inventory-transactions.index') }}"
+                class="flex items-center gap-3 px-4 py-2 mt-1 ml-4 rtl:ml-0 rtl:mr-4 rounded-lg hover:text-white transition text-sm {{ request()->routeIs('inventory.transactions.*') ? 'text-activeGold' : 'text-gray-400' }}">
 
+                <i class="fa-solid fa-arrow-right-arrow-left w-4"></i>
+
+                <span data-ar="حركات المخزون" data-en="Inventory Transactions">
+                    حركات المخزون
+                </span>
+
+            </a>
             <a href="{{ route('orders.index') }}"
                 class="flex items-center gap-3 px-4 py-3 rounded-lg hover:text-white transition {{ request()->routeIs('orders.*') ? 'active-tab' : '' }}">
-                <i class="fa-solid fa-clipboard-list w-5"></i> Orders
+                <i class="fa-solid fa-clipboard-list w-5"></i>
+                <span data-ar="الطلبات" data-en="Orders">الطلبات</span>
             </a>
-
-            <a href="{{ route('production.index') }}"
+            <a href="{{ route('turbo.index') }}"
+                class="flex items-center gap-3 px-4 py-3 rounded-lg hover:text-white transition {{ request()->routeIs('turbo.*') ? 'active-tab' : '' }}">
+                <i class="fa-solid fa-truck-fast w-5 text-amber-400"></i>
+                <span data-ar="مركز عمليات Turbo" data-en="Turbo Ops Center">مركز عمليات Turbo</span>
+            </a>
+            <a href="{{ route('production.workflow.index') }}"
                 class="flex items-center justify-between px-4 py-3 rounded-lg hover:text-white transition {{ request()->routeIs('production.*') ? 'active-tab' : '' }}">
                 <div class="flex items-center gap-3">
-                    <i class="fa-solid fa-industry w-5"></i> Production
+                    <i class="fa-solid fa-industry w-5"></i>
+                    <span data-ar="مسار عمل الطلبات" data-en="Orders Work Flow">مسار عمل الطلبات</span>
                 </div>
                 <i class="fa-solid fa-chevron-right text-[10px]"></i>
             </a>
 
-            <a href="{{ route('payments.index') }}"
-                class="flex items-center gap-3 px-4 py-3 rounded-lg hover:text-white transition {{ request()->routeIs('payments.*') ? 'active-tab' : '' }}">
-                <i class="fa-regular fa-credit-card w-5"></i> Payments
-            </a>
+            @if (auth()->user() && auth()->user()->role == 'admin')
+                <!-- استبدل true بالشرط الفعلي -->
+                <a href="{{ route('dashboard') }}"
+                    class="flex items-center gap-3 px-4 py-3 rounded-lg hover:text-white transition {{ request()->routeIs('dashboard') ? 'active-tab' : '' }}">
+                    <i class="fa-solid fa-chart-line w-5"></i>
+                    <span data-ar="لوحة التحكم" data-en="Dashboard">لوحة التحكم</span>
+                </a>
+                <a href="{{ route('payments.index') }}"
+                    class="flex items-center gap-3 px-4 py-3 rounded-lg hover:text-white transition {{ request()->routeIs('payments.*') ? 'active-tab' : '' }}">
+                    <i class="fa-regular fa-credit-card w-5"></i>
+                    <span data-ar="الدفعات" data-en="Payments">الدفعات</span>
+                </a> <a href="{{ route('suppliers.index') }}"
+                    class="flex items-center gap-3 px-4 py-3 rounded-lg hover:text-white transition {{ request()->routeIs('suppliers.*') ? 'active-tab' : '' }}">
+                    <i class="fa-solid fa-truck-field w-5"></i>
+                    <span data-ar="الموردون" data-en="Suppliers">الموردون</span>
+                </a>
+                <a href="{{ route('users.index') }}"
+                    class="flex items-center gap-3 px-4 py-3 rounded-lg hover:text-white transition {{ request()->routeIs('users.*') ? 'active-tab' : '' }}">
+                    <i class="fa-regular fa-user w-5"></i>
+                    <span data-ar="المستخدمون" data-en="Users">المستخدمون</span>
+                </a>
 
-            <a href="{{ route('payroll.index') }}"
-                class="flex items-center gap-3 px-4 py-3 rounded-lg hover:text-white transition {{ request()->routeIs('payroll.*') ? 'active-tab' : '' }}">
-                <i class="fa-solid fa-file-invoice-dollar w-5"></i> Payroll
-            </a>
-
-
-            <a href="{{ route('suppliers.index') }}"
-                class="flex items-center gap-3 px-4 py-3 rounded-lg hover:text-white transition {{ request()->routeIs('suppliers.*') ? 'active-tab' : '' }}">
-                <i class="fa-solid fa-truck-field w-5"></i> Suppliers
-            </a>
-
+                <a href="{{ route('employees.index') }}"
+                    class="flex items-center gap-3 px-4 py-3 rounded-lg hover:text-white transition {{ request()->routeIs('employees.*') ? 'active-tab' : '' }}">
+                    <i class="fa-solid fa-users w-5"></i>
+                    <span data-ar="الموظفون" data-en="Employees">الموظفون</span>
+                </a>
+                <a href="{{ route('payroll.index') }}"
+                    class="flex items-center gap-3 px-4 py-3 rounded-lg hover:text-white transition {{ request()->routeIs('payroll.*') ? 'active-tab' : '' }}">
+                    <i class="fa-solid fa-file-invoice-dollar w-5"></i>
+                    <span data-ar="الرواتب" data-en="Payroll">الرواتب</span>
+                </a>
+                <a href="{{ route('reports.index') }}"
+                    class="flex items-center gap-3 px-4 py-3 rounded-lg hover:text-white transition {{ request()->routeIs('reports.*') ? 'active-tab' : '' }}">
+                    <i class="fa-solid fa-chart-bar w-5"></i>
+                    <span data-ar="التقارير" data-en="Reports">التقارير</span>
+                </a>
+            @endif
             <a href="{{ route('returns.index') }}"
                 class="flex items-center gap-3 px-4 py-3 rounded-lg hover:text-white transition {{ request()->routeIs('returns.*') ? 'active-tab' : '' }}">
-                <i class="fa-solid fa-rotate-left w-5"></i> Returns
+                <i class="fa-solid fa-rotate-left w-5"></i>
+                <span data-ar="المرتجعات" data-en="Returns">المرتجعات</span>
             </a>
 
             <a href="{{ route('finished-goods.index') }}"
                 class="flex items-center gap-3 px-4 py-3 rounded-lg hover:text-white transition {{ request()->routeIs('finished-goods.*') ? 'active-tab' : '' }}">
-                <i class="fa-solid fa-box-open w-5"></i> Finished Goods
+                <i class="fa-solid fa-box-open w-5"></i>
+                <span data-ar="المنتجات النهائية" data-en="Finished Goods">المنتجات النهائية</span>
             </a>
-
-            <a href="{{ route('reports.index') }}"
-                class="flex items-center gap-3 px-4 py-3 rounded-lg hover:text-white transition {{ request()->routeIs('reports.*') ? 'active-tab' : '' }}">
-                <i class="fa-solid fa-chart-bar w-5"></i> Reports
-            </a>
-
-            <a href="{{ route('users.index') }}"
-                class="flex items-center gap-3 px-4 py-3 rounded-lg hover:text-white transition {{ request()->routeIs('users.*') ? 'active-tab' : '' }}">
-                <i class="fa-regular fa-user w-5"></i> Users
+            <a href="{{ route('order_classifications.index') }}"
+                class="flex items-center gap-3 px-4 py-3 rounded-lg hover:text-white transition {{ request()->routeIs('order_classifications.*') ? 'active-tab' : '' }}">
+                <i class="fa-solid fa-tags w-5"></i>
+                <span data-ar="تصنيفات الطلبات" data-en="Order Classifications">تصنيفات الطلبات</span>
             </a>
 
             <a href="{{ route('settings.index') }}"
                 class="flex items-center gap-3 px-4 py-3 rounded-lg hover:text-white transition {{ request()->routeIs('settings.*') ? 'active-tab' : '' }}">
-                <i class="fa-solid fa-gear w-5"></i> Settings
+                <i class="fa-solid fa-gear w-5"></i>
+                <span data-ar="الإعدادات" data-en="Settings">الإعدادات</span>
             </a>
+
+
         </nav>
+        @php
+            $user = auth()->user();
+        @endphp
 
         <!-- Profile & Logout Section -->
         <div class="p-4 mt-auto border-t border-gray-800 relative">
@@ -151,14 +207,48 @@
             <!-- User Info Trigger -->
             <div id="profileDropdownBtn"
                 class="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-gray-800 cursor-pointer transition select-none">
+
                 <div
                     class="w-8 h-8 rounded-full bg-gray-600 flex items-center justify-center text-white text-xs shrink-0">
-                    <i class="fa-solid fa-user"></i>
+
+                    @if ($user && $user->name)
+                        {{ strtoupper(substr($user->name, 0, 1)) }}
+                    @else
+                        <i class="fa-solid fa-user"></i>
+                    @endif
+
                 </div>
+                @php
+                    $user = auth()->user();
+
+                    $roles = [
+                        'admin' => [
+                            'ar' => 'مدير النظام',
+                            'en' => 'Administrator',
+                        ],
+                        'supervisor' => [
+                            'ar' => 'مشرف',
+                            'en' => 'Supervisor',
+                        ],
+                    ];
+
+                    $role = $roles[$user->role] ?? [
+                        'ar' => $user->role,
+                        'en' => ucfirst(str_replace('_', ' ', $user->role)),
+                    ];
+                @endphp
                 <div class="flex-1 overflow-hidden">
-                    <p class="text-white text-sm font-medium truncate">Admin</p>
-                    <p class="text-[11px] text-gray-500 truncate">Super Admin</p>
+
+                    <p class="text-white text-sm font-medium truncate">
+                        {{ $user->name }}
+                    </p>
+                    <p class="text-[11px] text-gray-500 truncate" data-ar="{{ $role['ar'] }}"
+                        data-en="{{ $role['en'] }}">
+                        {{ $role['ar'] }}
+                    </p>
+
                 </div>
+
                 <i class="fa-solid fa-chevron-up text-gray-500 text-xs transition-transform duration-200"
                     id="profileChevron"></i>
             </div>
@@ -166,23 +256,36 @@
             <!-- Dropdown Menu -->
             <div id="profileDropdown"
                 class="absolute bottom-[80px] left-4 right-4 bg-gray-800 border border-gray-700 rounded-lg shadow-xl overflow-hidden hidden dropdown-enter">
+
                 <div class="p-2 space-y-1">
-                    <a href="{{ route('profile.edit') ?? '#' }}"
-                        class="flex items-center gap-3 px-3 py-2 text-sm text-gray-300 hover:text-white hover:bg-gray-700 rounded-md transition">
-                        <i class="fa-solid fa-user-pen w-4 text-center"></i> Edit Profile
-                    </a>
 
-                    <div class="h-px bg-gray-700 my-1"></div>
+                    <div class="px-3 py-2 border-b border-gray-700">
+                        <p class="text-white text-sm font-semibold">
+                            {{ $user->name }}
+                        </p>
 
-                    <!-- Laravel Logout Form -->
-                    <form method="POST" action="{{ route('logout') ?? '#' }}">
+                        <p class="text-xs text-gray-400">
+                            {{ $user->email }}
+                        </p>
+                    </div>
+
+                    <form method="POST" action="{{ route('logout') }}">
                         @csrf
+
                         <button type="submit"
-                            class="w-full flex items-center gap-3 px-3 py-2 text-sm text-red-400 hover:text-red-300 hover:bg-gray-700 rounded-md transition text-left">
-                            <i class="fa-solid fa-arrow-right-from-bracket w-4 text-center"></i> Logout
+                            class="w-full flex items-center gap-3 px-3 py-2 text-sm text-red-400 hover:text-red-300 hover:bg-gray-700 rounded-md transition text-left rtl:text-right">
+
+                            <i class="fa-solid fa-arrow-right-from-bracket w-4 text-center"></i>
+
+                            <span data-ar="تسجيل الخروج" data-en="Logout">
+                                تسجيل الخروج
+                            </span>
+
                         </button>
                     </form>
+
                 </div>
+
             </div>
 
         </div>
@@ -195,27 +298,33 @@
         <header class="bg-white border-b border-gray-200 p-4 flex justify-between items-center z-10 shrink-0">
             <div class="flex items-center gap-4">
                 <!-- Hamburger Menu Button (Mobile/Tablet only) -->
-                <button id="openSidebarBtn" class="md:hidden text-gray-600 hover:text-gray-900 focus:outline-none p-1">
+                <button id="openSidebarBtn"
+                    class="md:hidden text-gray-600 hover:text-gray-900 focus:outline-none p-1">
                     <i class="fa-solid fa-bars text-xl"></i>
                 </button>
 
                 <div>
-                    <h1
-                        class="text-lg md:text-xl font-bold text-gray-900 truncate max-w-[150px] sm:max-w-xs md:max-w-md">
-                        @yield('page_title', 'Dashboard')</h1>
-                    <p class="text-sm text-gray-500 hidden sm:block">Welcome back, Admin</p>
+                    <h1 class="text-xl font-bold text-gray-800" data-ar="لوحة التحكم" data-en="Dashboard">لوحة التحكم
+                    </h1>
+                    <p class="text-sm text-gray-500 hidden sm:block" data-ar="مرحباً بعودتك" data-en="Welcome back">
+                        مرحباً بعودتك</p>
                 </div>
             </div>
 
             <div class="flex items-center gap-2 md:gap-4">
                 <button
                     class="flex items-center gap-2 border border-gray-300 rounded-lg px-3 py-1.5 md:px-4 md:py-2 text-xs md:text-sm font-medium text-gray-700 hover:bg-gray-50 transition">
-                    <span class="hidden sm:inline">Today</span>
-                    <i class="fa-regular fa-calendar sm:ml-1"></i>
+                    <span class="hidden sm:inline" data-ar="اليوم" data-en="Today">اليوم</span>
+                    <i class="fa-regular fa-calendar sm:mx-1"></i>
+                </button>
+                <button id="languageBtn"
+                    class="border rounded-lg px-4 py-2 text-sm transition hover:bg-gray-50 font-medium">
+                    🇪🇬 العربية
                 </button>
                 <button class="relative p-2 text-gray-400 hover:text-gray-600 transition">
                     <i class="fa-regular fa-bell text-lg md:text-xl"></i>
-                    <span class="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full border border-white"></span>
+                    <span
+                        class="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full border border-white"></span>
                 </button>
             </div>
         </header>
@@ -298,6 +407,35 @@
                 }
             });
         });
+
+        // Language Switcher Logic
+        const html = document.getElementById("htmlRoot");
+        const btn = document.getElementById("languageBtn");
+
+        function applyLanguage(lang) {
+            localStorage.setItem("lang", lang);
+            html.lang = lang;
+            html.dir = lang === "ar" ? "rtl" : "ltr";
+
+            document.body.classList.remove("ar", "en");
+            document.body.classList.add(lang);
+
+            // Update all texts
+            document.querySelectorAll("[data-ar]").forEach(el => {
+                el.innerHTML = lang === "ar" ? el.dataset.ar : el.dataset.en;
+            });
+
+            // Update button text
+            btn.innerHTML = lang === "ar" ? "🇪🇬 العربية" : "🇺🇸 English";
+        }
+
+        const saved = localStorage.getItem("lang") || "ar";
+        applyLanguage(saved);
+
+        btn.onclick = () => {
+            const current = localStorage.getItem("lang");
+            applyLanguage(current === "ar" ? "en" : "ar");
+        }
     </script>
 
     @stack('scripts')

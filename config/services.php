@@ -34,5 +34,27 @@ return [
             'channel' => env('SLACK_BOT_USER_DEFAULT_CHANNEL'),
         ],
     ],
+    'turbo_api' => [
 
+        'base_url' => env(
+            'TURBO_API_BASE_URL',
+           'https://deprecated-admint.turbo.info'
+        ),
+
+        'main_client_code' => env(
+            'TURBO_MAIN_CLIENT_CODE'
+        ),
+
+        'authentication_key' => env(
+            'TURBO_AUTHENTICATION_KEY'
+        ),
+
+        'timeout' => 30,
+
+        'connect_timeout' => 10,
+
+        'retry_times' => 3,
+
+        'retry_sleep' => 500,
+    ],
 ];

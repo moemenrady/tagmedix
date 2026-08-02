@@ -24,9 +24,6 @@ class UserTableSeeder extends Seeder
       'password' => 'Qqwwee332211',
       'role' => 'admin',
 
-      'is_cutting' => false,
-      'is_sewing' => false,
-      'is_finishing' => false,
     ]);
 
     /*
@@ -41,60 +38,6 @@ class UserTableSeeder extends Seeder
       'password' => 'Qqwwee332211',
       'role' => 'supervisor',
 
-      'is_cutting' => false,
-      'is_sewing' => false,
-      'is_finishing' => false,
-    ]);
-
-    /*
-        |--------------------------------------------------------------------------
-        | Cutter
-        |--------------------------------------------------------------------------
-        */
-
-    User::create([
-      'name' => 'قصاص',
-      'email' => 'cutter@tagmedix.com',
-      'password' => 'Qqwwee332211',
-      'role' => 'production',
-
-      'is_cutting' => true,
-      'is_sewing' => false,
-      'is_finishing' => false,
-    ]);
-
-    /*
-        |--------------------------------------------------------------------------
-        | Tailor
-        |--------------------------------------------------------------------------
-        */
-
-    User::create([
-      'name' => 'خياط',
-      'email' => 'tailor@tagmedix.com',
-      'password' => 'Qqwwee332211',
-      'role' => 'production',
-
-      'is_cutting' => false,
-      'is_sewing' => true,
-      'is_finishing' => false,
-    ]);
-
-    /*
-        |--------------------------------------------------------------------------
-        | Finisher
-        |--------------------------------------------------------------------------
-        */
-
-    User::create([
-      'name' => 'فينيشر',
-      'email' => 'finisher@tagmedix.com',
-      'password' => 'Qqwwee332211',
-      'role' => 'production',
-
-      'is_cutting' => false,
-      'is_sewing' => false,
-      'is_finishing' => true,
     ]);
   }
 }
