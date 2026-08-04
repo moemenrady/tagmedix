@@ -158,11 +158,13 @@ class OrderController extends Controller
         $pantTypes = PantType::all();
         return view('pages.orders.create', compact('colors', 'sizes', 'styles', 'types', 'pantTypes'));
     }
+
+
     public function store(Request $request)
     {
         try {
 
-            $this->orderService->store($request);
+            $order = $this->orderService->store($request);
 
             return redirect()
                 ->route('orders.index')

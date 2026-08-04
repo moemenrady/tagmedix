@@ -9,17 +9,16 @@ class Order extends Model
 {
 
     protected $fillable = [
+        'customer_id',
         'order_number',
-        'customer_name',
-        'phone_1',
-        'phone_2',
-        'governorate',
-        'full_address',
-        'instagram_profile',
         'total_price',
+        'shipping_due_amount',
+        'return_due_amount',
+        'order_contents',
         'source',
         'status',
     ];
+
 
     public function getTotalPaid()
     {
@@ -42,6 +41,15 @@ class Order extends Model
                     STR_PAD_LEFT
                 );
         });
+    }
+    public function customer()
+    {
+        return $this->belongsTo(Customer::class);
+    }
+
+    public function address()
+    {
+        return $this->hasOne(CustomerOrderAddress::class);
     }
 
     public function items()

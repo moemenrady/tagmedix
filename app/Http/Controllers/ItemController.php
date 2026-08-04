@@ -364,12 +364,12 @@ class ItemController extends Controller
     public function create()
     {
         $categories = ItemCategory::where('is_active', true)->get();
-        return view('pages.inventory.create', compact('categories'));
+        return view('pages.inventory.items.create', compact('categories'));
     }
     /**
      * Store new item
      */
-    public function store(Request $request): JsonResponse
+    public function store(Request $request)
     {
         $validated = $request->validate([
             'name' => [
@@ -402,6 +402,24 @@ class ItemController extends Controller
             ],
 
             'minimum_quantity' => [
+                'required',
+                'numeric',
+                'min:0',
+            ],
+
+            'current_quantity' => [
+                'required',
+                'numeric',
+                'min:0',
+            ],
+
+            'last_purchase_price' => [
+                'required',
+                'numeric',
+                'min:0',
+            ],
+
+            'total_price' => [
                 'nullable',
                 'numeric',
                 'min:0',
@@ -413,27 +431,42 @@ class ItemController extends Controller
             ],
         ]);
 
-        $item = Item::create([
-            'name' => $validated['name'],
-            'code' => $validated['code'],
-            'category_id' => $validated['category_id'],
-            'unit' => $validated['unit'] ?? null,
-            'description' => $validated['description'] ?? null,
-            'minimum_quantity' => $validated['minimum_quantity'] ?? 0,
-            'current_quantity' => 0,
-            'last_purchase_price' => 0,
-            'is_active' => $validated['is_active'] ?? true,
-        ]);
+        DB::transaction(function () use (&$item, $validated) {
 
-        $item->load('category');
+            $item = Item::create([
+                'name'                => $validated['name'],
+                'code'                => $validated['code'],
+                'category_id'         => $validated['category_id'],
+                'unit'                => $validated['unit'] ?? null,
+                'description'         => $validated['description'] ?? null,
+                'minimum_quantity'    => $validated['minimum_quantity'],
+                'current_quantity'    => $validated['current_quantity'],
+                'last_purchase_price' => $validated['last_purchase_price'],
+                'is_active'           => $validated['is_active'] ?? true,
+            ]);
 
-        return response()->json([
-            'success' => true,
-            'message' => 'تم إنشاء الصنف بنجاح',
-            'data' => $item,
-        ], 201);
+            if ($validated['current_quantity'] > 0) {
+
+                InventoryTransaction::create([
+                    'item_id'         => $item->id,
+                    'type'            => 'adjustment_in',
+                    'quantity'        => $validated['current_quantity'],
+                    'unit_cost'       => $validated['last_purchase_price'],
+                    'balance_after'   => $validated['current_quantity'],
+                    'reference_type'  => 'item_creation',
+                    'reference_id'    => $item->id,
+                    'notes'           => 'الرصيد الافتتاحي للصنف',
+                    'created_by'      => auth()->id(),
+                ]);
+            }
+
+            $item->load('category');
+        });
+
+        return redirect()
+            ->route('inventory.index')
+            ->with('success', 'تم إنشاء الصنف بنجاح');
     }
-
     /**
      * Show single item
      */
