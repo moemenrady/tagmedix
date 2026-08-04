@@ -2,18 +2,18 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Order;
+use App\Integrations\Turbo\Services\TurboService;
 use App\Models\Color;
-use App\Models\Size;
-use App\Models\Style;
+use App\Models\Order;
 use App\Models\OrderItem;
 use App\Models\PantType;
-use App\Models\Payment;
+use App\Models\Size;
+use App\Models\Style;
 use App\Models\Type;
+use App\Services\OrderService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
-use App\Services\OrderService;
-
+use Illuminate\Validation\ValidationException;
 
 class OrderController extends Controller
 {
@@ -23,29 +23,36 @@ class OrderController extends Controller
     {
         $this->orderService = $orderService;
     }
+
     public function show($id)
     {
         $order = Order::with([
+            'customer',
+            'address',
             'items',
             'payments.creator',
         ])
             ->withSum('payments', 'amount')
             ->findOrFail($id);
+
         return view('pages.orders.show', compact('order'));
     }
+
     public function index(Request $request)
     {
         $search = $request->search;
 
         $orders = Order::query()
-            ->with('items')
+            ->with(['customer', 'address', 'items'])
             ->withSum('payments', 'amount')
             ->when($search, function ($query) use ($search) {
                 $query->where(function ($q) use ($search) {
                     $q->where('order_number', 'LIKE', "%{$search}%")
-                        ->orWhere('customer_name', 'LIKE', "%{$search}%")
-                        ->orWhere('phone_1', 'LIKE', "%{$search}%")
-                        ->orWhere('phone_2', 'LIKE', "%{$search}%");
+                        ->orWhereHas('customer', function ($cq) use ($search) {
+                            $cq->where('name', 'LIKE', "%{$search}%")
+                                ->orWhere('phone_1', 'LIKE', "%{$search}%")
+                                ->orWhere('phone_2', 'LIKE', "%{$search}%");
+                        });
                 });
             })
             ->latest('id')
@@ -67,11 +74,11 @@ class OrderController extends Controller
                 ->sum('total_price'),
 
             'paid_amount' => $orders->sum(
-                fn($order) => $order->getTotalPaid()
+                fn ($order) => $order->getTotalPaid()
             ),
 
             'remaining_payments' => $orders->sum(
-                fn($order) => $order->getRemainingAmount()
+                fn ($order) => $order->getRemainingAmount()
             ),
         ];
         $statusMap = [
@@ -148,47 +155,102 @@ class OrderController extends Controller
         ));
     }
 
-    public function create()
-    {
+    // استدعاء TurboService داخل OrderController
+    // app/Http/Controllers/OrderController.php
 
+    // use App\Integrations\Turbo\Services\TurboService;
+    // 1. دالة عرض صفحة الإنشاء
+    public function create(TurboService $turboService)
+    {
         $colors = Color::all();
         $sizes = Size::all();
         $styles = Style::all();
         $types = Type::all();
         $pantTypes = PantType::all();
-        return view('pages.orders.create', compact('colors', 'sizes', 'styles', 'types', 'pantTypes'));
+
+        $governments = [];
+
+        try {
+            $response = $turboService->getGovernments();
+            // استخراج البيانات من feed أو data أو المفتاح الرئيسي
+            $governments = $response['feed'] ?? $response['data'] ?? (is_array($response) ? $response : []);
+        } catch (\Throwable $e) {
+            \Log::error('Turbo API Error: '.$e->getMessage());
+        }
+
+        return view('pages.orders.create', compact(
+            'colors', 'sizes', 'styles', 'types', 'pantTypes', 'governments'
+        ));
     }
 
+    public function getAreasByGovernment($governmentId, TurboService $turboService)
+    {
+        try {
+            $response = $turboService->getAreas($governmentId);
+
+            // استخراج المناطق من feed مباشرة
+            $areas = $response['feed'] ?? $response['data'] ?? [];
+
+            return response()->json($areas);
+        } catch (\Throwable $e) {
+            \Log::error('Turbo Areas API Error: '.$e->getMessage());
+
+            return response()->json(['error' => 'Failed to fetch areas'], 500);
+        }
+    }
 
     public function store(Request $request)
     {
         try {
+            // في الـ OrderController أو الـ FormRequest الخاص بالطلب
+
+            // دمج القيم الافتراضية احترافياً إذا لم تكن موجودة ببيانات الطلب
+            $request->merge([
+                'address' => array_merge([
+                    'country' => 'Egypt',
+                    'city' => $request->input('address.governorate_name', 'Alexandria'),
+                ], $request->input('address', [])),
+            ]);
+
+            // Validation Rules
+            $validatedData = $request->validate([
+                'customer_name' => 'required|string|max:255',
+                'phone_1' => 'required|string|max:20',
+                'address.country' => 'required|string',
+                'address.city' => 'required|string',
+                'address.governorate' => 'required',
+                'address.area' => 'required',
+                'address.full_address' => 'required|string|max:500',
+                'items' => 'required|array|min:1',
+            ]);
+
+            // ... تنفيذ عملية حفظ الطلب
 
             $order = $this->orderService->store($request);
 
             return redirect()
                 ->route('orders.index')
                 ->with('success', 'تم إنشاء الطلب بنجاح');
+        } catch (ValidationException $e) {
+            throw $e;
         } catch (\Throwable $e) {
-            dd($e->getMessage());
             return back()
                 ->withInput()
-                ->with('fail', 'حدث خطأ: ' . $e->getMessage());
+                ->with('fail', 'حدث خطأ: '.$e->getMessage());
         }
     }
-
 
     public function edit($id)
     {
         $order = Order::with([
             'items',
-            'payments'
+            'payments',
         ])->withSum('payments', 'amount')
             ->findOrFail($id);
 
         return response()->json([
             'message' => 'Edit Order Page',
-            'data' => $order
+            'data' => $order,
         ]);
     }
 
@@ -196,7 +258,7 @@ class OrderController extends Controller
     {
         $order = Order::with([
             'items',
-            'payments'
+            'payments',
         ])->withSum('payments', 'amount')->findOrFail($id);
 
         // --- 1. التعامل مع طلبات التحديث الجزئية الذكية (AJAX / JSON) ---
@@ -209,7 +271,6 @@ class OrderController extends Controller
                 }
 
                 // ب. تحديث المبلغ المدفوع
-
 
                 // ج. تحديث بيانات العميل فقط
                 if ($request->has('customer_info')) {
@@ -245,7 +306,7 @@ class OrderController extends Controller
                     $totalPrice = $order->items()->sum('total');
                     $order->update([
                         'total_price' => $totalPrice,
-                        'remaining_amount' => $totalPrice - $order->paid_amount
+                        'remaining_amount' => $totalPrice - $order->paid_amount,
                     ]);
                 }
 
@@ -255,17 +316,17 @@ class OrderController extends Controller
                 return response()->json([
                     'success' => true,
                     'message' => 'تم التحديث بنجاح',
-                    'order' => $order->fresh(['items'])
+                    'order' => $order->fresh(['items']),
                 ]);
             } catch (\Exception $e) {
                 DB::rollBack();
+
                 return response()->json([
                     'success' => false,
-                    'message' => $e->getMessage()
+                    'message' => $e->getMessage(),
                 ], 500);
             }
         }
-
 
         // --- 2. التعامل مع الرفع التقليدي (Full Form Submit) ---
         $request->validate([
@@ -316,7 +377,7 @@ class OrderController extends Controller
 
             $order->update([
                 'total_price' => $totalPrice,
-                'remaining_amount' => $totalPrice - $order->paid_amount
+                'remaining_amount' => $totalPrice - $order->paid_amount,
             ]);
 
             DB::commit();
@@ -324,6 +385,7 @@ class OrderController extends Controller
             return redirect()->route('orders.index')->with('success', 'تم تحديث الطلب بنجاح');
         } catch (\Exception $e) {
             DB::rollBack();
+
             return redirect()->back()->with('fail', $e->getMessage());
         }
     }
@@ -338,6 +400,7 @@ class OrderController extends Controller
             ->back()
             ->with('success', 'تم حذف الطلب وجميع البيانات المرتبطة به بنجاح.');
     }
+
     public function restore($id)
     {
         $order = Order::findOrFail($id);
@@ -345,7 +408,7 @@ class OrderController extends Controller
         $order->restore();
 
         return response()->json([
-            'message' => 'Order restored successfully'
+            'message' => 'Order restored successfully',
         ]);
     }
 
@@ -356,37 +419,38 @@ class OrderController extends Controller
         $order->forceDelete();
 
         return response()->json([
-            'message' => 'Order permanently deleted'
+            'message' => 'Order permanently deleted',
         ]);
     }
 
     public function changeStatus(Request $request, $id)
     {
         $request->validate([
-            'status' => 'required|in:new,confirmed,cutting,sewing,finishing,ready-to-ship,shipped,delivered,canceled'
+            'status' => 'required|in:new,confirmed,cutting,sewing,finishing,ready-to-ship,shipped,delivered,canceled',
         ]);
 
         $order = Order::findOrFail($id);
 
         $order->update([
-            'status' => $request->status
+            'status' => $request->status,
         ]);
 
         return response()->json([
             'message' => 'تم تحديث الحالة بنجاح',
-            'data' => $order
+            'data' => $order,
         ]);
     }
+
     public function invoice($id)
     {
         $order = Order::with([
             'items',
-            'payments'
+            'payments',
         ])->withSum('payments', 'amount')
             ->findOrFail($id);
 
         return response()->json([
-            'invoice' => $order
+            'invoice' => $order,
         ]);
     }
 
@@ -397,7 +461,7 @@ class OrderController extends Controller
 
         return response()->json([
             'message' => 'Print invoice',
-            'data' => $order
+            'data' => $order,
         ]);
     }
 
@@ -446,7 +510,7 @@ class OrderController extends Controller
 
         return response()->json([
             'message' => 'Item added successfully',
-            'data' => $order->load('items')
+            'data' => $order->load('items'),
         ]);
     }
 
@@ -462,14 +526,14 @@ class OrderController extends Controller
 
         return response()->json([
             'message' => 'Item removed successfully',
-            'data' => $order->load('items')
+            'data' => $order->load('items'),
         ]);
     }
 
     public function updatePayment(Request $request, $id)
     {
         $request->validate([
-            'paid_amount' => 'required|numeric|min:0'
+            'paid_amount' => 'required|numeric|min:0',
         ]);
 
         $order = Order::findOrFail($id);
@@ -479,12 +543,12 @@ class OrderController extends Controller
 
         $order->update([
             'paid_amount' => $request->paid_amount,
-            'remaining_amount' => $remaining
+            'remaining_amount' => $remaining,
         ]);
 
         return response()->json([
             'message' => 'Payment updated successfully',
-            'data' => $order
+            'data' => $order,
         ]);
     }
 
@@ -497,8 +561,7 @@ class OrderController extends Controller
 
             'total_price' => $total,
 
-            'remaining_amount' =>
-            $total - $order->paid_amount
+            'remaining_amount' => $total - $order->paid_amount,
         ]);
     }
 }

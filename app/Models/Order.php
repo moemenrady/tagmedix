@@ -29,6 +29,31 @@ class Order extends Model
     {
         return $this->total_price - $this->getTotalPaid();
     }
+    public function getCustomerNameAttribute()
+    {
+        return $this->customer?->name ?? '';
+    }
+
+    public function getPhone1Attribute()
+    {
+        return $this->customer?->phone_1 ?? '';
+    }
+
+    public function getPhone2Attribute()
+    {
+        return $this->customer?->phone_2 ?? '';
+    }
+
+    public function getGovernorateAttribute()
+    {
+        return $this->address?->governorate ?? '';
+    }
+
+    public function getFullAddressAttribute()
+    {
+        return $this->address?->full_address ?? '';
+    }
+
     protected static function booted()
     {
         static::creating(function ($order) {

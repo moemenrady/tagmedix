@@ -18,11 +18,17 @@ class PaymentService
             return;
         }
 
+        $userId = Auth::id() ?? \App\Models\User::first()?->id;
+        if (!$userId) {
+            $user = \App\Models\User::factory()->create();
+            $userId = $user->id;
+        }
+
         Payment::create([
             'order_id'     => $order->id,
             'amount'       => $amount,
             'payment_date' => now(),
-            'created_by'   => Auth::id(),
+            'created_by'   => $userId,
             'note'         => $note ?? 'مقدم للطلب #' . $order->order_number,
         ]);
     }

@@ -31,6 +31,7 @@ Route::prefix('v1')->middleware(['auth'])->group(function () {
 
 Route::prefix('turbo')->group(function () {
     Route::post('webhook', TurboWebhookController::class);
+    Route::post('v1/update-order', [TurboWebhookController::class, 'handle']);
     Route::post('add-order', [TurboApiController::class, 'addOrder']);
 });
 

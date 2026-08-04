@@ -106,35 +106,40 @@ final class TurboService
         return $this->get('/external-api/get-government');
     }
 
-    public function getAreas(string $government): array
+    public function getAreas(int|string $governmentId): array
     {
-        return $this->get('/external-api/get-area/' . urlencode($government));
+        return $this->get('/external-api/get-area/'.$governmentId);
     }
 
-    public function resend(string $remoteOrderId): array
+    public function resend(int|string $turboId): array
     {
         return $this->post('/external-api/resend-request', $this->buildPayload([
-            'remote_order_id' => $remoteOrderId,
+            'id' => $turboId,
         ]));
     }
 
-    public function cancel(string $remoteOrderId): array
+    public function cancel(int|string $turboId): array
     {
         return $this->post('/external-api/canceled', $this->buildPayload([
-            'remote_order_id' => $remoteOrderId,
+            'id' => $turboId,
         ]));
     }
 
-    private function get(string $endpoint): array
+    private function get(string $endpoint, array $query = []): array
     {
         $start = $this->requestTime();
 
-        try {
-            $response = $this->client()->get($endpoint);
+        // Pass authentication_key in query parameters for GET requests
+        $queryParams = array_merge([
+            'authentication_key' => $this->authKey,
+        ], $query);
 
-            return $this->handleResponse($response, $endpoint, [], $start, 1);
+        try {
+            $response = $this->client()->get($endpoint, $queryParams);
+
+            return $this->handleResponse($response, $endpoint, $queryParams, $start, 1);
         } catch (Throwable $exception) {
-            $this->logException($endpoint, [], $start, $exception);
+            $this->logException($endpoint, $queryParams, $start, $exception);
 
             throw $exception;
         }

@@ -581,12 +581,12 @@
                 statusOpen: false,
 
                 customer: {
-                    name: '{{ addslashes($order->customer_name) }}',
-                    phone1: '{{ $order->phone_1 }}',
-                    phone2: '{{ $order->phone_2 }}',
-                    gov: '{{ addslashes($order->governorate) }}',
-                    address: '{{ addslashes($order->full_address) }}',
-                    insta: '{{ $order->instagram_profile }}'
+                    name: '{{ addslashes($order->customer?->name ?? $order->customer_name) }}',
+                    phone1: '{{ $order->customer?->phone_1 ?? $order->phone_1 }}',
+                    phone2: '{{ $order->customer?->phone_2 ?? $order->phone_2 }}',
+                    gov: '{{ addslashes($order->address?->governorate ?? $order->governorate) }}',
+                    address: '{{ addslashes($order->address?->full_address ?? $order->full_address) }}',
+                    insta: '{{ $order->customer?->instagram_profile ?? $order->instagram_profile }}'
                 },
 
                 statuses: [{

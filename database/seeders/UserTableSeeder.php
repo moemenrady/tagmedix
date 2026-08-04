@@ -7,37 +7,40 @@ use Illuminate\Database\Seeder;
 
 class UserTableSeeder extends Seeder
 {
-  /**
-   * Run the database seeds.
-   */
-  public function run(): void
-  {
-    /*
+    /**
+     * Run the database seeds.
+     */
+    public function run(): void
+    {
+        /*
         |--------------------------------------------------------------------------
         | Admin
         |--------------------------------------------------------------------------
         */
+        User::updateOrCreate(
+            ['email' => 'admin@dev.com'],
+            [
+                'name' => 'Admin',
+                'password' => 'password',
+                'role' => 'admin',
+                'email_verified_at' => now(),
+            ]
+        );
 
-    User::create([
-      'name' => 'Admin',
-      'email' => 'admin@tagmedix.com',
-      'password' => 'Qqwwee332211',
-      'role' => 'admin',
-
-    ]);
-
-    /*
+        /*
         |--------------------------------------------------------------------------
         | Supervisor
         |--------------------------------------------------------------------------
         */
-
-    User::create([
-      'name' => 'Supervisor',
-      'email' => 'supervisor@tagmedix.com',
-      'password' => 'Qqwwee332211',
-      'role' => 'supervisor',
-
-    ]);
-  }
+        User::updateOrCreate(
+            ['email' => 'supervisor@tagmedix.com'],
+            [
+                'name' => 'Supervisor',
+                'password' => 'Qqwwee332211',
+                'role' => 'supervisor',
+                'email_verified_at' => now(),
+            ]
+        );
+    }
 }
+

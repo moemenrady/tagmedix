@@ -17,6 +17,11 @@ final class TurboWebhookController extends Controller
 
     public function __invoke(Request $request): JsonResponse
     {
-        return $this->handler->__invoke($request);
+        return $this->handler->handle($request);
+    }
+
+    public function handle(Request $request): JsonResponse
+    {
+        return $this->handler->handle($request);
     }
 }

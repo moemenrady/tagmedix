@@ -3,7 +3,7 @@
 namespace App\Services\Turbo;
 
 use Illuminate\Http\Client\PendingRequest;
-use Illuminate\Http\UploadedFile;
+use Illuminate\Http\Client\Response;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use RuntimeException;
@@ -11,25 +11,18 @@ use RuntimeException;
 class TurboApiService
 {
     protected string $baseUrl;
-
-    protected string|int $mainClientCode;
-
-    protected string $authenticationKey;
+    protected string|int|null $mainClientCode;
+    protected ?string $authenticationKey;
 
     public function __construct()
     {
         $this->baseUrl = rtrim(
-            config('services.turbo_api.base_url'),
+            config('services.turbo_api.base_url', 'https://platform.turbo.info'),
             '/'
         );
 
-        $this->mainClientCode = config(
-            'services.turbo_api.main_client_code'
-        );
-
-        $this->authenticationKey = config(
-            'services.turbo_api.authentication_key'
-        );
+        $this->mainClientCode = config('services.turbo_api.main_client_code');
+        $this->authenticationKey = config('services.turbo_api.authentication_key');
     }
 
     /**
@@ -39,12 +32,8 @@ class TurboApiService
     {
         return Http::baseUrl($this->baseUrl)
             ->acceptJson()
-            ->timeout(
-                config('services.turbo_api.timeout', 30)
-            )
-            ->connectTimeout(
-                config('services.turbo_api.connect_timeout', 10)
-            )
+            ->timeout(config('services.turbo_api.timeout', 30))
+            ->connectTimeout(config('services.turbo_api.connect_timeout', 10))
             ->retry(
                 config('services.turbo_api.retry_times', 3),
                 config('services.turbo_api.retry_sleep', 500),
@@ -53,305 +42,136 @@ class TurboApiService
     }
 
     /**
-     * Authentication Query Parameters
+     * Authentication Parameters
      */
-    protected function authParams(
-        array $params = []
-    ): array {
-
+    protected function authParams(array $params = []): array
+    {
         return array_merge([
-
             'main_client_code' => $this->mainClientCode,
-
             'authentication_key' => $this->authenticationKey,
-
         ], $params);
     }
 
     /**
-     * Handle API Response
+     * Handle Response & Throw Exception on Failures
      */
-    protected function handleResponse($response): array
+    protected function handleResponse(Response $response): array
     {
-        if ($response->failed()) {
+        $data = $response->json() ?? [];
+
+        if ($response->failed() || (isset($data['success']) && $data['success'] === false)) {
+            $errorMessage = $data['message'] ?? 'Turbo API Request Failed';
 
             Log::error('Turbo API Error', [
-
                 'status' => $response->status(),
-
-                'body' => $response->body(),
-
+                'body'   => $response->body(),
             ]);
 
-            throw new RuntimeException(
-
-                'Turbo API request failed: ' .
-                    $response->status()
-
-            );
+            throw new RuntimeException($errorMessage, $response->status() ?: 400);
         }
 
-        return $response->json() ?? [];
+        return $data;
     }
 
     /*
     |--------------------------------------------------------------------------
-    | Turbo Metadata
+    | Shipment Management Integration
     |--------------------------------------------------------------------------
     */
 
     /**
-     * جلب فئات التذاكر
+     * Add New Order / Shipment
+     * POST /external-api/add-order
      */
-    public function getCategories(): array
+    public function addOrder(array $shipmentData): array
     {
-        $response = $this->client()->get(
-            '/external-api/turbo/categories',
-            $this->authParams()
-        );
+        $payload = $this->authParams([
+            'government'             => $shipmentData['government'] ?? null,
+            'area'                   => $shipmentData['area'] ?? null,
+            'address'                => $shipmentData['address'] ?? null,
+            'api_followup_phone'     => $shipmentData['api_followup_phone'] ?? null,
+            'amount_to_be_collected' => $shipmentData['amount_to_be_collected'] ?? 0,
+            'order_summary'          => $shipmentData['order_summary'] ?? null,
+            'weight'                 => $shipmentData['weight'] ?? 1,
+            'notes'                  => $shipmentData['notes'] ?? null,
+            'delivery_type'          => $shipmentData['delivery_type'] ?? 0,
+            'remote_order_id'        => $shipmentData['remote_order_id'] ?? null,
+            'receiver'               => $shipmentData['receiver'] ?? null,
+            'phone1'                 => $shipmentData['phone1'] ?? null,
+            'phone2'                 => $shipmentData['phone2'] ?? null,
+            'is_order'               => $shipmentData['is_order'] ?? "0",
+            'is_fragile'             => $shipmentData['is_fragile'] ?? 0,
+            'return_amount'          => $shipmentData['return_amount'] ?? 0,
+            'remote_shipment_id'     => $shipmentData['remote_shipment_id'] ?? null,
+            'return_summary'         => $shipmentData['return_summary'] ?? null,
+            'invoice_number'         => $shipmentData['invoice_number'] ?? null,
+        ]);
+
+        $response = $this->client()->post('/external-api/add-order', $payload);
 
         return $this->handleResponse($response);
     }
 
     /**
-     * جلب حالات التذاكر
+     * Update / Edit Existing Order
+     * POST /external-api/edit-order
      */
-    public function getStatuses(): array
+    public function editOrder(int|string $code, array $shipmentData): array
     {
-        $response = $this->client()->get(
-            '/external-api/turbo/statuses',
-            $this->authParams()
-        );
+        $payload = $this->authParams([
+            'code'                   => $code,
+            'government'             => $shipmentData['government'] ?? null,
+            'area'                   => $shipmentData['area'] ?? null,
+            'address'                => $shipmentData['address'] ?? null,
+            'api_followup_phone'     => $shipmentData['api_followup_phone'] ?? null,
+            'amount_to_be_collected' => $shipmentData['amount_to_be_collected'] ?? 0,
+            'order_summary'          => $shipmentData['order_summary'] ?? null,
+            'weight'                 => $shipmentData['weight'] ?? 1,
+            'notes'                  => $shipmentData['notes'] ?? null,
+            'delivery_type'          => $shipmentData['delivery_type'] ?? 0,
+            'remote_order_id'        => $shipmentData['remote_order_id'] ?? null,
+            'receiver'               => $shipmentData['receiver'] ?? null,
+            'phone1'                 => $shipmentData['phone1'] ?? null,
+            'phone2'                 => $shipmentData['phone2'] ?? null,
+            'is_order'               => $shipmentData['is_order'] ?? 1,
+            'is_fragile'             => $shipmentData['is_fragile'] ?? 0,
+            'return_amount'          => $shipmentData['return_amount'] ?? 0,
+            'return_summary'         => $shipmentData['return_summary'] ?? null,
+        ]);
+
+        $response = $this->client()->post('/external-api/edit-order', $payload);
 
         return $this->handleResponse($response);
     }
 
     /**
-     * جلب تعليمات التذاكر
+     * Cancel Order Request
+     * POST /external-api/canceled
      */
-    public function getInstructions(): array
+    public function cancelOrder(int|string $id): array
     {
-        $response = $this->client()->get(
-            '/external-api/turbo/instructions',
-            $this->authParams()
-        );
-
-        return $this->handleResponse($response);
-    }
-
-    /*
-    |--------------------------------------------------------------------------
-    | Turbo
-    |--------------------------------------------------------------------------
-    */
-
-    /**
-     * جلب جميع التذاكر
-     */
-    public function getTurbo(
-        array $filters = []
-    ): array {
-
-        $response = $this->client()->get(
-
-            '/external-api/turbo',
-
-            $this->authParams($filters)
-
-        );
-
-        return $this->handleResponse($response);
-    }
-
-    /**
-     * التحقق من إمكانية إنشاء تذكرة
-     */
-    public function canCreateTurbo(): array
-    {
-        $response = $this->client()->get(
-
-            '/external-api/turbo/can-create',
-
-            $this->authParams()
-
-        );
-
-        return $this->handleResponse($response);
-    }
-
-    /**
-     * إنشاء تذكرة جديدة
-     */
-    public function createTurbo(
-        int|string $categoryId,
-
-        string $content,
-
-        ?string $code = null,
-
-        array $media = []
-
-    ): array {
-
         $payload = [
-
-            'category_id' => $categoryId,
-
-            'content' => $content,
-
-            'code' => $code,
-
+            'authentication_key' => $this->authenticationKey,
+            'id'                 => $id,
         ];
 
-        return $this->sendMultipartRequest(
-
-            method: 'post',
-
-            endpoint: '/external-api/turbo/create',
-
-            payload: $payload,
-
-            media: $media
-
-        );
-    }
-
-    /**
-     * إضافة رسالة إلى تذكرة
-     */
-    public function addMessage(
-        int|string $turboId,
-
-        string $content,
-
-        array $media = []
-
-    ): array {
-
-        $payload = [
-
-            'Turbo_id' => $turboId,
-
-            'content' => $content,
-
-        ];
-
-        return $this->sendMultipartRequest(
-
-            method: 'post',
-
-            endpoint: "/external-api/turbo/{$turboId}/message-store",
-
-            payload: $payload,
-
-            media: $media
-
-        );
-    }
-
-    /**
-     * تقييم التذكرة
-     */
-    public function rateTurbo(
-
-        int|string $turboId,
-
-        int $rate
-
-    ): array {
-
-        $response = $this->client()->post(
-
-            "/external-api/turbo/{$turboId}/rate",
-
-            [
-
-                'rate' => $rate,
-
-            ]
-
-        );
+        $response = $this->client()->post('/external-api/canceled', $payload);
 
         return $this->handleResponse($response);
     }
 
     /**
-     * إجمالي التذاكر المفتوحة
+     * Get Shipments Status within a Date Range
+     * POST /external-api/get-status
      */
-    public function getTotalOpenTurbo(): array
+    public function getStatus(string $from, string $to): array
     {
-        $response = $this->client()->get(
+        $payload = $this->authParams([
+            'from' => $from,
+            'to'   => $to,
+        ]);
 
-            '/external-api/turbo/total-open-turbo',
-
-            $this->authParams()
-
-        );
-
-        return $this->handleResponse($response);
-    }
-
-    /*
-    |--------------------------------------------------------------------------
-    | Media
-    |--------------------------------------------------------------------------
-    */
-
-    /**
-     * إرسال Multipart Request
-     */
-    protected function sendMultipartRequest(
-
-        string $method,
-
-        string $endpoint,
-
-        array $payload,
-
-        array $media = []
-
-    ): array {
-
-        $request = $this->client()->asMultipart();
-
-        foreach ($payload as $key => $value) {
-
-            if ($value !== null) {
-
-                $request = $request->attach(
-
-                    $key,
-
-                    (string) $value
-
-                );
-            }
-        }
-
-        foreach ($media as $file) {
-
-            if ($file instanceof UploadedFile) {
-
-                $request = $request->attach(
-
-                    'media[]',
-
-                    fopen(
-                        $file->getRealPath(),
-                        'r'
-                    ),
-
-                    $file->getClientOriginalName()
-
-                );
-            }
-        }
-
-        $response = $request->$method(
-
-            $endpoint
-
-        );
+        $response = $this->client()->post('/external-api/get-status', $payload);
 
         return $this->handleResponse($response);
     }

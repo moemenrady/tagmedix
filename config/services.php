@@ -34,27 +34,15 @@ return [
             'channel' => env('SLACK_BOT_USER_DEFAULT_CHANNEL'),
         ],
     ],
+
     'turbo_api' => [
-
-        'base_url' => env(
-            'TURBO_API_BASE_URL',
-           'https://deprecated-admint.turbo.info'
-        ),
-
-        'main_client_code' => env(
-            'TURBO_MAIN_CLIENT_CODE'
-        ),
-
-        'authentication_key' => env(
-            'TURBO_AUTHENTICATION_KEY'
-        ),
-
-        'timeout' => 30,
-
-        'connect_timeout' => 10,
-
-        'retry_times' => 3,
-
-        'retry_sleep' => 500,
+        'base_url' => env('TURBO_BASE_URL', 'https://platform.turbo.info'),
+        'main_client_code' => env('TURBO_MAIN_CLIENT_CODE'),
+        'authentication_key' => env('TURBO_AUTHENTICATION_KEY'),
+        'timeout' => env('TURBO_TIMEOUT', 30),
+        'connect_timeout' => env('TURBO_CONNECT_TIMEOUT', 10),
+        'retry_times' => env('TURBO_RETRY_TIMES', 3),
+        'retry_sleep' => env('TURBO_RETRY_SLEEP', 500),
     ],
+
 ];

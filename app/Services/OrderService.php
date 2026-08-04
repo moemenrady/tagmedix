@@ -44,6 +44,28 @@ class OrderService
 
     protected function validateRequest(Request $request): array
     {
+        if (!$request->has('customer') && $request->has('customer_name')) {
+            $request->merge([
+                'customer' => [
+                    'name' => $request->input('customer_name'),
+                    'phone_1' => $request->input('phone_1'),
+                    'phone_2' => $request->input('phone_2'),
+                    'instagram_profile' => $request->input('instagram_profile'),
+                ]
+            ]);
+        }
+
+        if (!$request->has('address') && ($request->has('governorate') || $request->has('full_address'))) {
+            $request->merge([
+                'address' => [
+                    'country' => $request->input('country', 'مصر'),
+                    'governorate' => $request->input('governorate'),
+                    'city' => $request->input('city', $request->input('governorate', 'القاهرة')),
+                    'full_address' => $request->input('full_address'),
+                ]
+            ]);
+        }
+
         return $request->validate([
             'customer' => 'required|array',
             'customer.name' => 'required|string|max:255',

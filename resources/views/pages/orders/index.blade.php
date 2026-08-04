@@ -171,7 +171,7 @@
                     <tbody class="divide-y divide-gray-50">
                         @forelse($orders as $order)
                             <tr class="hover:bg-blue-50/30 transition-colors group" x-data="{ liveStatus: '{{ $order->status }}' }"
-                                x-show="matchesSearch('{{ $order->order_number }}', '{{ $order->customer_name }}', '{{ $order->phone_1 }}') && matchesFilter(liveStatus)"
+                                x-show="matchesSearch('{{ $order->order_number }}', '{{ addslashes($order->customer?->name ?? $order->customer_name) }}', '{{ $order->customer?->phone_1 ?? $order->phone_1 }}') && matchesFilter(liveStatus)"
                                 x-transition>
                                 <td class="px-6 py-4 text-gray-400 font-medium">{{ $loop->iteration }}</td>
 
@@ -186,12 +186,12 @@
                                     <div class="flex items-center gap-3">
                                         <div
                                             class="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center text-gray-500 font-bold shrink-0">
-                                            {{ mb_substr($order->customer_name, 0, 1) }}
+                                            {{ mb_substr($order->customer?->name ?? $order->customer_name, 0, 1) }}
                                         </div>
                                         <div class="flex flex-col">
-                                            <span class="font-bold text-gray-800">{{ $order->customer_name }}</span>
+                                            <span class="font-bold text-gray-800">{{ $order->customer?->name ?? $order->customer_name }}</span>
                                             <span class="text-xs text-gray-500 font-mono tracking-wider"
-                                                dir="ltr">{{ $order->phone_1 }}</span>
+                                                dir="ltr">{{ $order->customer?->phone_1 ?? $order->phone_1 }}</span>
                                         </div>
                                     </div>
                                 </td>
