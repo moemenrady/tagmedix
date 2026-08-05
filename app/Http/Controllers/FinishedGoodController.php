@@ -74,6 +74,9 @@ class FinishedGoodController extends Controller
         $phone2 = $order->customer?->phone_2 ?? $order->phone_2 ?? '';
         $governorate = $order->address?->governorate ?? $order->governorate ?? '';
         $fullAddress = $order->address?->full_address ?? $order->full_address ?? '';
+        $defaultGovernment = $order->address?->turbo_government
+            ?? ($governorate ? 'مصر-' . $governorate : '');
+        $defaultArea = $order->address?->turbo_area ?? '';
 
         $validated = $request->validate([
             'government'             => 'required|string',
@@ -99,8 +102,8 @@ class FinishedGoodController extends Controller
 
         try {
             $shipmentPayload = [
-                'government'             => $validated['government'] ?? $governorate,
-                'area'                   => $validated['area'] ?? null,
+                'government'             => $validated['government'] ?? $defaultGovernment,
+                'area'                   => $validated['area'] ?? $defaultArea ?: null,
                 'address'                => $validated['address'] ?? $fullAddress,
                 'api_followup_phone'     => $validated['api_followup_phone'] ?? $phone1,
                 'amount_to_be_collected' => isset($validated['amount_to_be_collected']) ? (float) $validated['amount_to_be_collected'] : $order->getRemainingAmount(),

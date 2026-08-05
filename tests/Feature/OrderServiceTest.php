@@ -79,4 +79,32 @@ describe('OrderService', function () {
         expect($order->total_price)->toBe(500.00);
         expect($order->payments)->toHaveCount(1);
     });
+
+    it('stores international shipping addresses with the destination country', function () {
+        $requestData = [
+            'customer_name' => 'International Customer',
+            'phone_1' => '01099999999',
+            'address' => [
+                'country' => 'مصر',
+                'governorate' => 'شحن دولي',
+                'area' => 'اليابان',
+                'full_address' => 'test',
+            ],
+            'source' => 'new',
+            'items' => [
+                [
+                    'quantity' => 1,
+                    'price' => 500,
+                ],
+            ],
+        ];
+
+        $service = app(OrderService::class);
+        $order = $service->store(new Request($requestData));
+
+        expect($order->address->country)->toBe('اليابان');
+        expect($order->address->governorate)->toBe('شحن دولي');
+        expect($order->address->city)->toBe('');
+        expect($order->address->turbo_government)->toBe('اليابان-شحن دولي');
+    });
 });

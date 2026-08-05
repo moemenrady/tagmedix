@@ -11,6 +11,8 @@ use Throwable;
 
 class OrderService
 {
+    private const INTERNATIONAL_GOVERNORATE = 'شحن دولي';
+
     public function __construct(
         protected PaymentService $paymentService
     ) {}
@@ -62,8 +64,12 @@ class OrderService
                     'governorate' => $request->input('governorate'),
                     'city' => $request->input('city', $request->input('governorate', 'القاهرة')),
                     'full_address' => $request->input('full_address'),
-                ]
+                ],
             ]);
+        }
+
+        if ($request->has('address')) {
+            $this->normalizeAddress($request);
         }
 
         return $request->validate([
@@ -76,7 +82,7 @@ class OrderService
             'address' => 'required|array',
             'address.country' => 'required|string|max:255',
             'address.governorate' => 'required|string|max:255',
-            'address.city' => 'required|string|max:255',
+            'address.city' => 'required_unless:address.governorate,' . self::INTERNATIONAL_GOVERNORATE . '|nullable|string|max:255',
             'address.full_address' => 'required|string',
 
             'source' => 'required|in:new,from_stock,replacement',
@@ -96,6 +102,36 @@ class OrderService
             'items.*.quantity' => 'required|integer|min:1',
             'items.*.price' => 'required|numeric|min:0',
             'items.*.notes' => 'nullable|string',
+        ]);
+    }
+
+    protected function normalizeAddress(Request $request): void
+    {
+        $address = $request->input('address', []);
+        $governorate = trim((string) ($address['governorate'] ?? ''));
+        $area = trim((string) ($address['area'] ?? ''));
+
+        if ($governorate === self::INTERNATIONAL_GOVERNORATE) {
+            $destinationCountry = $area !== '' ? $area : trim((string) ($address['country'] ?? ''));
+
+            $request->merge([
+                'address' => array_merge($address, [
+                    'country' => $destinationCountry,
+                    'governorate' => self::INTERNATIONAL_GOVERNORATE,
+                    'city' => '',
+                ]),
+            ]);
+
+            return;
+        }
+
+        $request->merge([
+            'address' => array_merge($address, [
+                'country' => $address['country'] ?? 'مصر',
+                'city' => $area !== ''
+                    ? $area
+                    : ($address['city'] ?? ($governorate !== '' ? $governorate : 'القاهرة')),
+            ]),
         ]);
     }
 

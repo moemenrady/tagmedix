@@ -487,6 +487,7 @@
                         </div>
 
                         {{-- Hidden inputs to maintain payload compatibility --}}
+                        <input type="hidden" name="area" x-model="shipForm.area">
                         <input type="hidden" name="remote_order_id" x-model="shipForm.remote_order_id">
                         <input type="hidden" name="weight" value="1">
                         <input type="hidden" name="is_order" value="0">
@@ -535,6 +536,7 @@
                     phone1: '',
                     phone2: '',
                     government: '',
+                    area: '',
                     address: '',
                     amount_to_be_collected: 0,
                     return_amount: 0,
@@ -558,6 +560,10 @@
                     const p1 = order.customer ? order.customer.phone_1 : (order.phone_1 || '');
                     const p2 = order.customer ? order.customer.phone_2 : (order.phone_2 || '');
                     const gov = order.address ? order.address.governorate : (order.governorate || '');
+                    const government = order.address
+                        ? (order.address.turbo_government || (gov ? `مصر-${gov}` : ''))
+                        : (gov ? `مصر-${gov}` : '');
+                    const area = order.address ? (order.address.turbo_area || '') : '';
                     const addr = order.address ? order.address.full_address : (order.full_address || '');
 
                     this.shipForm = {
@@ -565,7 +571,8 @@
                         api_followup_phone: '',
                         phone1: p1,
                         phone2: p2,
-                        government: gov,
+                        government: government,
+                        area: area,
                         address: addr,
                         amount_to_be_collected: remaining,
                         return_amount: 0,

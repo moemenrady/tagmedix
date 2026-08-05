@@ -74,11 +74,11 @@ class OrderController extends Controller
                 ->sum('total_price'),
 
             'paid_amount' => $orders->sum(
-                fn ($order) => $order->getTotalPaid()
+                fn($order) => $order->getTotalPaid()
             ),
 
             'remaining_payments' => $orders->sum(
-                fn ($order) => $order->getRemainingAmount()
+                fn($order) => $order->getRemainingAmount()
             ),
         ];
         $statusMap = [
@@ -172,14 +172,18 @@ class OrderController extends Controller
 
         try {
             $response = $turboService->getGovernments();
-            // استخراج البيانات من feed أو data أو المفتاح الرئيسي
-            $governments = $response['feed'] ?? $response['data'] ?? (is_array($response) ? $response : []);
+            $governments = $response['feed'] ?? $response['data'] ?? [];
         } catch (\Throwable $e) {
-            \Log::error('Turbo API Error: '.$e->getMessage());
+            \Log::error('Turbo API Error: ' . $e->getMessage());
         }
 
         return view('pages.orders.create', compact(
-            'colors', 'sizes', 'styles', 'types', 'pantTypes', 'governments'
+            'colors',
+            'sizes',
+            'styles',
+            'types',
+            'pantTypes',
+            'governments'
         ));
     }
 
@@ -193,7 +197,7 @@ class OrderController extends Controller
 
             return response()->json($areas);
         } catch (\Throwable $e) {
-            \Log::error('Turbo Areas API Error: '.$e->getMessage());
+            \Log::error('Turbo Areas API Error: ' . $e->getMessage());
 
             return response()->json(['error' => 'Failed to fetch areas'], 500);
         }
@@ -202,30 +206,6 @@ class OrderController extends Controller
     public function store(Request $request)
     {
         try {
-            // في الـ OrderController أو الـ FormRequest الخاص بالطلب
-
-            // دمج القيم الافتراضية احترافياً إذا لم تكن موجودة ببيانات الطلب
-            $request->merge([
-                'address' => array_merge([
-                    'country' => 'Egypt',
-                    'city' => $request->input('address.governorate_name', 'Alexandria'),
-                ], $request->input('address', [])),
-            ]);
-
-            // Validation Rules
-            $validatedData = $request->validate([
-                'customer_name' => 'required|string|max:255',
-                'phone_1' => 'required|string|max:20',
-                'address.country' => 'required|string',
-                'address.city' => 'required|string',
-                'address.governorate' => 'required',
-                'address.area' => 'required',
-                'address.full_address' => 'required|string|max:500',
-                'items' => 'required|array|min:1',
-            ]);
-
-            // ... تنفيذ عملية حفظ الطلب
-
             $order = $this->orderService->store($request);
 
             return redirect()
@@ -236,7 +216,7 @@ class OrderController extends Controller
         } catch (\Throwable $e) {
             return back()
                 ->withInput()
-                ->with('fail', 'حدث خطأ: '.$e->getMessage());
+                ->with('fail', 'حدث خطأ: ' . $e->getMessage());
         }
     }
 

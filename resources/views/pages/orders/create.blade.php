@@ -86,35 +86,42 @@
                                     class="w-full h-[46px] px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#8A704C] focus:bg-white transition-all text-sm font-semibold text-gray-800 font-sans tracking-wide">
                             </div>
 
-                            <!-- المحافظة -->
-                            <div class="relative">
-                                <label class="block text-xs font-bold text-gray-600 mb-2">المحافظة <span class="text-red-500">*</span></label>
-                                <input type="hidden" name="address[governorate]" id="governorate_id_hidden" value="{{ old('address.governorate') }}" required>
-                                
-                                <div id="gov_trigger" class="w-full h-[46px] px-4 bg-gray-50 border border-gray-200 rounded-xl flex items-center justify-between cursor-pointer hover:bg-white focus-within:ring-2 focus-within:ring-[#8A704C] transition-all">
-                                    <span id="gov_selected_text" class="text-sm font-medium text-gray-400">اختر أو ابحث عن المحافظة...</span>
-                                    <i class="fa-solid fa-chevron-down text-xs text-gray-400 transition-transform duration-200" id="gov_arrow"></i>
-                                </div>
+                            <input type="hidden" name="address[country]" id="country_hidden" value="{{ old('address.country', 'مصر') }}">
+                            <input type="hidden" name="address[city]" id="city_hidden" value="{{ old('address.city') }}">
 
-                                <div id="gov_dropdown" class="hidden absolute top-full right-0 left-0 mt-2 bg-white border border-gray-100 rounded-2xl shadow-xl z-50 p-2 animate-fade-in">
-                                    <div class="relative mb-2">
-                                        <i class="fa-solid fa-magnifying-glass absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 text-xs"></i>
-                                        <input type="text" id="gov_search_input" placeholder="ابحث باسم المحافظة..." class="w-full pl-3 pr-8 py-2 text-xs bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-1 focus:ring-[#8A704C]">
-                                    </div>
-                                    <div id="gov_options_list" class="custom-select-dropdown space-y-1">
-                                        @foreach($governments as $gov)
-                                            <div data-value="{{ $gov['id'] }}" class="gov-option text-xs font-medium text-gray-700 px-3 py-2.5 rounded-xl hover:bg-[#8A704C]/10 hover:text-[#8A704C] cursor-pointer transition-all flex items-center justify-between">
-                                                <span>{{ trim($gov['name']) }}</span>
-                                                <i class="fa-solid fa-check text-[#8A704C] hidden"></i>
-                                            </div>
-                                        @endforeach
-                                    </div>
-                                </div>
-                            </div>
+                            <div class="relative">
+    <label class="block text-xs font-bold text-gray-600 mb-2">المحافظة <span class="text-red-500">*</span></label>
+    <input type="hidden" name="address[governorate]" id="governorate_id_hidden" value="{{ old('address.governorate') }}" required>
+    
+    <div id="gov_trigger" class="w-full h-[46px] px-4 bg-gray-50 border border-gray-200 rounded-xl flex items-center justify-between cursor-pointer hover:bg-white focus-within:ring-2 focus-within:ring-[#8A704C] transition-all">
+        <span id="gov_selected_text" class="text-sm font-medium text-gray-400">اختر أو ابحث عن المحافظة...</span>
+        <i class="fa-solid fa-chevron-down text-xs text-gray-400 transition-transform duration-200" id="gov_arrow"></i>
+    </div>
+
+    <div id="gov_dropdown" class="hidden absolute top-full right-0 left-0 mt-2 bg-white border border-gray-100 rounded-2xl shadow-xl z-50 p-2 animate-fade-in">
+        <div class="relative mb-2">
+            <i class="fa-solid fa-magnifying-glass absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 text-xs"></i>
+            <input type="text" id="gov_search_input" placeholder="ابحث باسم المحافظة..." class="w-full pl-3 pr-8 py-2 text-xs bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-1 focus:ring-[#8A704C]">
+        </div>
+        <div id="gov_options_list" class="custom-select-dropdown space-y-1">
+            @foreach($governments as $gov)
+                @php
+                    $isObject = is_array($gov);
+                    $govName = trim($isObject ? ($gov['name'] ?? '') : $gov);
+                    $govId = $isObject ? ($gov['id'] ?? $govName) : $govName;
+                @endphp
+                <div data-id="{{ $govId }}" data-name="{{ $govName }}" class="gov-option text-xs font-medium text-gray-700 px-3 py-2.5 rounded-xl hover:bg-[#8A704C]/10 hover:text-[#8A704C] cursor-pointer transition-all flex items-center justify-between">
+                    <span>{{ $govName }}</span>
+                    <i class="fa-solid fa-check text-[#8A704C] hidden"></i>
+                </div>
+            @endforeach
+        </div>
+    </div>
+</div>
 
                             <!-- المنطقة / الحي -->
                             <div class="relative">
-                                <label class="block text-xs font-bold text-gray-600 mb-2">المنطقة / الحي <span class="text-red-500">*</span></label>
+                                <label id="area_field_label" class="block text-xs font-bold text-gray-600 mb-2">المنطقة / الحي <span class="text-red-500">*</span></label>
                                 <input type="hidden" name="address[area]" id="area_id_hidden" value="{{ old('address.area') }}" required>
                                 
                                 <div id="area_trigger" class="w-full h-[46px] px-4 bg-gray-100 border border-gray-200 rounded-xl flex items-center justify-between cursor-not-allowed opacity-70 transition-all">
@@ -350,7 +357,30 @@
         const govOptionsList = document.getElementById('gov_options_list');
         const govSelectedText = document.getElementById('gov_selected_text');
         const govHiddenInput = document.getElementById('governorate_id_hidden');
+        const cityHiddenInput = document.getElementById('city_hidden');
+        const countryHiddenInput = document.getElementById('country_hidden');
+        const areaFieldLabel = document.getElementById('area_field_label');
         const govArrow = document.getElementById('gov_arrow');
+        const INTERNATIONAL_GOV = 'شحن دولي';
+
+        function isInternationalShipping() {
+            return govHiddenInput.value.trim() === INTERNATIONAL_GOV;
+        }
+
+        function setDomesticDefaults() {
+            if (countryHiddenInput) countryHiddenInput.value = 'مصر';
+            if (areaFieldLabel) {
+                areaFieldLabel.innerHTML = 'المنطقة / الحي <span class="text-red-500">*</span>';
+            }
+        }
+
+        function prepareInternationalGov(clearCountry = true) {
+            if (clearCountry && countryHiddenInput) countryHiddenInput.value = '';
+            if (clearCountry && cityHiddenInput) cityHiddenInput.value = '';
+            if (areaFieldLabel) {
+                areaFieldLabel.innerHTML = 'الدولة <span class="text-red-500">*</span>';
+            }
+        }
 
         const areaTrigger = document.getElementById('area_trigger');
         const areaDropdown = document.getElementById('area_dropdown');
@@ -392,76 +422,105 @@
         });
 
         govOptionsList.querySelectorAll('.gov-option').forEach(opt => {
-            opt.addEventListener('click', function() {
-                const val = this.getAttribute('data-value');
-                const text = this.querySelector('span').innerText.trim();
+    opt.addEventListener('click', function() {
+        const govId = this.getAttribute('data-id');
+        const govName = this.getAttribute('data-name');
 
-                govHiddenInput.value = val;
-                govSelectedText.innerText = text;
-                govSelectedText.classList.remove('text-gray-400');
-                govSelectedText.classList.add('text-gray-800');
+        govHiddenInput.value = govName;
+        if (cityHiddenInput) {
+            cityHiddenInput.value = '';
+        }
 
-                govOptionsList.querySelectorAll('.gov-option').forEach(o => o.querySelector('i').classList.add('hidden'));
-                this.querySelector('i').classList.remove('hidden');
+        if (govName === INTERNATIONAL_GOV) {
+            prepareInternationalGov(true);
+        } else {
+            setDomesticDefaults();
+        }
+        
+        // 2. تحديث الشكل المظهر
+        govSelectedText.innerText = govName;
+        govSelectedText.classList.remove('text-gray-400');
+        govSelectedText.classList.add('text-gray-800');
 
-                govDropdown.classList.add('hidden');
-                govArrow.classList.remove('rotate-180');
+        govOptionsList.querySelectorAll('.gov-option').forEach(o => o.querySelector('i').classList.add('hidden'));
+        this.querySelector('i').classList.remove('hidden');
 
-                loadAreasForGovernorate(val);
-            });
-        });
+        govDropdown.classList.add('hidden');
+        govArrow.classList.remove('rotate-180');
 
-        function loadAreasForGovernorate(govId) {
-            areaHiddenInput.value = '';
-            areaSelectedText.innerText = 'جاري تحميل المناطق...';
-            areaSelectedText.classList.add('text-gray-400');
-            
-            areaTrigger.classList.remove('cursor-not-allowed', 'opacity-70', 'bg-gray-100');
-            areaTrigger.classList.add('cursor-pointer', 'hover:bg-white');
-            isAreaEnabled = true;
+        // 3. استدعاء المناطق باستخدام الـ ID أو الاسم
+        loadAreasForGovernorate(govId, govName);
+    });
+});
 
-            fetch(`/orders/get-areas/${govId}`)
-                .then(res => res.json())
-                .then(res => {
-                    const areas = Array.isArray(res) ? res : (res.feed || res.data || []);
-                    areaOptionsList.innerHTML = '';
+function loadAreasForGovernorate(govId, govName) {
+    areaHiddenInput.value = '';
+    areaSelectedText.innerText = 'جاري تحميل المناطق...';
+    areaSelectedText.classList.add('text-gray-400');
+    
+    areaTrigger.classList.remove('cursor-not-allowed', 'opacity-70', 'bg-gray-100');
+    areaTrigger.classList.add('cursor-pointer', 'hover:bg-white');
+    isAreaEnabled = true;
 
-                    if (!areas || areas.length === 0) {
-                        areaSelectedText.innerText = 'لا توجد مناطق متاحة';
-                        areaOptionsList.innerHTML = '<div class="text-xs text-gray-400 p-3 text-center">لا توجد مناطق متاحة لهذه المحافظة</div>';
-                        return;
+    // استخدام الـ ID المتاح وإذا لم يوجد يتم إرسال الاسم
+    const targetParam = govId || govName;
+
+    fetch(`/orders/get-areas/${encodeURIComponent(targetParam)}`)
+        .then(res => res.json())
+        .then(res => {
+            const areas = Array.isArray(res) ? res : (res.feed || res.data || []);
+            areaOptionsList.innerHTML = '';
+
+            if (!areas || areas.length === 0) {
+                areaSelectedText.innerText = 'لا توجد مناطق متاحة';
+                areaOptionsList.innerHTML = '<div class="text-xs text-gray-400 p-3 text-center">لا توجد مناطق متاحة لهذه المحافظة</div>';
+                return;
+            }
+
+            areaSelectedText.innerText = 'اختر أو ابحث عن المنطقة...';
+
+            areas.forEach(area => {
+                const isObj = typeof area === 'object' && area !== null;
+                const areaName = (isObj ? (area.name || area.title || '') : String(area ?? '')).trim();
+
+                if (!areaName || /^\d+$/.test(areaName)) {
+                    return;
+                }
+
+                const item = document.createElement('div');
+                item.className = 'area-option text-xs font-medium text-gray-700 px-3 py-2.5 rounded-xl hover:bg-[#8A704C]/10 hover:text-[#8A704C] cursor-pointer transition-all flex items-center justify-between';
+                item.setAttribute('data-value', areaName);
+                item.innerHTML = `<span>${areaName}</span><i class="fa-solid fa-check text-[#8A704C] hidden"></i>`;
+                
+                item.addEventListener('click', function() {
+                    areaHiddenInput.value = areaName;
+
+                    if (isInternationalShipping()) {
+                        if (countryHiddenInput) countryHiddenInput.value = areaName;
+                        if (cityHiddenInput) cityHiddenInput.value = '';
+                    } else if (cityHiddenInput) {
+                        cityHiddenInput.value = areaName;
                     }
 
-                    areaSelectedText.innerText = 'اختر أو ابحث عن المنطقة...';
+                    areaSelectedText.innerText = areaName;
+                    areaSelectedText.classList.remove('text-gray-400');
+                    areaSelectedText.classList.add('text-gray-800');
 
-                    areas.forEach(area => {
-                        const cleanName = area.name.trim();
-                        const item = document.createElement('div');
-                        item.className = 'area-option text-xs font-medium text-gray-700 px-3 py-2.5 rounded-xl hover:bg-[#8A704C]/10 hover:text-[#8A704C] cursor-pointer transition-all flex items-center justify-between';
-                        item.setAttribute('data-value', area.id);
-                        item.innerHTML = `<span>${cleanName}</span><i class="fa-solid fa-check text-[#8A704C] hidden"></i>`;
-                        
-                        item.addEventListener('click', function() {
-                            areaHiddenInput.value = area.id;
-                            areaSelectedText.innerText = cleanName;
-                            areaSelectedText.classList.remove('text-gray-400');
-                            areaSelectedText.classList.add('text-gray-800');
+                    areaOptionsList.querySelectorAll('.area-option').forEach(o => o.querySelector('i').classList.add('hidden'));
+                    this.querySelector('i').classList.remove('hidden');
 
-                            areaOptionsList.querySelectorAll('.area-option').forEach(o => o.querySelector('i').classList.add('hidden'));
-                            this.querySelector('i').classList.remove('hidden');
-
-                            areaDropdown.classList.add('hidden');
-                            areaArrow.classList.remove('rotate-180');
-                        });
-
-                        areaOptionsList.appendChild(item);
-                    });
-                })
-                .catch(err => {
-                    console.error(err);
-                    areaSelectedText.innerText = 'حدث خطأ في تحميل المناطق';
+                    areaDropdown.classList.add('hidden');
+                    areaArrow.classList.remove('rotate-180');
                 });
-        }
+
+                areaOptionsList.appendChild(item);
+            });
+        })
+        .catch(err => {
+            console.error(err);
+            areaSelectedText.innerText = 'حدث خطأ في تحميل المناطق';
+        });
+}
 
         areaTrigger.addEventListener('click', () => {
             if (!isAreaEnabled) return;
@@ -555,6 +614,46 @@
         addItemBtn.addEventListener('click', addNewItemRow);
 
         addNewItemRow();
+
+        const oldGovName = govHiddenInput.value.trim();
+        if (oldGovName) {
+            if (oldGovName === INTERNATIONAL_GOV) {
+                prepareInternationalGov(false);
+            } else {
+                setDomesticDefaults();
+            }
+
+            govSelectedText.innerText = oldGovName;
+            govSelectedText.classList.remove('text-gray-400');
+            govSelectedText.classList.add('text-gray-800');
+
+            const matchingGov = Array.from(govOptionsList.querySelectorAll('.gov-option'))
+                .find(opt => opt.getAttribute('data-name') === oldGovName);
+
+            if (matchingGov) {
+                matchingGov.querySelector('i').classList.remove('hidden');
+                loadAreasForGovernorate(matchingGov.getAttribute('data-id'), oldGovName);
+
+                const oldAreaName = areaHiddenInput.value.trim();
+                if (oldAreaName) {
+                    setTimeout(() => {
+                        const matchingArea = Array.from(areaOptionsList.querySelectorAll('.area-option'))
+                            .find(opt => opt.getAttribute('data-value') === oldAreaName || opt.innerText.trim() === oldAreaName);
+
+                        if (matchingArea) {
+                            areaHiddenInput.value = oldAreaName;
+                            if (isInternationalShipping() && countryHiddenInput) {
+                                countryHiddenInput.value = oldAreaName;
+                            }
+                            areaSelectedText.innerText = oldAreaName;
+                            areaSelectedText.classList.remove('text-gray-400');
+                            areaSelectedText.classList.add('text-gray-800');
+                            matchingArea.querySelector('i').classList.remove('hidden');
+                        }
+                    }, 500);
+                }
+            }
+        }
     });
 </script>
 @endpush
