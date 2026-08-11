@@ -432,8 +432,15 @@
 
                             {{-- الموقع (المحافظة) --}}
                             <div>
-                                <label class="block text-xs font-semibold text-gray-700 mb-1">الموقع <span class="text-rose-500">*</span></label>
-                                <input type="text" name="government" x-model="shipForm.government" placeholder="مثال: مصر-المنوفيه-الباجور" required
+                                <label class="block text-xs font-semibold text-gray-700 mb-1">المحافظة <span class="text-rose-500">*</span></label>
+                                <input type="text" name="government" x-model="shipForm.government" placeholder="اسم المحافظة" required
+                                    class="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-xs focus:bg-white focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500">
+                            </div>
+
+                            {{-- المنطقة --}}
+                            <div>
+                                <label class="block text-xs font-semibold text-gray-700 mb-1">المنطقة <span class="text-rose-500">*</span></label>
+                                <input type="text" name="area" x-model="shipForm.area" placeholder="اسم المنطقة أو الحي" required
                                     class="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-xs focus:bg-white focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500">
                             </div>
 
@@ -535,6 +542,7 @@
                     phone1: '',
                     phone2: '',
                     government: '',
+                    area: '',
                     address: '',
                     amount_to_be_collected: 0,
                     return_amount: 0,
@@ -558,6 +566,7 @@
                     const p1 = order.customer ? order.customer.phone_1 : (order.phone_1 || '');
                     const p2 = order.customer ? order.customer.phone_2 : (order.phone_2 || '');
                     const gov = order.address ? order.address.governorate : (order.governorate || '');
+                    const area = order.address ? order.address.city : '';
                     const addr = order.address ? order.address.full_address : (order.full_address || '');
 
                     this.shipForm = {
@@ -566,6 +575,7 @@
                         phone1: p1,
                         phone2: p2,
                         government: gov,
+                        area: area,
                         address: addr,
                         amount_to_be_collected: remaining,
                         return_amount: 0,
