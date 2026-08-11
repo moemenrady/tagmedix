@@ -12,54 +12,41 @@ class SupplierController extends Controller
      */
     public function index()
     {
-        return view('pages.suppliers.index');
+        $suppliers = Supplier::all();
+        return view('pages.suppliers.index', compact('suppliers'));
     }
 
-    /**
-     * Show the form for creating a new resource.
-     */
-    public function create()
-    {
-        //
-    }
-
-    /**
-     * Store a newly created resource in storage.
-     */
-    public function store(Request $request)
-    {
-        //
-    }
-
-    /**
-     * Display the specified resource.
-     */
     public function show(Supplier $supplier)
     {
-        //
+
+        return view('pages.suppliers.show', compact(
+            'supplier',
+        ));
+    }
+    public function create()
+    {
+        return view('pages.suppliers.create'); // فتح صفحة الإضافة
     }
 
-    /**
-     * Show the form for editing the specified resource.
-     */
-    public function edit(Supplier $supplier)
+    public function store(Request $request)
     {
-        //
+        Supplier::create($request->all());
+        return redirect()->route('suppliers.index')->with('success', 'تم إضافة المورد بنجاح');
     }
 
-    /**
-     * Update the specified resource in storage.
-     */
-    public function update(Request $request, Supplier $supplier)
+    public function update(Request $request, $id)
     {
-        //
+        $supplier = Supplier::findOrFail($id);
+        $supplier->update($request->all());
+        return $supplier;
     }
 
-    /**
-     * Remove the specified resource from storage.
-     */
-    public function destroy(Supplier $supplier)
+    public function destroy($id)
     {
-        //
+        $supplier = Supplier::findOrFail($id);
+        $supplier->delete();
+        return response()->noContent();
     }
+
+ 
 }

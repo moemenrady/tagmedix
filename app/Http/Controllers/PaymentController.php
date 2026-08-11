@@ -2,63 +2,66 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Controllers\Controller;
+use App\Models\Order;
 use App\Models\Payment;
+use App\Services\PaymentService;
 use Illuminate\Http\Request;
 
 class PaymentController extends Controller
 {
-    /**
-     * Display a listing of the resource.
-     */
-  public function index()
+    protected PaymentService $paymentService;
+
+    public function __construct(PaymentService $paymentService)
     {
-        return view('pages.payments.index');
+        $this->paymentService = $paymentService;
     }
-    /**
-     * Show the form for creating a new resource.
-     */
+
+    public function index()
+    {
+        return view('pages.payments.index', [
+            'payments' => $this->paymentService->getAll()
+        ]);
+    }
+
     public function create()
     {
-        //
-    }
+        $orders = Order::latest()->get();
 
-    /**
-     * Store a newly created resource in storage.
-     */
+        return view('pages.payments.create', compact('orders'));
+    }
     public function store(Request $request)
     {
-        //
+        $payment = $this->paymentService->create($request);
+
+        return response()->json([
+            'message' => 'Payment created successfully.',
+            'data' => $payment
+        ], 201);
     }
 
-    /**
-     * Display the specified resource.
-     */
     public function show(Payment $payment)
     {
-        //
+        return response()->json(
+            $this->paymentService->show($payment)
+        );
     }
 
-    /**
-     * Show the form for editing the specified resource.
-     */
-    public function edit(Payment $payment)
-    {
-        //
-    }
-
-    /**
-     * Update the specified resource in storage.
-     */
     public function update(Request $request, Payment $payment)
     {
-        //
+        $payment = $this->paymentService->update($request, $payment);
+
+        return response()->json([
+            'message' => 'Payment updated successfully.',
+            'data' => $payment
+        ]);
     }
 
-    /**
-     * Remove the specified resource from storage.
-     */
     public function destroy(Payment $payment)
     {
-        //
+        $this->paymentService->delete($payment);
+
+        return redirect()->back()->with('success', 'تم حذف الدفعة بنجاح');
     }
+   
 }
