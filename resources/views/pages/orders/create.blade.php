@@ -38,6 +38,16 @@
             </div>
         @endif
 
+        @if (session('fail'))
+            <div class="mb-6 p-5 bg-red-50 border-r-4 border-red-500 text-red-700 rounded-2xl shadow-sm animate-fade-in">
+                <div class="flex items-center gap-2 mb-2">
+                    <i class="fa-solid fa-triangle-exclamation text-lg"></i>
+                    <p class="font-bold">حدث خطأ:</p>
+                </div>
+                <p class="text-sm mr-5">{{ session('fail') }}</p>
+            </div>
+        @endif
+
         <form action="{{ route('orders.store') }}" method="POST" id="orderForm">
             @csrf
 
@@ -392,26 +402,27 @@
         });
 
         govOptionsList.querySelectorAll('.gov-option').forEach(opt => {
-            opt.addEventListener('click', function() {
-                const val = this.getAttribute('data-value');
-                const text = this.querySelector('span').innerText.trim();
+    opt.addEventListener('click', function() {
+        const val = this.getAttribute('data-value');
+        const text = this.querySelector('span').innerText.trim();
 
-                govHiddenInput.value = val;
-                govSelectedText.innerText = text;
-                govSelectedText.classList.remove('text-gray-400');
-                govSelectedText.classList.add('text-gray-800');
+        // Pass the name (text) instead of ID (val)
+        govHiddenInput.value = text;
+        
+        govSelectedText.innerText = text;
+        govSelectedText.classList.remove('text-gray-400');
+        govSelectedText.classList.add('text-gray-800');
 
-                govOptionsList.querySelectorAll('.gov-option').forEach(o => o.querySelector('i').classList.add('hidden'));
-                this.querySelector('i').classList.remove('hidden');
+        govOptionsList.querySelectorAll('.gov-option').forEach(o => o.querySelector('i').classList.add('hidden'));
+        this.querySelector('i').classList.remove('hidden');
 
-                govDropdown.classList.add('hidden');
-                govArrow.classList.remove('rotate-180');
+        govDropdown.classList.add('hidden');
+        govArrow.classList.remove('rotate-180');
 
-                loadAreasForGovernorate(val);
-            });
-        });
-
-        function loadAreasForGovernorate(govId) {
+        loadAreasForGovernorate(val);
+    });
+});
+        function loadAreasForGovernorate(govId, preselectedArea = null) {
             areaHiddenInput.value = '';
             areaSelectedText.innerText = 'جاري تحميل المناطق...';
             areaSelectedText.classList.add('text-gray-400');
@@ -433,6 +444,7 @@
                     }
 
                     areaSelectedText.innerText = 'اختر أو ابحث عن المنطقة...';
+                    let areaFound = false;
 
                     areas.forEach(area => {
                         const cleanName = area.name.trim();
@@ -441,8 +453,17 @@
                         item.setAttribute('data-value', area.id);
                         item.innerHTML = `<span>${cleanName}</span><i class="fa-solid fa-check text-[#8A704C] hidden"></i>`;
                         
+                        if (preselectedArea && cleanName === preselectedArea) {
+                            item.querySelector('i').classList.remove('hidden');
+                            areaHiddenInput.value = cleanName;
+                            areaSelectedText.innerText = cleanName;
+                            areaSelectedText.classList.remove('text-gray-400');
+                            areaSelectedText.classList.add('text-gray-800');
+                            areaFound = true;
+                        }
+                        
                         item.addEventListener('click', function() {
-                            areaHiddenInput.value = area.id;
+                            areaHiddenInput.value = cleanName;
                             areaSelectedText.innerText = cleanName;
                             areaSelectedText.classList.remove('text-gray-400');
                             areaSelectedText.classList.add('text-gray-800');
@@ -456,6 +477,13 @@
 
                         areaOptionsList.appendChild(item);
                     });
+                    
+                    if (preselectedArea && !areaFound) {
+                        areaHiddenInput.value = preselectedArea;
+                        areaSelectedText.innerText = preselectedArea;
+                        areaSelectedText.classList.remove('text-gray-400');
+                        areaSelectedText.classList.add('text-gray-800');
+                    }
                 })
                 .catch(err => {
                     console.error(err);
@@ -481,9 +509,23 @@
             });
         });
 
-        function addNewItemRow() {
+        function addNewItemRow(oldData = null) {
             let itemHtml = template.replace(/{index}/g, itemIndex);
             container.insertAdjacentHTML('beforeend', itemHtml);
+            
+            const newRow = container.lastElementChild;
+            
+            if (oldData) {
+                const fields = ['pant_type_id', 'type_id', 'style_id', 'color_id', 'size_id', 'sleeve', 'quantity', 'price', 'notes'];
+                fields.forEach(field => {
+                    const input = newRow.querySelector(`[name="items[${itemIndex}][${field}]"]`);
+                    if (input && oldData[field] !== undefined) {
+                        input.value = oldData[field];
+                    }
+                });
+                calculateRowTotal(newRow);
+            }
+            
             itemIndex++;
 
             bindRowCalculations();
@@ -552,9 +594,39 @@
         }
 
         paidAmountInput.addEventListener('input', calculateFullOrderSummary);
-        addItemBtn.addEventListener('click', addNewItemRow);
+        addItemBtn.addEventListener('click', () => addNewItemRow());
 
-        addNewItemRow();
+        // Restore old data if validation failed
+        const oldGov = @json(old('address.governorate', ''));
+        const oldArea = @json(old('address.area', ''));
+        
+        if (oldGov) {
+            govSelectedText.innerText = oldGov;
+            govSelectedText.classList.remove('text-gray-400');
+            govSelectedText.classList.add('text-gray-800');
+            
+            const govOptions = govOptionsList.querySelectorAll('.gov-option');
+            let govId = null;
+            govOptions.forEach(opt => {
+                if (opt.querySelector('span').innerText.trim() === oldGov) {
+                    govId = opt.getAttribute('data-value');
+                    opt.querySelector('i').classList.remove('hidden');
+                }
+            });
+            
+            if (govId) {
+                loadAreasForGovernorate(govId, oldArea);
+            }
+        }
+        
+        const oldItems = @json(old('items', []));
+        if (oldItems && Object.keys(oldItems).length > 0) {
+            Object.values(oldItems).forEach(itemData => {
+                addNewItemRow(itemData);
+            });
+        } else {
+            addNewItemRow();
+        }
     });
 </script>
 @endpush

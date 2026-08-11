@@ -202,37 +202,39 @@ class OrderController extends Controller
     public function store(Request $request)
     {
         try {
-            // في الـ OrderController أو الـ FormRequest الخاص بالطلب
-
-            // دمج القيم الافتراضية احترافياً إذا لم تكن موجودة ببيانات الطلب
-            $request->merge([
-                'address' => array_merge([
-                    'country' => 'Egypt',
-                    'city' => $request->input('address.governorate_name', 'Alexandria'),
-                ], $request->input('address', [])),
-            ]);
-
-            // Validation Rules
+            // 1. التحرُّك والتحقق من البيانات الأساسية الأول
             $validatedData = $request->validate([
                 'customer_name' => 'required|string|max:255',
                 'phone_1' => 'required|string|max:20',
-                'address.country' => 'required|string',
-                'address.city' => 'required|string',
-                'address.governorate' => 'required',
-                'address.area' => 'required',
+                'address.governorate' => 'required|string',
+                'address.area' => 'required|string',
                 'address.full_address' => 'required|string|max:500',
                 'items' => 'required|array|min:1',
             ]);
 
-            // ... تنفيذ عملية حفظ الطلب
+            $address = $request->input('address', []);
+            $isInternational = ($address['governorate'] ?? '') === 'شحن دولي';
 
+            // 2. تجهيز مصفوفة العنوان حسب نوع الشحن
+            $addressPayload = [
+                'country' => $isInternational ? 'دولى' : 'مصر',
+                'governorate' => $address['governorate'] ?? '',
+                'city' => $isInternational ? 'شحن دولي' : ($address['area'] ?? ''),
+                'full_address' => $address['full_address'] ?? '',
+            ];
+
+            // دمج البيانات المعدلة في الـ Request
+            $request->merge(['address' => $addressPayload]);
+
+            // 3. الحفظ في الداتابيز
             $order = $this->orderService->store($request);
 
             return redirect()
                 ->route('orders.index')
                 ->with('success', 'تم إنشاء الطلب بنجاح');
+
         } catch (ValidationException $e) {
-            throw $e;
+            throw $e; // بيرجعك للفورم مع الأخطاء
         } catch (\Throwable $e) {
             return back()
                 ->withInput()

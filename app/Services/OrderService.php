@@ -101,12 +101,12 @@ class OrderService
 
     protected function createCustomer(array $customerData): Customer
     {
-        return Customer::updateOrCreate(
+        return Customer::firstOrCreate(
             [
                 'phone_1' => $customerData['phone_1'],
+                'name' => $customerData['name'],
             ],
             [
-                'name' => $customerData['name'],
                 'phone_2' => $customerData['phone_2'] ?? null,
                 'instagram_profile' => $customerData['instagram_profile'] ?? null,
             ]

@@ -57,10 +57,12 @@ class Order extends Model
     protected static function booted()
     {
         static::creating(function ($order) {
+            $latestOrder = static::orderBy('id', 'desc')->first();
+            $nextId = $latestOrder ? $latestOrder->id + 1 : 1;
 
             $order->order_number =
                 'ORD-' . str_pad(
-                    static::count() + 1,
+                    $nextId,
                     5,
                     '0',
                     STR_PAD_LEFT
