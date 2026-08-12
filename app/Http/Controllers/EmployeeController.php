@@ -39,6 +39,51 @@ class EmployeeController extends Controller
 
     /**
      * ==========================================================================
+     * Show Employee Details
+     * ==========================================================================
+     */
+    public function show(Employee $employee)
+    {
+        $logs = \App\Models\ProductionStepLog::with(['order', 'changer'])
+            ->where('employee_id', $employee->id)
+            ->orderBy('executed_at', 'desc')
+            ->get();
+
+        $piecePrices = \App\Models\TailorPiecePrice::where('employee_id', $employee->id)
+            ->get()
+            ->keyBy('order_id');
+
+        $monthlyData = [];
+
+        foreach ($logs as $log) {
+            $date = $log->executed_at ?? $log->created_at;
+            $monthKey = $date ? $date->format('F Y') : 'Unknown';
+
+            if (!isset($monthlyData[$monthKey])) {
+                $monthlyData[$monthKey] = [
+                    'logs' => collect(),
+                    'orders_completed' => [],
+                    'piece_rate_earnings' => 0,
+                    'month_name' => $monthKey
+                ];
+            }
+
+            $monthlyData[$monthKey]['logs']->push($log);
+
+            if (!in_array($log->order_id, $monthlyData[$monthKey]['orders_completed'])) {
+                $monthlyData[$monthKey]['orders_completed'][] = $log->order_id;
+
+                if ($employee->salary_type === 'piece_rate' && isset($piecePrices[$log->order_id])) {
+                    $monthlyData[$monthKey]['piece_rate_earnings'] += (float) $piecePrices[$log->order_id]->piece_price;
+                }
+            }
+        }
+
+        return view('pages.employees.show', compact('employee', 'monthlyData'));
+    }
+
+    /**
+     * ==========================================================================
      * Store Employee
      * ==========================================================================
      */

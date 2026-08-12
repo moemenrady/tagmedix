@@ -123,6 +123,13 @@
                                 @endif
                             </td>
                             <td class="px-6 py-4 text-right space-x-2">
+                                <!-- زر العرض -->
+                                <a href="{{ route('employees.show', $employee) }}"
+                                    class="w-8 h-8 rounded-md bg-blue-50 text-blue-500 hover:bg-blue-500 hover:text-white transition inline-flex items-center justify-center"
+                                    title="View Details">
+                                    <i class="fa-regular fa-eye"></i>
+                                </a>
+
                                 <!-- زر التعديل -->
                                 <button onclick="openEmployeePanel('edit', {{ $employee }})"
                                     class="w-8 h-8 rounded-md bg-gray-100 text-gray-600 hover:bg-[#8A704C] hover:text-white transition inline-flex items-center justify-center"

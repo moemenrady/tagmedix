@@ -12,6 +12,8 @@ Route::middleware(['auth', 'admin', 'verified'])
 
         Route::post('/', [EmployeeController::class, 'store'])->name('store');
 
+        Route::get('/{employee}', [EmployeeController::class, 'show'])->name('show');
+
         Route::put('/{employee}', [EmployeeController::class, 'update'])
             ->name('update');
 
