@@ -86,6 +86,7 @@ class TurboApiService
     public function addOrder(array $shipmentData): array
     {
         $payload = $this->authParams([
+            'second_client'          => $shipmentData['second_client'] ?? null,
             'government'             => $shipmentData['government'] ?? null,
             'area'                   => $shipmentData['area'] ?? null,
             'address'                => $shipmentData['address'] ?? null,
@@ -105,6 +106,8 @@ class TurboApiService
             'remote_shipment_id'     => $shipmentData['remote_shipment_id'] ?? null,
             'return_summary'         => $shipmentData['return_summary'] ?? null,
             'invoice_number'         => $shipmentData['invoice_number'] ?? null,
+            'can_open'               => $shipmentData['can_open'] ?? 1,
+            'number_of_items'        => $shipmentData['number_of_items'] ?? 1,
         ]);
         // dd($payload);
 
@@ -121,6 +124,7 @@ class TurboApiService
     {
         $payload = $this->authParams([
             'code'                   => $code,
+            'second_client'          => $shipmentData['second_client'] ?? null,
             'government'             => $shipmentData['government'] ?? null,
             'area'                   => $shipmentData['area'] ?? null,
             'address'                => $shipmentData['address'] ?? null,
@@ -138,6 +142,8 @@ class TurboApiService
             'is_fragile'             => $shipmentData['is_fragile'] ?? 0,
             'return_amount'          => $shipmentData['return_amount'] ?? 0,
             'return_summary'         => $shipmentData['return_summary'] ?? null,
+            'can_open'               => $shipmentData['can_open'] ?? 1,
+            'number_of_items'        => $shipmentData['number_of_items'] ?? 1,
         ]);
 
         $response = $this->client()->post('/external-api/edit-order', $payload);

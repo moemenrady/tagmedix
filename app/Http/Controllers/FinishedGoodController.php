@@ -99,12 +99,15 @@ class FinishedGoodController extends Controller
             'remote_shipment_id'     => 'nullable|string',
             'return_summary'         => 'nullable|string',
             'invoice_number'         => 'nullable|string',
+            'can_open'               => 'nullable',
+            'number_of_items'        => 'nullable|numeric',
         ]);
 
 
 
         try {
             $shipmentPayload = [
+                'second_client'          => 'Tagmedix',
                 'government'             => $validated['government'] ?? $governorate,
                 'area'                   => $validated['area'] ?? null,
                 'address'                => $validated['address'] ?? $fullAddress,
@@ -124,6 +127,8 @@ class FinishedGoodController extends Controller
                 'remote_shipment_id'     => $validated['remote_shipment_id'] ?? null,
                 'return_summary'         => $validated['return_summary'] ?? null,
                 'invoice_number'         => $validated['invoice_number'] ?? $order->order_number,
+                'can_open'               => isset($validated['can_open']) ? (int) $validated['can_open'] : 1,
+                'number_of_items'        => isset($validated['number_of_items']) ? (int) $validated['number_of_items'] : 1,
             ];
 
             // Send POST request to Turbo API

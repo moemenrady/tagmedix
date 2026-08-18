@@ -487,15 +487,42 @@
                                 </div>
                             </div>
 
-                            {{-- هل سيستلم الكابتن طرد من المرسل اليه --}}
+                            {{-- نوع الطلب (هل سيستلم الكابتن طرد من المرسل اليه؟) --}}
                             <div>
-                                <label class="block text-xs font-semibold text-gray-700 mb-1">هل سيستلم الكابتن طرد من المرسل اليه <span class="text-rose-500">*</span></label>
+                                <label class="block text-xs font-semibold text-gray-700 mb-1">نوع الطلب <span class="text-rose-500">*</span></label>
+                                <select name="is_order" x-model="shipForm.is_order" required
+                                    class="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-xs focus:bg-white focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500">
+                                    <option value="0">تسليم طرد</option>
+                                    <option value="1">مرتجع جزئي</option>
+                                    <option value="2">استبدال</option>
+                                    <option value="3">استرجاع (مرتجع كامل)</option>
+                                </select>
+                            </div>
+
+                            {{-- محتوى الطرد المرتجع (يظهر فقط إذا كان نوع الطلب مرتجع أو استبدال) --}}
+                            <div x-show="shipForm.is_order != '0'" x-cloak>
+                                <label class="block text-xs font-semibold text-gray-700 mb-1">محتوى الطرد المرتجع <span class="text-rose-500">*</span></label>
+                                <input type="text" name="return_summary" x-model="shipForm.return_summary" :required="shipForm.is_order != '0'" placeholder="وصف المرتجع"
+                                    class="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-xs focus:bg-white focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500">
+                            </div>
+
+                            {{-- مكان التسليم --}}
+                            <div>
+                                <label class="block text-xs font-semibold text-gray-700 mb-1">مكان التسليم <span class="text-rose-500">*</span></label>
                                 <select name="delivery_type" x-model="shipForm.delivery_type" required
                                     class="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-xs focus:bg-white focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500">
-                                    <option value="0">تسليم</option>
-                                    <option value="1">استبدال</option>
-                                    <option value="2">استرجاع</option>
-                                    <option value="3">مرتجع-جزئي</option>
+                                    <option value="0">توصيل إلى عنوان المستلم</option>
+                                    <option value="1">استلام من مكتب الشحن</option>
+                                </select>
+                            </div>
+
+                            {{-- السماح بفتح الشحنة --}}
+                            <div>
+                                <label class="block text-xs font-semibold text-gray-700 mb-1">السماح بفتح الشحنة <span class="text-rose-500">*</span></label>
+                                <select name="can_open" x-model="shipForm.can_open" required
+                                    class="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-xs focus:bg-white focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500">
+                                    <option value="1">نعم، يسمح بالفتح</option>
+                                    <option value="0">لا يسمح بالفتح</option>
                                 </select>
                             </div>
 
@@ -504,6 +531,30 @@
                                 <label class="block text-xs font-semibold text-gray-700 mb-1">محتوي الطرد <span class="text-rose-500">*</span></label>
                                 <input type="text" name="order_summary" x-model="shipForm.order_summary" placeholder="ملابس" required
                                     class="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-xs focus:bg-white focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500">
+                            </div>
+
+                            {{-- عدد القطع --}}
+                            <div>
+                                <label class="block text-xs font-semibold text-gray-700 mb-1">عدد القطع <span class="text-rose-500">*</span></label>
+                                <input type="number" name="number_of_items" x-model="shipForm.number_of_items" min="1" required
+                                    class="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-xs focus:bg-white focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500">
+                            </div>
+
+                            {{-- الوزن (كجم) --}}
+                            <div>
+                                <label class="block text-xs font-semibold text-gray-700 mb-1">الوزن (كجم) <span class="text-rose-500">*</span></label>
+                                <input type="number" step="0.1" name="weight" x-model="shipForm.weight" min="0.1" required
+                                    class="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-xs focus:bg-white focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500">
+                            </div>
+
+                            {{-- قابل للكسر --}}
+                            <div>
+                                <label class="block text-xs font-semibold text-gray-700 mb-1">قابل للكسر <span class="text-rose-500">*</span></label>
+                                <select name="is_fragile" x-model="shipForm.is_fragile" required
+                                    class="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-xs focus:bg-white focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500">
+                                    <option value="0">لا</option>
+                                    <option value="1">نعم</option>
+                                </select>
                             </div>
 
                             {{-- رقم الفاتوره --}}
@@ -524,9 +575,6 @@
 
                         {{-- Hidden inputs to maintain payload compatibility --}}
                         <input type="hidden" name="remote_order_id" x-model="shipForm.remote_order_id">
-                        <input type="hidden" name="weight" value="1">
-                        <input type="hidden" name="is_order" value="0">
-                        <input type="hidden" name="is_fragile" value="0">
 
                     </div>
 
@@ -579,6 +627,12 @@
                     return_amount: '',
                     original_return_amount: '',
                     delivery_type: 0,
+                    is_order: '0',
+                    return_summary: '',
+                    can_open: 1,
+                    number_of_items: 1,
+                    weight: 1,
+                    is_fragile: 0,
                     order_summary: 'ملابس',
                     invoice_number: '',
                     remote_order_id: ''
@@ -624,6 +678,12 @@
                         return_amount: matchedReturnAmount,
                         original_return_amount: matchedReturnAmount,
                         delivery_type: 0,
+                        is_order: '0',
+                        return_summary: '',
+                        can_open: 1,
+                        number_of_items: order.items ? order.items.reduce((sum, i) => sum + parseInt(i.quantity || 1), 0) : 1,
+                        weight: 1,
+                        is_fragile: 0,
                         order_summary: summary,
                         invoice_number: '',
                         remote_order_id: order.order_number || ''
