@@ -452,10 +452,39 @@
                             </div>
 
                             {{-- في حاله الارتجاع نطالب المستلم ب --}}
-                            <div>
-                                <label class="block text-xs font-semibold text-gray-700 mb-1">في حاله الارتجاع نطالب المستلم ب <span class="text-rose-500">*</span></label>
-                                <input type="number" step="0.01" name="return_amount" x-model="shipForm.return_amount" placeholder="سعر الشحن" required
-                                    class="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-xs focus:bg-white focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500">
+                            <div class="relative">
+                                <div class="flex items-center justify-between mb-1">
+                                    <label class="block text-xs font-semibold text-gray-700">في حاله الارتجاع نطالب المستلم ب <span class="text-rose-500">*</span></label>
+                                    <template x-if="shipForm.original_return_amount !== '' && shipForm.return_amount == shipForm.original_return_amount">
+                                        <span class="text-[10px] text-emerald-600 font-bold bg-emerald-50 px-2 py-0.5 rounded-lg flex items-center gap-1">
+                                            <i class="fa-solid fa-check"></i>
+                                            تم التعيين تلقائياً
+                                        </span>
+                                    </template>
+                                </div>
+                                <div class="relative">
+                                    <input type="number" step="0.01" name="return_amount" x-model="shipForm.return_amount" x-ref="returnInput" placeholder="سعر الشحن" required
+                                        class="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-xs focus:bg-white focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500"
+                                        :class="{'border-emerald-500 ring-1 ring-emerald-500': shipForm.original_return_amount !== '' && shipForm.return_amount == shipForm.original_return_amount, 'text-gray-400': shipForm.original_return_amount !== '' && shipForm.return_amount == shipForm.original_return_amount}">
+                                    
+                                    <template x-if="shipForm.original_return_amount !== '' && shipForm.return_amount == shipForm.original_return_amount">
+                                        <button type="button" @click="shipForm.return_amount = ''; $refs.returnInput.focus()" 
+                                            class="absolute left-2 top-1/2 -translate-y-1/2 text-[10px] bg-rose-50 hover:bg-rose-100 text-rose-600 px-2 py-1 rounded-lg font-bold transition flex items-center gap-1"
+                                            title="مسح لإدخال سعر مخصص">
+                                            <i class="fa-solid fa-xmark"></i>
+                                            سعر مخصص
+                                        </button>
+                                    </template>
+
+                                    <template x-if="shipForm.original_return_amount !== '' && shipForm.return_amount != shipForm.original_return_amount">
+                                        <button type="button" @click="shipForm.return_amount = shipForm.original_return_amount" 
+                                            class="absolute left-2 top-1/2 -translate-y-1/2 text-[10px] bg-gray-100 hover:bg-gray-200 text-gray-600 px-2 py-1 rounded-lg font-bold transition flex items-center gap-1"
+                                            title="العودة للسعر التلقائي">
+                                            <i class="fa-solid fa-rotate-left"></i>
+                                            السعر التلقائي
+                                        </button>
+                                    </template>
+                                </div>
                             </div>
 
                             {{-- هل سيستلم الكابتن طرد من المرسل اليه --}}
@@ -531,6 +560,8 @@
 
     <script>
         function finishedGoodsApp() {
+            const dbReturnAmounts = @json($returnAmounts ?? []);
+
             return {
                 showDetails: false,
                 showShip: false,
@@ -545,7 +576,8 @@
                     area: '',
                     address: '',
                     amount_to_be_collected: 0,
-                    return_amount: 0,
+                    return_amount: '',
+                    original_return_amount: '',
                     delivery_type: 0,
                     order_summary: 'ملابس',
                     invoice_number: '',
@@ -569,6 +601,17 @@
                     const area = order.address ? order.address.city : '';
                     const addr = order.address ? order.address.full_address : (order.full_address || '');
 
+                    // Lookup return_amount from DB (match gov and area, or just gov if area is null)
+                    let matchedReturnAmount = '';
+                    const exactMatch = dbReturnAmounts.find(r => r.government_name === gov && r.area_name === area);
+                    const govMatch = dbReturnAmounts.find(r => r.government_name === gov && !r.area_name);
+                    
+                    if (exactMatch) {
+                        matchedReturnAmount = exactMatch.return_amount;
+                    } else if (govMatch) {
+                        matchedReturnAmount = govMatch.return_amount;
+                    }
+
                     this.shipForm = {
                         receiver: custName,
                         api_followup_phone: '',
@@ -578,7 +621,8 @@
                         area: area,
                         address: addr,
                         amount_to_be_collected: remaining,
-                        return_amount: 0,
+                        return_amount: matchedReturnAmount,
+                        original_return_amount: matchedReturnAmount,
                         delivery_type: 0,
                         order_summary: summary,
                         invoice_number: '',

@@ -106,6 +106,7 @@ class TurboApiService
             'return_summary'         => $shipmentData['return_summary'] ?? null,
             'invoice_number'         => $shipmentData['invoice_number'] ?? null,
         ]);
+        // dd($payload);
 
         $response = $this->client()->post('/external-api/add-order', $payload);
 

@@ -48,7 +48,9 @@ class FinishedGoodController extends Controller
             'total_remaining' => $orders->sum(fn($order) => $order->getRemainingAmount()),
         ];
 
-        return view('pages.finished-goods.index', compact('orders', 'stats', 'search'));
+        $returnAmounts = \App\Models\TurboReturnAmount::all();
+
+        return view('pages.finished-goods.index', compact('orders', 'stats', 'search', 'returnAmounts'));
     }
 
     public function show($id)
@@ -93,7 +95,7 @@ class FinishedGoodController extends Controller
             'phone2'                 => 'nullable|string',
             'is_order'               => 'nullable',
             'is_fragile'             => 'nullable',
-            'return_amount'          => 'nullable|numeric',
+            'return_amount'          => 'required|numeric',
             'remote_shipment_id'     => 'nullable|string',
             'return_summary'         => 'nullable|string',
             'invoice_number'         => 'nullable|string',
