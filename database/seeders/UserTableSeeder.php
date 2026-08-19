@@ -18,10 +18,10 @@ class UserTableSeeder extends Seeder
         |--------------------------------------------------------------------------
         */
         User::updateOrCreate(
-            ['email' => 'admin@dev.com'],
+            ['email' => 'admin@tagmedix.com'],
             [
                 'name' => 'Admin',
-                'password' => 'password',
+                'password' => 'Qqwwee332211',
                 'role' => 'admin',
                 'email_verified_at' => now(),
             ]

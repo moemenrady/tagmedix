@@ -2,6 +2,8 @@
 
 namespace App\Http\Controllers;
 
+use App\Exports\NotStartedOrdersExport;
+use Maatwebsite\Excel\Facades\Excel;
 use App\Models\Employee;
 use App\Models\Order;
 use App\Models\Production;
@@ -12,7 +14,7 @@ use App\Models\ProductionTask;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
-
+use Illuminate\Support\Facades\Log;
 class ProductionWorkflowController extends Controller
 {
     /**
@@ -187,171 +189,201 @@ class ProductionWorkflowController extends Controller
 
     public function moveStatus(Request $request, Order $order)
     {
-        $request->validate([
+        Log::info('===== MOVE STATUS START =====');
 
+        Log::info('Move Status Request', [
+            'order_id' => $order->id,
+            'order_number' => $order->order_number,
+            'current_status' => $order->status,
+            'to_status' => $request->to_status,
+            'employee_id' => $request->employee_id,
+            'executed_at' => $request->executed_at,
+            'note' => $request->note,
+            'user_id' => auth()->id(),
+        ]);
+
+        $request->validate([
             'to_status' => [
                 'required',
-                'in:new,cutting,sewing,ironing,finishing,ready-to-ship'
+                'in:new,cutting,sewing,ready-to-ship'
             ],
 
-            'employee_id' => 'nullable|exists:employees,id',
+            'employee_id' => [
+                'nullable',
+                'exists:employees,id',
+            ],
 
             'executed_at' => 'required|date',
 
             'note' => 'nullable|string|max:1000',
-
         ]);
+
+        Log::info('Validation passed');
 
         $user = auth()->user();
 
-        /*
-    |--------------------------------------------------------------------------
-    | Authorization
-    |--------------------------------------------------------------------------
-    */
+        try {
 
+            DB::transaction(function () use ($request, $order, $user) {
 
+                Log::info('Transaction started');
 
-        DB::transaction(function () use ($request, $order, $user) {
+                $oldStatus = $order->status;
 
-            $oldStatus = $order->status;
+                Log::info('Updating order status', [
+                    'order_id' => $order->id,
+                    'from' => $oldStatus,
+                    'to' => $request->to_status,
+                ]);
 
-            /*
-        |--------------------------------------------------------------------------
-        | Update Order
-        |--------------------------------------------------------------------------
-        */
+                $order->update([
+                    'status' => $request->to_status,
+                ]);
 
-            $order->update([
-                'status' => $request->to_status,
-            ]);
+                Log::info('Order status updated successfully');
 
-            /*
-        |--------------------------------------------------------------------------
-        | Update Production Task
-        |--------------------------------------------------------------------------
-        */
+                /*
+            |--------------------------------------------------------------------------
+            | Production Task
+            |--------------------------------------------------------------------------
+            */
 
-            $task = ProductionTask::where('order_id', $order->id)
-                ->latest()
-                ->first();
+                $task = ProductionTask::where('order_id', $order->id)
+                    ->latest()
+                    ->first();
 
-            if ($task) {
+                Log::info('Production task found', [
+                    'task_id' => $task?->id,
+                ]);
 
-                $status = "in_progress";
+                if ($task) {
 
-                if ($request->to_status == "ready-to-ship") {
-                    $status = "completed";
+                    $status = "in_progress";
+
+                    if ($request->to_status === "ready-to-ship") {
+                        $status = "completed";
+                    }
+
+                    $task->update([
+                        'status' => $status,
+                        'completed_at' => $status === "completed"
+                            ? now()
+                            : null,
+                    ]);
+
+                    Log::info('Production task updated', [
+                        'task_id' => $task->id,
+                        'status' => $status,
+                    ]);
                 }
 
-                $task->update([
+                /*
+            |--------------------------------------------------------------------------
+            | Production Step Log
+            |--------------------------------------------------------------------------
+            */
 
-                    'status' => $status,
+                Log::info('Creating ProductionStepLog');
 
-                    'completed_at' => $status == "completed"
-                        ? now()
-                        : null,
-
+                ProductionStepLog::create([
+                    'order_id' => $order->id,
+                    'from_status' => $oldStatus,
+                    'to_status' => $request->to_status,
+                    'changed_by' => $user->id,
+                    'employee_id' => $request->employee_id,
+                    'note' => $request->note,
+                    'executed_at' => $request->executed_at,
                 ]);
-            }
 
-            /*
-        |--------------------------------------------------------------------------
-        | Production Step Log
-        |--------------------------------------------------------------------------
-        */
+                Log::info('ProductionStepLog created successfully');
 
-            ProductionStepLog::create([
+                /*
+            |--------------------------------------------------------------------------
+            | Production Assignment
+            |--------------------------------------------------------------------------
+            */
 
-                'order_id' => $order->id,
-
-                'from_status' => $oldStatus,
-
-                'to_status' => $request->to_status,
-
-                'changed_by' => $user->id,
-
-                'employee_id' => $request->employee_id,
-
-                'note' => $request->note,
-
-                'executed_at' => $request->executed_at,
-
-            ]);
-
-            /*
-        |--------------------------------------------------------------------------
-        | Production Assignment
-        |--------------------------------------------------------------------------
-        */
-
-            if (
-                in_array($request->to_status, [
+                if (in_array($request->to_status, [
                     'cutting',
                     'sewing',
-                    'ironing'
-                ])
-            ) {
+                    'ready-to-ship'
+                ])) {
 
-                ProductionAssignment::updateOrCreate(
-
-                    [
-
+                    Log::info('Creating/Updating ProductionAssignment', [
                         'order_id' => $order->id,
-
                         'stage' => $request->to_status,
+                        'employee_id' => $request->employee_id,
+                    ]);
 
+                    ProductionAssignment::updateOrCreate(
+                        [
+                            'order_id' => $order->id,
+                            'stage' => $request->to_status,
+                        ],
+                        [
+                            'employee_id' => $request->employee_id,
+                            'assigned_by' => $user->id,
+                            'assigned_at' => $request->executed_at,
+                        ]
+                    );
+
+                    Log::info('ProductionAssignment saved successfully');
+                }
+
+                /*
+            |--------------------------------------------------------------------------
+            | History
+            |--------------------------------------------------------------------------
+            */
+
+                Log::info('Creating ProductionHistory');
+
+                ProductionHistory::create([
+                    'order_id' => $order->id,
+                    'user_id' => $user->id,
+                    'action' => 'move_status',
+
+                    'old_value' => [
+                        'status' => $oldStatus,
                     ],
 
-                    [
-
+                    'new_value' => [
+                        'status' => $request->to_status,
                         'employee_id' => $request->employee_id,
+                    ],
 
-                        'assigned_by' => $user->id,
+                    'ip' => request()->ip(),
+                    'device' => request()->userAgent(),
+                    'executed_at' => now(),
+                ]);
 
-                        'assigned_at' => $request->executed_at,
+                Log::info('ProductionHistory created successfully');
 
-                    ]
+                Log::info('Transaction finished successfully');
+            });
+        } catch (\Throwable $e) {
 
-                );
-            }
+            Log::error('===== MOVE STATUS FAILED =====');
 
-            /*
-        |--------------------------------------------------------------------------
-        | Production History
-        |--------------------------------------------------------------------------
-        */
-
-            ProductionHistory::create([
-
+            Log::error('Exception', [
+                'message' => $e->getMessage(),
+                'file' => $e->getFile(),
+                'line' => $e->getLine(),
+                'trace' => $e->getTraceAsString(),
                 'order_id' => $order->id,
-
-                'user_id' => $user->id,
-
-                'action' => 'move_status',
-
-                'old_value' => [
-
-                    'status' => $oldStatus,
-
-                ],
-
-                'new_value' => [
-
-                    'status' => $request->to_status,
-
-                    'employee_id' => $request->employee_id,
-
-                ],
-
-                'ip' => request()->ip(),
-
-                'device' => request()->userAgent(),
-
-                'executed_at' => now(),
-
+                'to_status' => $request->to_status,
+                'employee_id' => $request->employee_id,
             ]);
-        });
+
+            return response()->json([
+                'success' => false,
+                'message' => 'حدث خطأ أثناء نقل الطلب.',
+                'error' => $e->getMessage(),
+                'line' => $e->getLine(),
+            ], 500);
+        }
+
+        Log::info('===== MOVE STATUS SUCCESS =====');
 
         return response()->json([
             'success' => true,
@@ -373,6 +405,15 @@ class ProductionWorkflowController extends Controller
 
                 ->get()
 
+        );
+    }
+    public function exportNotStartedOrders()
+    {
+        $fileName = 'not-started-orders-' . now()->format('Y-m-d-H-i-s') . '.xlsx';
+
+        return Excel::download(
+            new NotStartedOrdersExport(),
+            $fileName
         );
     }
 }

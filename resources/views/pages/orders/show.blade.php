@@ -418,10 +418,6 @@
                                         :class="expanded ? 'rotate-180' : ''"></i>
                                 </div>
                             </div>
-                        </div>
-
-                        {{-- التفاصيل والتعديل (Expanded) --}}
-                        <div x-show="expanded" x-collapse x-cloak>
                             <div class="p-5 border-t border-gray-100 bg-gray-50">
                                 {{-- عرض التفاصيل --}}
                                 <div x-show="!isEditingItem">
@@ -482,6 +478,8 @@
                                 </div>
                             </div>
                         </div>
+
+
                     </div>
                 @empty
                     <div class="p-8 text-center text-gray-400">
@@ -526,12 +524,27 @@
                                         <div>
                                             <p class="text-sm font-bold text-gray-800">
                                                 {{ $assignment->employee->name ?? 'موظف' }}</p>
-                                            <p class="text-[10px] text-gray-400 font-mono">مرحلة: <span
-                                                    class="text-blue-600">{{ $assignment->stage }}</span></p>
+                                            @php
+                                                $stageLabels = [
+                                                    'cutting' => 'قص',
+                                                    'sewing' => 'خياطة',
+                                                    'ironing' => 'كي',
+                                                    'ready-to-ship' => 'تقفيل وجاهز للشحن',
+                                                ];
+
+                                                $stageLabel = $stageLabels[$assignment->stage] ?? $assignment->stage;
+                                            @endphp
+
+                                            <p class="text-[10px] text-gray-400 font-mono">
+                                                مرحلة:
+                                                <span class="text-blue-600 font-bold">
+                                                    {{ $stageLabel }}
+                                                </span>
+                                            </p>
                                         </div>
                                     </div>
                                     <div class="text-left rtl:text-left text-[10px] text-gray-400">
-                                        {{ $assignment->assigned_at ? $assignment->assigned_at->format('Y-m-d H:i') : '' }}
+                                        {{ $assignment->assigned_at ? $assignment->assigned_at->format('Y-m-d h:i A') : '' }}
                                     </div>
                                 </div>
                             @empty
@@ -555,7 +568,7 @@
                                     <p class="text-[10px] text-gray-500 mt-1">
                                         بواسطة: {{ $history->user->name ?? 'النظام' }} |
                                         <span
-                                            class="font-mono text-gray-400">{{ $history->executed_at ? $history->executed_at->format('Y-m-d H:i') : '' }}</span>
+                                            class="font-mono text-gray-400">{{ $history->executed_at ? $history->executed_at->format('Y-m-d h:i A') : '' }}</span>
                                     </p>
                                 </div>
                             @empty

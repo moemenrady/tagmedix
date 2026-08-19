@@ -1,0 +1,15 @@
+$body = @{
+    client_id = "1579190103836368"
+    client_secret = "1955e7d6dc4feef3e324597ab38eOccb"
+    code = "AQJS3R5br5KDgpNCM_yrwdYUQWQdtuQfRBFTrGPDL4yNYoIGsYTNwJlxgvbXyVRasHEm3aaJwXygufUoFsaYIm6388GmyN85XwPyzLMKWUb3sA_XvtrlnukjbdHurWhPDsHjkaGy8ac4KotkcSe-FSQa1CatLBL439GMj94ooWRWsxhYu3b3EC00zGykjdpNcII6-aS3SxundtpmQJNT9rC6e26P91wPath4L8Ae5fBaUKkRfRnj9K7XYPghr767Fd7itisyHyDJfJg9LtD2s9CePFpnRzFqGg6LfV3bZAVeO1UoCdLZNxhsbTZFjw4PSVAlMRy_8ovZdTj_-AazxFGOXZjS393QQyNQ_7BndPfzFH3a7toEpK0TqwM5s7mSeZa48GaHTAMVaWgFolNRyDx-Yb1_rME4aSwg0Oot02peeg"
+    grant_type = "authorization_code"
+    redirect_uri = "https://developers.facebook.com/es/oauth/callback/?product_route=whatsapp-business&business_id=903437855690627&nonce=b0yeuOvwjSkTAUImwmpSzUVxATzsV8tF"
+} | ConvertTo-Json
+
+$response = Invoke-RestMethod `
+    -Uri "https://graph.facebook.com/v25.0/oauth/access_token" `
+    -Method POST `
+    -ContentType "application/json" `
+    -Body $body
+
+$response
