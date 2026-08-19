@@ -48,7 +48,9 @@ class FinishedGoodController extends Controller
             'total_remaining' => $orders->sum(fn($order) => $order->getRemainingAmount()),
         ];
 
-        return view('pages.finished-goods.index', compact('orders', 'stats', 'search'));
+        $returnAmounts = \App\Models\TurboReturnAmount::all();
+
+        return view('pages.finished-goods.index', compact('orders', 'stats', 'search', 'returnAmounts'));
     }
 
     public function show($id)
@@ -93,16 +95,19 @@ class FinishedGoodController extends Controller
             'phone2'                 => 'nullable|string',
             'is_order'               => 'nullable',
             'is_fragile'             => 'nullable',
-            'return_amount'          => 'nullable|numeric',
+            'return_amount'          => 'required|numeric',
             'remote_shipment_id'     => 'nullable|string',
             'return_summary'         => 'nullable|string',
             'invoice_number'         => 'nullable|string',
+            'can_open'               => 'nullable',
+            'number_of_items'        => 'nullable|numeric',
         ]);
 
 
 
         try {
             $shipmentPayload = [
+                'second_client'          => 'Tagmedix',
                 'government'             => $validated['government'] ?? $governorate,
                 'area'                   => $validated['area'] ?? null,
                 'address'                => $validated['address'] ?? $fullAddress,
@@ -122,6 +127,8 @@ class FinishedGoodController extends Controller
                 'remote_shipment_id'     => $validated['remote_shipment_id'] ?? null,
                 'return_summary'         => $validated['return_summary'] ?? null,
                 'invoice_number'         => $validated['invoice_number'] ?? $order->order_number,
+                'can_open'               => isset($validated['can_open']) ? (int) $validated['can_open'] : 1,
+                'number_of_items'        => isset($validated['number_of_items']) ? (int) $validated['number_of_items'] : 1,
             ];
 
             // Send POST request to Turbo API
