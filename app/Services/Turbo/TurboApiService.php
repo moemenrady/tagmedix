@@ -6,6 +6,7 @@ use Illuminate\Http\Client\PendingRequest;
 use Illuminate\Http\Client\Response;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
+use App\Integrations\Turbo\Models\Shipment;
 use RuntimeException;
 
 class TurboApiService
@@ -181,5 +182,51 @@ class TurboApiService
         $response = $this->client()->post('/external-api/get-status', $payload);
 
         return $this->handleResponse($response);
+    }
+
+    /**
+     * Handle incoming Webhook Payload
+     */
+    public function handleWebhook(array $payload): array
+    {
+        Log::info('Turbo Webhook Payload in Service', $payload);
+
+        $remoteOrderId = (string) ($payload['remote_order_id'] ?? $payload['order_number'] ?? $payload['order_id'] ?? $payload['id'] ?? '');
+
+        if ($remoteOrderId === '') {
+            return ['success' => false, 'message' => 'Missing remote order id or order number.'];
+        }
+
+        // Locate shipment
+        $shipment = Shipment::where('remote_order_id', $remoteOrderId)
+            ->orWhere('turbo_id', $remoteOrderId)
+            ->orWhere('tracking_number', $remoteOrderId)
+            ->orWhere('id', $remoteOrderId)
+            ->first();
+
+        if (!$shipment) {
+            return ['success' => false, 'message' => 'Shipment not found.'];
+        }
+
+        $statusText = (string) ($payload['status_text'] ?? $payload['status'] ?? $shipment->status);
+        $newStatus = (string) ($payload['status'] ?? $statusText);
+
+        $existingResponse = is_array($shipment->response) ? $shipment->response : [];
+        $mergedResponse = array_merge($existingResponse, $payload, [
+            'captain_name' => $payload['captain_name'] ?? ($existingResponse['captain_name'] ?? null),
+            'captain_number1' => $payload['captain_number1'] ?? ($existingResponse['captain_number1'] ?? null),
+            'delay_reason' => $payload['delay_reason'] ?? ($existingResponse['delay_reason'] ?? null),
+            'return_reason' => $payload['return_reason'] ?? ($existingResponse['return_reason'] ?? null),
+        ]);
+
+        $shipment->forceFill([
+            'status' => $newStatus,
+            'status_text' => $statusText,
+            'amount' => isset($payload['order_price']) ? (float) $payload['order_price'] : $shipment->amount,
+            'notes' => $payload['delay_reason'] ?? $payload['return_reason'] ?? $shipment->notes,
+            'response' => $mergedResponse,
+        ])->save();
+
+        return ['success' => true, 'message' => 'Webhook processed successfully'];
     }
 }
