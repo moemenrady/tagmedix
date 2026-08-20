@@ -91,9 +91,21 @@
                                     <span data-ar="{{ $stage['title_ar'] }}"
                                         data-en="{{ $stage['title_en'] }}">{{ $stage['title_ar'] }}</span>
                                 </h3>
+
                                 <div class="flex items-center gap-2">
-                                    <span
-                                        class="bg-gray-100 text-gray-700 px-3 py-1 rounded-full text-xs font-bold">{{ $stageCounts[$stage['id']] ?? 0 }}</span>
+                                    {{-- زر تصدير الإكسيل يظهر فقط في مرحلة "لم يتم البدء" --}}
+                                    @if ($stage['id'] === 'new')
+                                        <a href="{{ route('production.workflow.export-not-started') }}"
+                                            class="bg-[#107c41] text-white px-2.5 py-1 rounded hover:bg-green-800 transition flex items-center gap-1 shadow-sm"
+                                            title="تصدير إكسيل">
+                                            <i class="fa-solid fa-file-excel"></i>
+                                            <span class="text-xs font-bold hidden sm:inline">إكسيل</span>
+                                        </a>
+                                    @endif
+
+                                    <span class="bg-gray-100 text-gray-700 px-3 py-1 rounded-full text-xs font-bold">
+                                        {{ $stageCounts[$stage['id']] ?? 0 }}
+                                    </span>
                                 </div>
                             </div>
                         </div>
