@@ -249,4 +249,53 @@ class TurboController extends Controller
             return response()->json(['success' => false, 'message' => $e->getMessage()], 422);
         }
     }
+
+    /**
+     * Handle incoming Turbo Webhook
+     */
+    public function webhook(Request $request)
+    {
+        try {
+            $result = $this->turboApi->handleWebhook($request->all());
+            
+            if ($result['success']) {
+                return response()->json(['success' => true, 'message' => $result['message']]);
+            }
+            
+            return response()->json(['success' => false, 'message' => $result['message']], 400);
+        } catch (Exception $e) {
+            Log::error('Turbo Webhook Exception: ' . $e->getMessage());
+            return response()->json(['success' => false, 'message' => $e->getMessage()], 500);
+        }
+    }
+
+    /**
+     * Fetch status directly from Turbo API
+     */
+    public function apiStatus(Request $request)
+    {
+        $validated = $request->validate([
+            'from' => 'required|date',
+            'to' => 'required|date|after_or_equal:from',
+        ]);
+
+        try {
+            $response = $this->turboApi->getStatus($validated['from'], $validated['to']);
+            
+            // Extract the list from the response
+            $apiList = $response['data'] ?? $response['result']['data'] ?? $response['result'] ?? $response ?? [];
+            
+            return response()->json([
+                'success' => true,
+                'turbo' => $apiList
+            ]);
+        } catch (Exception $e) {
+            Log::error('Turbo getStatus Exception: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'حدث خطأ أثناء جلب البيانات من الخادم',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
 }

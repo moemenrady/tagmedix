@@ -7,6 +7,7 @@ Route::middleware(['auth'])->prefix('turbo')->name('turbo.')->group(function () 
 
     Route::get('/', [TurboOperationsController::class, 'index'])->name('index');
     Route::get('/data', [TurboOperationsController::class, 'data'])->name('data');
+    Route::post('/api-status', [\App\Http\Controllers\TurboController::class, 'apiStatus'])->name('api_status');
     Route::post('/send-order', [TurboOperationsController::class, 'sendOrderToTurbo'])->name('send_order');
 
     // Courier Gateway API endpoints

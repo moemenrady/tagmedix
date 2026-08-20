@@ -1,6 +1,6 @@
 @extends('layouts.app')
 
-@section('title', 'تتبع شحنات Turbo | Sync DB & API')
+@section('title', 'إعدادات واستعلام Turbo')
 
 @section('content')
     <!-- Alpine.js library -->
@@ -10,7 +10,7 @@
         [x-cloak] { display: none !important; }
     </style>
 
-    <div x-data="turboTrackingApp()" x-init="initData()" class="space-y-6 max-w-7xl mx-auto pb-12 transition-all">
+    <div x-data="turboStatusApp()" class="space-y-6 max-w-7xl mx-auto pb-12 transition-all">
 
         <!-- Banner Header -->
         <div class="relative overflow-hidden rounded-2xl bg-gradient-to-r from-[#31006f] via-[#430099] to-[#111827] text-white p-6 md:p-8 shadow-xl border border-purple-900/40">
@@ -20,34 +20,15 @@
             <div class="relative z-10 flex flex-col md:flex-row md:items-center md:justify-between gap-6">
                 <div class="space-y-2">
                     <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/10 text-purple-200 text-xs font-semibold backdrop-blur-md border border-white/10">
-                        <i class="fa-solid fa-arrows-rotate text-xs"></i>
-                        <span>مزامنة قاعدة البيانات وحالة السيرفر التفاعلي</span>
+                        <i class="fa-solid fa-bolt text-xs text-yellow-300"></i>
+                        <span>Turbo API Integration</span>
                     </div>
                     <h1 class="text-2xl md:text-3xl font-extrabold tracking-tight flex items-center gap-3">
-                        <span>متابعة وتتبع شحنات Turbo (DB & API)</span>
+                        <span>إعدادات Turbo والاستعلام المباشر</span>
                     </h1>
                     <p class="text-purple-100/80 text-sm md:text-base max-w-xl">
-                        عرض جميع الشحنات سواء كانت مسجلة محلياً فقط في قاعدة البيانات، أو على سيرفر Turbo فقط، أو متزامنة بين الطرفين.
+                        عرض إعدادات الـ Webhook لتلقي التحديثات، بالإضافة إلى الاستعلام المباشر عن حالة الشحنات عبر الـ API.
                     </p>
-                </div>
-
-                <div class="flex items-center gap-3 shrink-0">
-                    <button @click="fetchData(true)" :disabled="refreshing"
-                        class="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-white/10 hover:bg-white/20 text-white text-sm font-semibold transition backdrop-blur-md border border-white/15 active:scale-95 disabled:opacity-50 cursor-pointer">
-                        <i class="fa-solid fa-rotate text-xs" :class="{ 'fa-spin': refreshing }"></i>
-                        <span>تحديث ومطابقة البيانات</span>
-                    </button>
-                </div>
-            </div>
-
-            <div class="mt-4 pt-4 border-t border-white/10 flex items-center justify-between text-xs text-purple-200/70">
-                <div class="flex items-center gap-2">
-                    <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
-                    <span>اتصال مباشر بنظام Turbo وقاعدة البيانات</span>
-                </div>
-                <div>
-                    <span>آخر مزامنة: </span>
-                    <span x-text="lastSyncTime">الآن</span>
                 </div>
             </div>
         </div>
@@ -60,257 +41,150 @@
             <button @click="alertMessage = ''" class="text-xs opacity-60 hover:opacity-100 cursor-pointer">&times;</button>
         </div>
 
-        <!-- Filter By Data Source (DB / API / BOTH) -->
-        <div class="bg-white rounded-2xl p-4 shadow-sm border border-gray-100 space-y-4">
-            <div class="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-4">
-                
-                <!-- Search Box -->
-                <div class="relative flex-1">
-                    <i class="fa-solid fa-magnifying-glass absolute left-3 rtl:right-3 rtl:left-auto top-1/2 -translate-y-1/2 text-gray-400"></i>
-                    <input type="text" x-model="search" placeholder="ابحث برقم الشحنة، كود الطلب، اسم العميل أو الهاتف..."
-                        class="w-full pl-10 rtl:pr-10 rtl:pl-4 pr-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-[#31006f] focus:bg-white transition">
+        <!-- Tabs Navigation -->
+        <div class="flex items-center gap-2 border-b border-gray-200">
+            <button @click="activeTab = 'webhook'" 
+                :class="activeTab === 'webhook' ? 'border-[#31006f] text-[#31006f] bg-white' : 'border-transparent text-gray-500 hover:text-gray-700 hover:bg-gray-50'" 
+                class="px-6 py-3 font-bold border-b-2 transition rounded-t-lg">
+                <i class="fa-solid fa-satellite-dish ml-1"></i> إعدادات الـ Webhook
+            </button>
+            <button @click="activeTab = 'status'" 
+                :class="activeTab === 'status' ? 'border-[#31006f] text-[#31006f] bg-white' : 'border-transparent text-gray-500 hover:text-gray-700 hover:bg-gray-50'" 
+                class="px-6 py-3 font-bold border-b-2 transition rounded-t-lg">
+                <i class="fa-solid fa-magnifying-glass-chart ml-1"></i> الاستعلام عن حالة الشحنات
+            </button>
+        </div>
+
+        <!-- Tab 1: Webhook Configuration Info -->
+        <div x-show="activeTab === 'webhook'" x-cloak class="bg-white rounded-2xl p-6 md:p-8 shadow-sm border border-gray-100 flex flex-col lg:flex-row gap-8 items-start lg:items-center justify-between">
+            <div class="space-y-4 flex-1">
+                <div class="flex items-center gap-3 text-[#31006f]">
+                    <div class="w-12 h-12 bg-purple-50 rounded-xl flex items-center justify-center text-2xl">
+                        <i class="fa-solid fa-satellite-dish"></i>
+                    </div>
+                    <h3 class="font-bold text-xl">رابط الـ Webhook الخاص بك</h3>
                 </div>
+                <p class="text-sm text-gray-600 max-w-2xl leading-relaxed">
+                    تسمح لك روابط الـ Webhook بتلقي إشعارات فورية عند حدوث أحداث معينة في حسابك (مثل تغيير حالة الشحنة). 
+                    <br>
+                    أدخل رابط الخادم الخاص بك الموضح أدناه في <strong>لوحة تحكم Turbo</strong> للبدء في تلقي التحديثات التلقائية ومزامنة البيانات بشكل لحظي.
+                </p>
+            </div>
+            
+            <div class="w-full lg:w-auto shrink-0 bg-gray-50 p-5 rounded-xl border border-gray-200 space-y-4">
+                <div class="space-y-2">
+                    <label class="block text-xs font-bold text-gray-500">رابط الخادم (الـ Webhook URL):</label>
+                    <div class="relative w-full md:w-96">
+                        <input type="text" readonly value="{{ url('/api/turbo/webhook') }}" id="webhookUrlInput"
+                            class="w-full ltr text-left pl-4 pr-12 py-3 bg-white border border-gray-200 rounded-lg text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-[#31006f]/20 font-mono shadow-sm">
+                        <button onclick="navigator.clipboard.writeText(document.getElementById('webhookUrlInput').value); alert('تم نسخ الرابط بنجاح!');" 
+                            class="absolute right-2 top-1/2 -translate-y-1/2 w-9 h-9 flex items-center justify-center text-gray-400 hover:text-[#31006f] hover:bg-purple-50 rounded-md transition cursor-pointer" title="نسخ الرابط">
+                            <i class="fa-regular fa-copy text-lg"></i>
+                        </button>
+                    </div>
+                </div>
+                <div class="flex items-center gap-2 text-xs text-emerald-600 font-bold bg-emerald-50 px-3 py-2 rounded-lg border border-emerald-100">
+                    <i class="fa-solid fa-circle-check"></i>
+                    <span>النظام جاهز لتلقي استجابات Turbo (نموذج JSON)</span>
+                </div>
+            </div>
+        </div>
 
-                <!-- Status Filter -->
-                <div class="flex flex-wrap items-center gap-3">
-                    <select x-model="statusFilter"
-                        class="bg-gray-50 border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-[#31006f] transition">
-                        <option value="">كل حالات الشحن</option>
-                        <option value="1">قيد الانتظار (Pending)</option>
-                        <option value="2">جاري التوصيل (In Transit)</option>
-                        <option value="3">تم التسليم (Delivered)</option>
-                        <option value="4">ملغي (Canceled)</option>
-                    </select>
-
-                    <button x-show="search || statusFilter || sourceFilter" @click="search = ''; statusFilter = ''; sourceFilter = '';"
-                        class="px-3 py-2.5 text-xs text-red-600 hover:bg-red-50 rounded-xl font-medium transition cursor-pointer">
-                        إعادة ضبط
+        <!-- Tab 2: Get Status -->
+        <div x-show="activeTab === 'status'" x-cloak class="space-y-6">
+            
+            <!-- Search Form -->
+            <div class="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
+                <form @submit.prevent="fetchStatusData" class="flex flex-col md:flex-row items-end gap-4">
+                    <div class="flex-1 w-full">
+                        <label class="block text-sm font-bold text-gray-700 mb-2">من تاريخ <span class="text-red-500">*</span></label>
+                        <input type="date" x-model="fromDate" required class="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-[#31006f] focus:ring-1 focus:ring-[#31006f] transition">
+                    </div>
+                    <div class="flex-1 w-full">
+                        <label class="block text-sm font-bold text-gray-700 mb-2">إلى تاريخ <span class="text-red-500">*</span></label>
+                        <input type="date" x-model="toDate" required class="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-[#31006f] focus:ring-1 focus:ring-[#31006f] transition">
+                    </div>
+                    <button type="submit" :disabled="loading" class="w-full md:w-auto px-8 py-3 bg-[#31006f] hover:bg-[#430099] text-white rounded-xl font-bold transition flex items-center justify-center gap-2 shadow-md cursor-pointer disabled:opacity-70">
+                        <i class="fa-solid fa-search" x-show="!loading"></i>
+                        <i class="fa-solid fa-spinner fa-spin" x-show="loading" x-cloak></i>
+                        <span>استعلام الآن</span>
                     </button>
-                </div>
+                </form>
             </div>
 
-            <!-- Source Filter Pills -->
-            <div class="flex flex-wrap items-center gap-2 pt-2 border-t border-gray-100">
-                <span class="text-xs font-bold text-gray-500 ml-2">مصدر البيانات:</span>
-
-                <button @click="sourceFilter = ''" 
-                    :class="sourceFilter === '' ? 'bg-[#31006f] text-white shadow-sm' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'"
-                    class="px-3 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 cursor-pointer">
-                    <span>الكل</span>
-                    <span class="px-1.5 py-0.2 bg-white/20 rounded-md text-[10px]" x-text="turbo.length"></span>
-                </button>
-
-                <button @click="sourceFilter = 'db_only'" 
-                    :class="sourceFilter === 'db_only' ? 'bg-blue-600 text-white shadow-sm' : 'bg-blue-50 text-blue-700 hover:bg-blue-100'"
-                    class="px-3 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 cursor-pointer">
-                    <i class="fa-solid fa-database"></i>
-                    <span>قاعدة البيانات فقط (DB Only)</span>
-                    <span class="px-1.5 py-0.2 bg-blue-200/50 rounded-md text-[10px]" x-text="turbo.filter(i => i.source_type === 'db_only').length"></span>
-                </button>
-
-                <button @click="sourceFilter = 'api_only'" 
-                    :class="sourceFilter === 'api_only' ? 'bg-emerald-600 text-white shadow-sm' : 'bg-emerald-50 text-emerald-700 hover:bg-emerald-100'"
-                    class="px-3 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 cursor-pointer">
-                    <i class="fa-solid fa-cloud"></i>
-                    <span>Turbo API فقط (API Only)</span>
-                    <span class="px-1.5 py-0.2 bg-emerald-200/50 rounded-md text-[10px]" x-text="turbo.filter(i => i.source_type === 'api_only').length"></span>
-                </button>
-
-                <button @click="sourceFilter = 'both'" 
-                    :class="sourceFilter === 'both' ? 'bg-indigo-600 text-white shadow-sm' : 'bg-indigo-50 text-indigo-700 hover:bg-indigo-100'"
-                    class="px-3 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 cursor-pointer">
-                    <i class="fa-solid fa-link"></i>
-                    <span>متزامن (DB & API)</span>
-                    <span class="px-1.5 py-0.2 bg-indigo-200/50 rounded-md text-[10px]" x-text="turbo.filter(i => i.source_type === 'both').length"></span>
-                </button>
-            </div>
-        </div>
-
-        <!-- Shipments Grid -->
-        <div class="relative">
-            <template x-if="loading">
-                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                    <template x-for="i in 6" :key="i">
-                        <div class="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm animate-pulse space-y-4">
-                            <div class="flex items-center justify-between">
-                                <div class="h-4 bg-gray-200 rounded w-1/4"></div>
-                                <div class="h-6 bg-gray-200 rounded-full w-1/5"></div>
-                            </div>
-                            <div class="h-5 bg-gray-200 rounded w-3/4"></div>
-                            <div class="h-12 bg-gray-100 rounded"></div>
-                        </div>
-                    </template>
+            <!-- Results Table -->
+            <div class="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden relative">
+                
+                <!-- Loading Overlay -->
+                <div x-show="loading" x-cloak class="absolute inset-0 z-10 bg-white/60 backdrop-blur-sm flex flex-col items-center justify-center">
+                    <i class="fa-solid fa-circle-notch fa-spin text-4xl text-[#31006f] mb-3"></i>
+                    <p class="font-bold text-gray-700 mt-2">جاري جلب البيانات من Turbo...</p>
                 </div>
-            </template>
 
-            <template x-if="!loading && filteredTurbo.length > 0">
-                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                    <template x-for="item in filteredTurbo" :key="item.id">
-                        <div class="bg-white rounded-2xl border border-gray-100 p-5 shadow-sm hover:shadow-md transition flex flex-col justify-between group relative">
-                            <div class="space-y-3">
-                                
-                                <!-- Top Bar & Source Badges -->
-                                <div class="flex items-center justify-between border-b border-gray-100 pb-2.5">
-                                    <span class="font-mono text-xs font-bold text-gray-700 bg-purple-50 px-2.5 py-1 rounded-md border border-purple-100"
-                                        x-text="item.order_code"></span>
-
-                                    <!-- Status Badges for Source Types -->
-                                    <div class="flex items-center gap-1">
-                                        <!-- DB Only Badge -->
-                                        <template x-if="item.source_type === 'db_only'">
-                                            <span class="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-blue-50 text-blue-700 border border-blue-200 flex items-center gap-1"
-                                                title="هذه الشحنة موجودة في قاعدة البيانات المحلية فقط ولم تصدر لـ API بعد">
-                                                <i class="fa-solid fa-database text-[10px]"></i> DB Only
-                                            </span>
-                                        </template>
-
-                                        <!-- API Only Badge -->
-                                        <template x-if="item.source_type === 'api_only'">
-                                            <span class="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200 flex items-center gap-1"
-                                                title="هذه الشحنة جُلبت مباشرة من سيرفر Turbo وتفتقر لسجل محلي">
-                                                <i class="fa-solid fa-cloud text-[10px]"></i> Turbo API Only
-                                            </span>
-                                        </template>
-
-                                        <!-- DB & API Badge -->
-                                        <template x-if="item.source_type === 'both'">
-                                            <span class="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-indigo-50 text-indigo-700 border border-indigo-200 flex items-center gap-1"
-                                                title="الشحنة موجودة في قاعدة البيانات ومربوطة بنجاح مع سيرفر Turbo">
-                                                <i class="fa-solid fa-link text-[10px]"></i> DB & API Sync
-                                            </span>
-                                        </template>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-right text-sm whitespace-nowrap">
+                        <thead class="bg-gray-50 text-gray-600 font-bold border-b border-gray-100">
+                            <tr>
+                                <th class="px-5 py-4">كود الشحنة (Tracking)</th>
+                                <th class="px-5 py-4">كابتن التوصيل</th>
+                                <th class="px-5 py-4">الفرع الحالي</th>
+                                <th class="px-5 py-4">المبلغ المحصل</th>
+                                <th class="px-5 py-4">حالة الشحنة</th>
+                                <th class="px-5 py-4">ملاحظات والتأخير</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-gray-100">
+                            <template x-for="item in apiResults" :key="item.code || item.id || Math.random()">
+                                <tr class="hover:bg-gray-50 transition">
+                                    <td class="px-5 py-3 font-mono font-bold text-[#31006f]" x-text="item.code || '-'"></td>
+                                    <td class="px-5 py-3 font-semibold text-gray-800">
+                                        <div x-show="item.captain">
+                                            <span x-text="item.captain"></span>
+                                            <div class="text-xs text-gray-500" x-show="item.captain_number1" x-text="item.captain_number1"></div>
+                                        </div>
+                                        <span x-show="!item.captain" class="text-gray-400">غير محدد</span>
+                                    </td>
+                                    <td class="px-5 py-3">
+                                        <div class="text-gray-800" x-text="item.branch || '-'"></div>
+                                        <div class="text-xs text-gray-500" x-show="item.expected_branch">المتوقع: <span x-text="item.expected_branch"></span></div>
+                                    </td>
+                                    <td class="px-5 py-3 font-bold text-emerald-600" x-text="(item.received_amount || 0) + ' ج.م'"></td>
+                                    <td class="px-5 py-3">
+                                        <span class="px-3 py-1 rounded-full text-xs font-bold" 
+                                            :class="getStatusColor(item.status_code || item.status)" 
+                                            x-text="item.status || 'قيد الانتظار'"></span>
+                                    </td>
+                                    <td class="px-5 py-3 text-gray-500 text-xs">
+                                        <div x-show="item.delay_reason" class="text-amber-600"><i class="fa-solid fa-clock mr-1"></i> <span x-text="item.delay_reason"></span></div>
+                                        <div x-show="item.return_reason" class="text-red-600"><i class="fa-solid fa-rotate-left mr-1"></i> <span x-text="item.return_reason"></span></div>
+                                        <span x-show="!item.delay_reason && !item.return_reason">-</span>
+                                    </td>
+                                </tr>
+                            </template>
+                            
+                            <!-- Empty State -->
+                            <tr x-show="apiResults.length === 0 && hasSearched && !loading" x-cloak>
+                                <td colspan="6" class="px-5 py-12 text-center">
+                                    <div class="inline-flex items-center justify-center w-16 h-16 rounded-full bg-gray-50 mb-3">
+                                        <i class="fa-solid fa-box-open text-2xl text-gray-400"></i>
                                     </div>
-                                </div>
+                                    <h3 class="text-gray-900 font-bold text-lg">لا توجد شحنات</h3>
+                                    <p class="text-gray-500 mt-1">لم يتم العثور على أي شحنات مسجلة في هذا النطاق الزمني.</p>
+                                </td>
+                            </tr>
 
-                                <div>
-                                    <h3 class="font-bold text-gray-900 line-clamp-1 group-hover:text-[#31006f] transition"
-                                        x-text="item.receiver"></h3>
-                                    <p class="text-xs text-gray-500 mt-0.5" x-text="item.phone || 'بدون هاتف'"></p>
-                                </div>
-
-                                <!-- Shipping Details -->
-                                <div class="grid grid-cols-2 gap-2 pt-2 text-xs bg-gray-50 p-2.5 rounded-xl border border-gray-100">
-                                    <div>
-                                        <span class="text-gray-400 block text-[10px]">كود Turbo:</span>
-                                        <span class="font-mono font-bold text-purple-900" x-text="item.tracking_number"></span>
+                            <!-- Initial State -->
+                            <tr x-show="!hasSearched && !loading" x-cloak>
+                                <td colspan="6" class="px-5 py-12 text-center">
+                                    <div class="inline-flex items-center justify-center w-16 h-16 rounded-full bg-blue-50 mb-3 text-blue-500">
+                                        <i class="fa-solid fa-calendar-days text-2xl"></i>
                                     </div>
-                                    <div>
-                                        <span class="text-gray-400 block text-[10px]">مبلغ التحصيل:</span>
-                                        <span class="font-bold text-emerald-600" x-text="(item.amount || 0) + ' ج.م'"></span>
-                                    </div>
-                                    <div class="col-span-2">
-                                        <span class="text-gray-400 block text-[10px]">حالة التوصيل:</span>
-                                        <span class="font-bold text-purple-900" x-text="item.status_name"></span>
-                                    </div>
-                                </div>
-
-                                <!-- Actions Bar -->
-                                <div class="flex items-center gap-2 pt-2 border-t border-gray-100">
-                                    <button @click="resendRequest(item)" title="إعادة إرسال الشحنة"
-                                        class="flex-1 py-1.5 px-2 bg-blue-50 hover:bg-blue-100 text-blue-700 rounded-lg text-xs font-semibold transition flex items-center justify-center gap-1 cursor-pointer">
-                                        <i class="fa-solid fa-rotate-right text-[10px]"></i>
-                                        <span>إعادة إرسال</span>
-                                    </button>
-                                    <button @click="cancelRequest(item)" title="إلغاء الشحنة"
-                                        class="flex-1 py-1.5 px-2 bg-amber-50 hover:bg-amber-100 text-amber-800 rounded-lg text-xs font-semibold transition flex items-center justify-center gap-1 cursor-pointer">
-                                        <i class="fa-solid fa-ban text-[10px]"></i>
-                                        <span>إلغاء</span>
-                                    </button>
-                                    <button @click="deleteOrder(item)" title="حذف الشحنة"
-                                        class="py-1.5 px-2.5 bg-red-50 hover:bg-red-100 text-red-600 rounded-lg text-xs font-semibold transition cursor-pointer">
-                                        <i class="fa-solid fa-trash-can"></i>
-                                    </button>
-                                </div>
-                            </div>
-
-                            <div class="mt-4 pt-3 border-t border-gray-100 flex items-center justify-between text-xs">
-                                <span class="text-gray-400" x-text="item.updated_at_human"></span>
-                                <button @click="openDrawer(item)"
-                                    class="inline-flex items-center gap-1.5 text-[#31006f] font-bold hover:underline transition cursor-pointer">
-                                    <span>التفاصيل</span>
-                                    <i class="fa-solid fa-arrow-left rtl:rotate-0 rotate-180 text-xs"></i>
-                                </button>
-                            </div>
-                        </div>
-                    </template>
-                </div>
-            </template>
-
-            <!-- Empty State -->
-            <template x-if="!loading && filteredTurbo.length === 0">
-                <div class="bg-white rounded-2xl p-12 text-center border border-gray-100 shadow-sm">
-                    <div class="w-16 h-16 bg-purple-50 text-[#31006f] rounded-2xl flex items-center justify-center mx-auto text-2xl mb-4">
-                        <i class="fa-solid fa-magnifying-glass-location"></i>
-                    </div>
-                    <h3 class="text-lg font-bold text-gray-900">لا توجد شحنات مطابقة للبحث أو الملاحظات الحالية</h3>
-                    <p class="text-gray-500 text-sm mt-1 max-w-md mx-auto">تأكد من عدم وجود خيارات فلترة نشطة تمنع ظهور الشحنات.</p>
-                </div>
-            </template>
-        </div>
-
-        <!-- Details Drawer -->
-        <div x-show="detailsDrawerOpen" x-cloak class="fixed inset-0 z-50 overflow-hidden">
-            <div @click="detailsDrawerOpen = false" class="fixed inset-0 bg-black/50 backdrop-blur-sm"></div>
-
-            <div class="fixed inset-y-0 right-0 rtl:right-auto rtl:left-0 max-w-full flex z-10">
-                <div class="w-screen max-w-md bg-white shadow-2xl flex flex-col justify-between h-full">
-                    <div class="p-4 bg-[#31006f] text-white flex items-center justify-between">
-                        <div>
-                            <h2 class="font-bold text-base">تفاصيل تتبع الشحنة</h2>
-                            <p class="text-xs text-purple-200" x-text="selectedTurbo ? ('كود الطلب: ' + selectedTurbo.order_code) : ''"></p>
-                        </div>
-                        <button @click="detailsDrawerOpen = false" class="text-white text-xl font-bold hover:text-gray-300 cursor-pointer">&times;</button>
-                    </div>
-
-                    <div class="flex-1 p-4 overflow-y-auto space-y-4 text-xs" x-show="selectedTurbo">
-                        
-                        <!-- Source Notification in Drawer -->
-                        <div class="p-3 rounded-xl font-semibold flex items-center gap-2 border"
-                            :class="{
-                                'bg-blue-50 text-blue-800 border-blue-200': selectedTurbo?.source_type === 'db_only',
-                                'bg-emerald-50 text-emerald-800 border-emerald-200': selectedTurbo?.source_type === 'api_only',
-                                'bg-indigo-50 text-indigo-800 border-indigo-200': selectedTurbo?.source_type === 'both'
-                            }">
-                            <i class="fa-solid" :class="{
-                                'fa-database': selectedTurbo?.source_type === 'db_only',
-                                'fa-cloud': selectedTurbo?.source_type === 'api_only',
-                                'fa-link': selectedTurbo?.source_type === 'both'
-                            }"></i>
-                            <span x-text="
-                                selectedTurbo?.source_type === 'db_only' ? 'البيانات مسجلة في قاعدة البيانات فقط' :
-                                (selectedTurbo?.source_type === 'api_only' ? 'البيانات مجلوبة مباشرة من سيرفر Turbo' : 'البيانات متزامنة بين قاعدة البيانات وسيرفر Turbo')
-                            "></span>
-                        </div>
-
-                        <div class="bg-gray-50 p-3.5 rounded-xl border border-gray-200 space-y-2">
-                            <h4 class="font-bold text-gray-800 border-b pb-1">تفاصيل المستلم:</h4>
-                            <div class="flex justify-between text-gray-700">
-                                <span>العميل:</span>
-                                <span class="font-semibold text-gray-900" x-text="selectedTurbo?.receiver"></span>
-                            </div>
-                            <div class="flex justify-between text-gray-700">
-                                <span>الهاتف:</span>
-                                <span class="font-semibold text-gray-900" x-text="selectedTurbo?.phone"></span>
-                            </div>
-                            <div class="flex justify-between text-gray-700">
-                                <span>المحافظة والعنوان:</span>
-                                <span class="font-semibold text-gray-900 text-left max-w-[200px] truncate" x-text="(selectedTurbo?.government || '') + ' - ' + (selectedTurbo?.address || '')"></span>
-                            </div>
-                            <div class="flex justify-between text-gray-700 pt-1 border-t">
-                                <span>مبلغ التحصيل:</span>
-                                <span class="font-extrabold text-emerald-600 text-sm" x-text="(selectedTurbo?.amount || 0) + ' ج.م'"></span>
-                            </div>
-                        </div>
-
-                        <div class="flex items-center gap-2 pt-2 border-t">
-                            <button @click="resendRequest(selectedTurbo)" class="flex-1 py-2 bg-blue-50 hover:bg-blue-100 text-blue-700 font-bold rounded-xl text-center cursor-pointer">
-                                🔄 إعادة إرسال الشحنة
-                            </button>
-                            <button @click="cancelRequest(selectedTurbo)" class="flex-1 py-2 bg-amber-50 hover:bg-amber-100 text-amber-800 font-bold rounded-xl text-center cursor-pointer">
-                                🚫 إلغاء الشحنة
-                            </button>
-                        </div>
-                    </div>
+                                    <h3 class="text-gray-900 font-bold text-lg">حدد النطاق الزمني</h3>
+                                    <p class="text-gray-500 mt-1">قم بتحديد تاريخ البداية والنهاية واضغط على استعلام لجلب البيانات من Turbo.</p>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
                 </div>
             </div>
         </div>
@@ -318,54 +192,66 @@
     </div>
 
     <script>
-        function turboTrackingApp() {
+        function turboStatusApp() {
             return {
-                loading: true,
-                refreshing: false,
-                detailsDrawerOpen: false,
-
+                activeTab: 'webhook', // 'webhook' | 'status'
+                loading: false,
+                hasSearched: false,
+                
                 alertMessage: '',
                 alertSuccess: true,
 
-                search: '',
-                statusFilter: '',
-                sourceFilter: '', // db_only | api_only | both | ''
+                // Dates for status search (default to last 7 days)
+                fromDate: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+                toDate: new Date().toISOString().split('T')[0],
+                
+                apiResults: [],
 
-                turbo: [],
-                selectedTurbo: null,
-                lastSyncTime: 'الآن',
+                async fetchStatusData() {
+                    if (!this.fromDate || !this.toDate) {
+                        this.showAlert('يرجى تحديد تاريخ البداية والنهاية', false);
+                        return;
+                    }
 
-                async fetchData(isRefresh = false) {
-                    if (isRefresh) this.refreshing = true;
-                    else this.loading = true;
+                    if (this.fromDate > this.toDate) {
+                        this.showAlert('تاريخ البداية يجب أن يكون قبل أو يساوي تاريخ النهاية', false);
+                        return;
+                    }
+
+                    this.loading = true;
+                    this.hasSearched = true;
+                    this.apiResults = [];
 
                     try {
-                        const res = await fetch('/turbo/data', {
+                        const res = await fetch('{{ route('turbo.api_status') }}', {
+                            method: 'POST',
                             headers: {
+                                'Content-Type': 'application/json',
                                 'Accept': 'application/json',
                                 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
-                            }
+                            },
+                            body: JSON.stringify({
+                                from: this.fromDate,
+                                to: this.toDate
+                            })
                         });
+                        
                         const data = await res.json();
 
                         if (data.success) {
-                            this.turbo = data.turbo || [];
-                            const now = new Date();
-                            this.lastSyncTime = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                            this.apiResults = data.turbo || [];
+                            if(this.apiResults.length > 0) {
+                                this.showAlert(`تم استرجاع ${this.apiResults.length} شحنة بنجاح`, true);
+                            }
                         } else {
                             this.showAlert(data.message || 'حدث خطأ في تحميل البيانات', false);
                         }
                     } catch (err) {
-                        console.error("Error fetching Turbo data:", err);
-                        this.showAlert('حدث خطأ أثناء جلب البيانات من الخادم', false);
+                        console.error("Error fetching Turbo API status:", err);
+                        this.showAlert('حدث خطأ في الاتصال بالخادم', false);
                     } finally {
                         this.loading = false;
-                        this.refreshing = false;
                     }
-                },
-
-                initData() {
-                    this.fetchData();
                 },
 
                 showAlert(msg, isSuccess = true) {
@@ -374,84 +260,13 @@
                     setTimeout(() => { this.alertMessage = ''; }, 4500);
                 },
 
-                get filteredTurbo() {
-                    return this.turbo.filter(item => {
-                        const matchSearch = !this.search ||
-                            (item.id && item.id.toString().includes(this.search)) ||
-                            (item.order_code && item.order_code.toLowerCase().includes(this.search.toLowerCase())) ||
-                            (item.receiver && item.receiver.toLowerCase().includes(this.search.toLowerCase())) ||
-                            (item.phone && item.phone.includes(this.search)) ||
-                            (item.tracking_number && item.tracking_number.toLowerCase().includes(this.search.toLowerCase()));
-
-                        const matchStatus = !this.statusFilter || item.status_id == this.statusFilter;
-                        const matchSource = !this.sourceFilter || item.source_type === this.sourceFilter;
-
-                        return matchSearch && matchStatus && matchSource;
-                    });
-                },
-
-                openDrawer(item) {
-                    this.selectedTurbo = item;
-                    this.detailsDrawerOpen = true;
-                },
-
-                async resendRequest(item) {
-                    try {
-                        const res = await fetch('/turbo/resend-request', {
-                            method: 'POST',
-                            headers: {
-                                'Content-Type': 'application/json',
-                                'Accept': 'application/json',
-                                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
-                            },
-                            body: JSON.stringify({ id: item.id })
-                        });
-                        const data = await res.json();
-                        this.showAlert(data.message || 'تم إعادة الإرسال بنجاح', data.success);
-                        this.fetchData(true);
-                    } catch (e) {
-                        this.showAlert('تعذر إعادة الإرسال', false);
-                    }
-                },
-
-                async cancelRequest(item) {
-                    if (!confirm('هل أنت تأكد من إلغاء الشحنة؟')) return;
-                    try {
-                        const res = await fetch('/turbo/cancel-request', {
-                            method: 'POST',
-                            headers: {
-                                'Content-Type': 'application/json',
-                                'Accept': 'application/json',
-                                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
-                            },
-                            body: JSON.stringify({ id: item.id })
-                        });
-                        const data = await res.json();
-                        this.showAlert(data.message || 'تم الإلغاء بنجاح', data.success);
-                        this.fetchData(true);
-                    } catch (e) {
-                        this.showAlert('تعذر إلغاء الشحنة', false);
-                    }
-                },
-
-                async deleteOrder(item) {
-                    if (!confirm('هل أنت تأكد من حذف الشحنة نهائياً؟')) return;
-                    try {
-                        const res = await fetch('/turbo/delete-order', {
-                            method: 'POST',
-                            headers: {
-                                'Content-Type': 'application/json',
-                                'Accept': 'application/json',
-                                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
-                            },
-                            body: JSON.stringify({ remote_order_id: item.order_code || item.id })
-                        });
-                        const data = await res.json();
-                        this.showAlert(data.message || 'تم الحذف بنجاح', data.success);
-                        this.fetchData(true);
-                    } catch (e) {
-                        this.showAlert('تعذر حذف الشحنة', false);
-                    }
+                getStatusColor(status) {
+                    const statusStr = String(status).toLowerCase();
+                    if (['pending', '1', 'قيد الانتظار'].includes(statusStr)) return 'bg-yellow-50 text-yellow-700 border border-yellow-200';
+                    if (['in_transit', '2', 'جاري التوصيل'].includes(statusStr)) return 'bg-blue-50 text-blue-700 border border-blue-200';
+                    if (['delivered', '3', 'تم التسليم'].includes(statusStr)) return 'bg-emerald-50 text-emerald-700 border border-emerald-200';
+                    if (['canceled', '4', 'ملغي'].includes(statusStr)) return 'bg-red-50 text-red-700 border border-red-200';
+                    return 'bg-gray-100 text-gray-700 border border-gray-200';
                 }
             };
         }
