@@ -17,6 +17,7 @@ return new class extends Migration
                 'cutting',
                 'sewing',
                 'ironing',
+                'ready-to-ship'
             ]);
             // الموظف المكلف
             $table->foreignId('employee_id')
