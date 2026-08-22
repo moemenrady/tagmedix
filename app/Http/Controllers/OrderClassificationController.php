@@ -5,37 +5,52 @@ namespace App\Http\Controllers;
 use App\Models\Color;
 use App\Models\PantType;
 use App\Models\Size;
+use App\Models\SleeveType;
 use App\Models\Style;
 use App\Models\Type;
 use Illuminate\Http\Request;
 
 class OrderClassificationController extends Controller
 {
-    protected function getModel()
-    {
-        $resource = request()->segment(2);
+  protected function getModel()
+{
+    $resource = request()->segment(2);
 
-        return match ($resource) {
-            'colors' => Color::class,
-            'sizes'  => Size::class,
-            'styles' => Style::class,
-            default  => abort(404),
-        };
-    }
+    return match ($resource) {
+        'colors'      => Color::class,
+        'sizes'       => Size::class,
+        'styles'      => Style::class,
+        'types'       => Type::class,
+        'pant_types'  => PantType::class,
+        'sleeve_types'=> SleeveType::class,
+        default       => abort(404),
+    };
+}
 
-    public function index(Request $request)
-    {
-        // تحديد التبويب الافتراضي إذا لم يكن موجوداً بالرابط
-        $activeTab = $request->get('tab', 'colors');
+public function index(Request $request)
+{
+    $activeTab = $request->get('tab', 'colors');
 
-        $colors = Color::latest()->get();
-        $sizes = Size::latest()->get();
-        $styles = Style::latest()->get();
-        $types = Type::latest()->get();
-        $pantTypes = PantType::latest()->get();
+    $colors = Color::latest()->get();
+    $sizes = Size::latest()->get();
+    $styles = Style::latest()->get();
+    $types = Type::latest()->get();
+    $pantTypes = PantType::latest()->get();
+    $sleeveTypes = SleeveType::latest()->get();
 
-        return view('pages.order_classifications.index', compact('colors', 'sizes', 'styles', 'types', 'pantTypes', 'activeTab'));
-    }
+    return view(
+        'pages.order_classifications.index',
+        compact(
+            'colors',
+            'sizes',
+            'styles',
+            'types',
+            'pantTypes',
+            'sleeveTypes',
+            'activeTab'
+        )
+    );
+}
 
     public function store(Request $request)
     {

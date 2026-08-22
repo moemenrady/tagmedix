@@ -8,6 +8,7 @@ use App\Models\Order;
 use App\Models\OrderItem;
 use App\Models\PantType;
 use App\Models\Size;
+use App\Models\SleeveType;
 use App\Models\Style;
 use App\Models\Type;
 use App\Services\OrderService;
@@ -74,11 +75,11 @@ class OrderController extends Controller
                 ->sum('total_price'),
 
             'paid_amount' => $orders->sum(
-                fn ($order) => $order->getTotalPaid()
+                fn($order) => $order->getTotalPaid()
             ),
 
             'remaining_payments' => $orders->sum(
-                fn ($order) => $order->getRemainingAmount()
+                fn($order) => $order->getRemainingAmount()
             ),
         ];
         $statusMap = [
@@ -167,6 +168,7 @@ class OrderController extends Controller
         $styles = Style::all();
         $types = Type::all();
         $pantTypes = PantType::all();
+        $sleeveType = SleeveType::all();
 
         $governments = [];
 
@@ -175,11 +177,17 @@ class OrderController extends Controller
             // استخراج البيانات من feed أو data أو المفتاح الرئيسي
             $governments = $response['feed'] ?? $response['data'] ?? (is_array($response) ? $response : []);
         } catch (\Throwable $e) {
-            \Log::error('Turbo API Error: '.$e->getMessage());
+            \Log::error('Turbo API Error: ' . $e->getMessage());
         }
 
         return view('pages.orders.create', compact(
-            'colors', 'sizes', 'styles', 'types', 'pantTypes', 'governments'
+            'colors',
+            'sizes',
+            'styles',
+            'types',
+            'pantTypes',
+            'governments',
+            'sleeveType'
         ));
     }
 
@@ -193,7 +201,7 @@ class OrderController extends Controller
 
             return response()->json($areas);
         } catch (\Throwable $e) {
-            \Log::error('Turbo Areas API Error: '.$e->getMessage());
+            \Log::error('Turbo Areas API Error: ' . $e->getMessage());
 
             return response()->json(['error' => 'Failed to fetch areas'], 500);
         }
@@ -232,13 +240,12 @@ class OrderController extends Controller
             return redirect()
                 ->route('orders.index')
                 ->with('success', 'تم إنشاء الطلب بنجاح');
-
         } catch (ValidationException $e) {
             throw $e; // بيرجعك للفورم مع الأخطاء
         } catch (\Throwable $e) {
             return back()
                 ->withInput()
-                ->with('fail', 'حدث خطأ: '.$e->getMessage());
+                ->with('fail', 'حدث خطأ: ' . $e->getMessage());
         }
     }
 
@@ -368,7 +375,7 @@ class OrderController extends Controller
                     'design' => $item['design'] ?? null,
                     'color' => $item['color'] ?? null,
                     'size' => $item['size'] ?? null,
-                    'sleeve' => $item['sleeve'] ?? null,
+                    'sleeve_type_id' => $item['sleeve_type_id'] ?? null,
                     'quantity' => $item['quantity'],
                     'price' => $item['price'],
                     'total' => $itemTotal,

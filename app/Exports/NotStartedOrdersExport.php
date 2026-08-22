@@ -31,7 +31,8 @@ class NotStartedOrdersExport implements
             'items.color',
             'items.size',
             'items.type',
-            'items.pantType'
+            'items.pantType',
+            'items.sleeveType' // تم إضافة علاقة نوع الكم هنا
         ])
             ->where('status', 'new')
             ->orderBy('id')
@@ -42,11 +43,8 @@ class NotStartedOrdersExport implements
         foreach ($orders as $order) {
             foreach ($order->items as $item) {
 
-                $sleeve = match ($item->sleeve) {
-                    'short' => 'نصف كم',
-                    'long'  => 'طويل',
-                    default => $item->sleeve ?? '-',
-                };
+                // جلب اسم نوع الكم من العلاقة الجديدة
+                $sleeve = $item->sleeveType?->name ?? '-';
 
                 $rows[] = [
                     'order_number'  => $order->order_number,
@@ -120,9 +118,9 @@ class NotStartedOrdersExport implements
                 ],
             ]);
 
-            // تلوين خلايا عمود "اللون" برمجياً لإبهارك!
+            // تلوين خلايا عمود "اللون" برمجياً
             for ($row = 3; $row <= $highestRow; $row++) {
-                $sheet->getRowDimension($row)->setRowHeight(40); // ارتفاع ممتاز للموبايل
+                $sheet->getRowDimension($row)->setRowHeight(40);
                 $colorText = trim($sheet->getCell("G{$row}")->getValue());
 
                 $colorHex = match ($colorText) {
@@ -169,7 +167,7 @@ class NotStartedOrdersExport implements
                 ]);
 
                 $sheet->getRowDimension(1)->setRowHeight(45);
-                $sheet->freezePane('A3'); // تثبيت العناوين عند التمرير
+                $sheet->freezePane('A3');
                 $sheet->getSheetView()->setZoomScale(100);
             },
         ];

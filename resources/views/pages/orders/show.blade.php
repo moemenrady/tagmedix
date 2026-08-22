@@ -362,6 +362,7 @@
                                                 {{ $item->type->name }}
                                             </span>
                                         @endif
+
                                         @if ($item->pantType)
                                             <span
                                                 class="inline-flex items-center gap-1 bg-emerald-50 text-emerald-700 px-2.5 py-1 rounded-full text-[10px] font-bold border border-emerald-200">
@@ -369,18 +370,30 @@
                                                 {{ $item->pantType->name }}
                                             </span>
                                         @endif
+
+                                        {{-- إضافة نوع الكم هنا بلون مميز --}}
+                                        @if ($item->sleeveType)
+                                            <span
+                                                class="inline-flex items-center gap-1 bg-cyan-50 text-cyan-700 px-2.5 py-1 rounded-full text-[10px] font-bold border border-cyan-200">
+                                                <i class="fa-solid fa-scissors"></i>
+                                                {{ $item->sleeveType->name }}
+                                            </span>
+                                        @endif
+
                                         @if ($item->style)
                                             <span
                                                 class="bg-gray-100 text-gray-600 px-2 py-0.5 rounded text-[10px] font-bold"><i
                                                     class="fa-solid fa-palette mr-1"></i>
                                                 {{ $item->style->name }}</span>
                                         @endif
+
                                         @if ($item->color)
                                             <span
                                                 class="bg-amber-50 text-amber-700 px-2 py-0.5 rounded text-[10px] font-bold"><i
                                                     class="fa-solid fa-droplet mr-1"></i>
                                                 {{ $item->color->name }}</span>
                                         @endif
+
                                         @if ($item->size)
                                             <span
                                                 class="bg-blue-50 text-blue-700 px-2 py-0.5 rounded text-[10px] font-bold"><i
@@ -418,68 +431,67 @@
                                         :class="expanded ? 'rotate-180' : ''"></i>
                                 </div>
                             </div>
-                            <div class="p-5 border-t border-gray-100 bg-gray-50">
-                                {{-- عرض التفاصيل --}}
-                                <div x-show="!isEditingItem">
-                                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                        <div class="bg-white p-3 rounded-xl border border-gray-100">
-                                            <p class="text-xs text-gray-400 font-bold mb-1" data-ar="ملاحظات التصنيع"
-                                                data-en="Manufacturing Notes">ملاحظات التصنيع</p>
-                                            <p class="text-sm text-gray-800"
-                                                x-text="itemData.notes || 'لا توجد ملاحظات.'"></p>
-                                        </div>
-                                        <div class="flex items-center justify-end">
-                                            <button @click="isEditingItem = true"
-                                                class="px-4 py-2 bg-gray-900 text-white text-xs font-bold rounded-lg hover:bg-gray-800 transition flex items-center gap-2">
-                                                <i class="fa-solid fa-pen-to-square"></i>
-                                                <span data-ar="تعديل تفاصيل المنتج" data-en="Edit Item Details">تعديل
-                                                    تفاصيل المنتج</span>
-                                            </button>
-                                        </div>
-                                    </div>
-                                </div>
+                        </div>
 
-                                {{-- نموذج التعديل --}}
-                                <div x-show="isEditingItem" class="space-y-4">
-                                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                                        <div class="sm:col-span-3">
-                                            <label class="text-[10px] font-bold text-gray-500" data-ar="اسم المنتج"
-                                                data-en="Product Name">اسم المنتج</label>
-                                            <input type="text" x-model="itemData.productName"
-                                                class="w-full text-sm border-gray-200 rounded-lg focus:ring-activeGold">
-                                        </div>
-                                        <div>
-                                            <label class="text-[10px] font-bold text-gray-500" data-ar="الكمية"
-                                                data-en="Quantity">الكمية</label>
-                                            <input type="number" x-model="itemData.qty"
-                                                class="w-full text-sm border-gray-200 rounded-lg focus:ring-activeGold">
-                                        </div>
-                                        <div>
-                                            <label class="text-[10px] font-bold text-gray-500" data-ar="السعر"
-                                                data-en="Price">السعر</label>
-                                            <input type="number" step="0.01" x-model="itemData.price"
-                                                class="w-full text-sm border-gray-200 rounded-lg focus:ring-activeGold">
-                                        </div>
+                        <div x-show="expanded" class="p-5 border-t border-gray-100 bg-gray-50">
+                            {{-- عرض التفاصيل --}}
+                            <div x-show="!isEditingItem">
+                                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <div class="bg-white p-3 rounded-xl border border-gray-100">
+                                        <p class="text-xs text-gray-400 font-bold mb-1" data-ar="ملاحظات التصنيع"
+                                            data-en="Manufacturing Notes">ملاحظات التصنيع</p>
+                                        <p class="text-sm text-gray-800" x-text="itemData.notes || 'لا توجد ملاحظات.'">
+                                        </p>
                                     </div>
-                                    <div>
-                                        <label class="text-[10px] font-bold text-gray-500" data-ar="ملاحظات"
-                                            data-en="Notes">ملاحظات</label>
-                                        <textarea x-model="itemData.notes" rows="2"
-                                            class="w-full text-sm border-gray-200 rounded-lg focus:ring-activeGold"></textarea>
-                                    </div>
-                                    <div class="flex justify-end gap-2 mt-3">
-                                        <button @click="isEditingItem = false"
-                                            class="px-4 py-2 bg-gray-200 text-gray-700 text-xs font-bold rounded-lg hover:bg-gray-300 transition"
-                                            data-ar="إلغاء" data-en="Cancel">إلغاء</button>
-                                        <button @click="updateItem({{ $item->id }}, itemData); isEditingItem = false"
-                                            class="px-4 py-2 bg-activeGold text-white text-xs font-bold rounded-lg hover:bg-yellow-700 transition"
-                                            data-ar="حفظ المنتج" data-en="Save Item">حفظ المنتج</button>
+                                    <div class="flex items-center justify-end">
+                                        <button @click="isEditingItem = true"
+                                            class="px-4 py-2 bg-gray-900 text-white text-xs font-bold rounded-lg hover:bg-gray-800 transition flex items-center gap-2">
+                                            <i class="fa-solid fa-pen-to-square"></i>
+                                            <span data-ar="تعديل تفاصيل المنتج" data-en="Edit Item Details">تعديل
+                                                تفاصيل المنتج</span>
+                                        </button>
                                     </div>
                                 </div>
                             </div>
+
+                            {{-- نموذج التعديل --}}
+                            <div x-show="isEditingItem" class="space-y-4">
+                                <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                                    <div class="sm:col-span-3">
+                                        <label class="text-[10px] font-bold text-gray-500" data-ar="اسم المنتج"
+                                            data-en="Product Name">اسم المنتج</label>
+                                        <input type="text" x-model="itemData.productName"
+                                            class="w-full text-sm border-gray-200 rounded-lg focus:ring-activeGold">
+                                    </div>
+                                    <div>
+                                        <label class="text-[10px] font-bold text-gray-500" data-ar="الكمية"
+                                            data-en="Quantity">الكمية</label>
+                                        <input type="number" x-model="itemData.qty"
+                                            class="w-full text-sm border-gray-200 rounded-lg focus:ring-activeGold">
+                                    </div>
+                                    <div>
+                                        <label class="text-[10px] font-bold text-gray-500" data-ar="السعر"
+                                            data-en="Price">السعر</label>
+                                        <input type="number" step="0.01" x-model="itemData.price"
+                                            class="w-full text-sm border-gray-200 rounded-lg focus:ring-activeGold">
+                                    </div>
+                                </div>
+                                <div>
+                                    <label class="text-[10px] font-bold text-gray-500" data-ar="ملاحظات"
+                                        data-en="Notes">ملاحظات</label>
+                                    <textarea x-model="itemData.notes" rows="2"
+                                        class="w-full text-sm border-gray-200 rounded-lg focus:ring-activeGold"></textarea>
+                                </div>
+                                <div class="flex justify-end gap-2 mt-3">
+                                    <button @click="isEditingItem = false"
+                                        class="px-4 py-2 bg-gray-200 text-gray-700 text-xs font-bold rounded-lg hover:bg-gray-300 transition"
+                                        data-ar="إلغاء" data-en="Cancel">إلغاء</button>
+                                    <button @click="updateItem({{ $item->id }}, itemData); isEditingItem = false"
+                                        class="px-4 py-2 bg-activeGold text-white text-xs font-bold rounded-lg hover:bg-yellow-700 transition"
+                                        data-ar="حفظ المنتج" data-en="Save Item">حفظ المنتج</button>
+                                </div>
+                            </div>
                         </div>
-
-
                     </div>
                 @empty
                     <div class="p-8 text-center text-gray-400">

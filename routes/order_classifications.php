@@ -6,7 +6,7 @@ use App\Http\Controllers\SizeController;
 use App\Http\Controllers\StyleController;
 use App\Http\Controllers\TypeController;
 use App\Http\Controllers\PantTypeController;
-
+use App\Http\Controllers\SleeveTypeController;
 use Illuminate\Support\Facades\Route;
 
 Route::middleware('auth')->group(function () {
@@ -20,5 +20,6 @@ Route::middleware('auth')->group(function () {
         Route::resource('styles', StyleController::class);
         Route::resource('types', TypeController::class);
         Route::resource('pant_types', PantTypeController::class);
+        Route::resource('sleeve_types', SleeveTypeController::class);
     });
 });

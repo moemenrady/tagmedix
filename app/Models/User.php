@@ -11,13 +11,13 @@ class User extends Authenticatable implements MustVerifyEmail
 {
   use HasFactory, Notifiable;
 
-  protected $fillable = [
+ protected $fillable = [
     'name',
     'email',
     'password',
     'role',
+    'email_verified_at', // <--- قم بإضافة هذا السطر
   ];
-
   protected $hidden = [
     'password',
     'remember_token',

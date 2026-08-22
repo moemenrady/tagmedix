@@ -25,6 +25,10 @@ return new class extends Migration {
                 ->nullable()
                 ->constrained('pant_types')
                 ->nullOnDelete();
+            $table->foreignId('sleeve_type_id')
+                ->nullable()
+                ->constrained('sleeve_types')
+                ->nullOnDelete();
             $table->foreignId('color_id')
                 ->nullable()
                 ->constrained('colors')
@@ -34,7 +38,6 @@ return new class extends Migration {
                 ->constrained('sizes')
                 ->nullOnDelete();
 
-            $table->enum('sleeve', ['short', 'long'])->nullable();
             $table->integer('quantity')->default(1);
             $table->decimal('price', 10, 2)->default(0);
             $table->decimal('total', 10, 2)->default(0);

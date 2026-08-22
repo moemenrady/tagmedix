@@ -17,6 +17,7 @@ class DatabaseSeeder extends Seeder
         $this->call([
             UserTableSeeder::class,
             OrderSeeder::class,
+            EmployeeTestSeeder::class
         ]);
     }
 }

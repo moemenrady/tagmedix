@@ -71,25 +71,23 @@ class UserController extends Controller
      * supervisor
      *
      */
-    public function store(Request $request)
+   public function store(Request $request)
     {
         $data = $request->validate([
-
             'name' => ['required', 'string', 'max:255'],
-
             'email' => ['required', 'email', 'max:255', 'unique:users,email'],
-
             'password' => ['required', 'confirmed', 'min:8'],
-
-            'role' => ['required', Rule::in(['admin', 'supervisor'])],
-
+            'role' => ['required', \Illuminate\Validation\Rule::in(['admin', 'supervisor'])],
         ]);
 
         $data['password'] = Hash::make($data['password']);
+        
+        // إعطاء الحقل قيمة الوقت الحالي لتفعيل الحساب فوراً
+        $data['email_verified_at'] = now(); 
 
         User::create($data);
 
-        return back()->with('success', 'تم إضافة المستخدم بنجاح.');
+        return back()->with('success', 'تم إضافة المستخدم وتفعيل حسابه بنجاح.');
     }
 
     /**

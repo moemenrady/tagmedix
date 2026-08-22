@@ -7,7 +7,7 @@ use App\Models\Order;
 use App\Models\Payment;
 use App\Services\PaymentService;
 use Illuminate\Http\Request;
-
+use App\Exports\PaymentsExport;
 class PaymentController extends Controller
 {
     protected PaymentService $paymentService;
@@ -17,11 +17,42 @@ class PaymentController extends Controller
         $this->paymentService = $paymentService;
     }
 
-    public function index()
+// تحديث دالة الـ index لاستقبال التواريخ واستخدام المركز المالي
+    public function index(Request $request)
     {
-        return view('pages.payments.index', [
-            'payments' => $this->paymentService->getAll()
-        ]);
+        $from = $request->input('from', now()->toDateString());
+        $to = $request->input('to', now()->toDateString());
+
+        $financialData = $this->paymentService->financialCenter($from, $to);
+
+        return view('pages.payments.index', compact('financialData'));
+    }
+
+    // --- دوال توريد شركة الشحن ---
+    public function createCompanySupply()
+    {
+        return view('pages.payments.company-supply');
+    }
+
+    public function storeCompanySupply(Request $request)
+    {
+        $payment = $this->paymentService->createCompanySupply($request);
+
+        return redirect()->route('payments.index')
+            ->with('success', 'تم إضافة توريد شركة الشحن بنجاح');
+    }
+
+    // --- دالة التصدير للإكسيل ---
+    public function export(Request $request)
+    {
+        $from = $request->input('from', now()->toDateString());
+        $to = $request->input('to', now()->toDateString());
+
+        // تأكد من إنشاء كلاس PaymentsExport باستخدام حزمة Excel
+        return \Maatwebsite\Excel\Facades\Excel::download(
+            new PaymentsExport($from, $to),
+            'financial-center-' . $from . '-to-' . $to . '.xlsx'
+        );
     }
 
     public function create()

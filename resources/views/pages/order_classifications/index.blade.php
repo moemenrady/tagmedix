@@ -16,11 +16,11 @@
 
         <div class="mb-8">
             <h2 class="text-3xl font-bold text-gray-800 mb-2">خصائص المنتجات</h2>
-            <p class="text-base text-gray-500">إدارة الألوان، المقاسات، الأنماط، الأنواع، وأنواع البنطلونات الخاصة بنظام
-                Tagmedix.</p>
+            <p class="text-base text-gray-500">إدارة الألوان، المقاسات، الأنماط، الأنواع، أنواع البنطلونات، وأنواع الأكمام
+                الخاصة بنظام Tagmedix.</p>
         </div>
 
-        {{-- شريط التبويبات (Tabs) المعدل ليشمل 5 عناصر بدلاً من 4 --}}
+        {{-- شريط التبويبات (Tabs) المعدل ليشمل 6 عناصر بدلاً من 5 --}}
         <div
             class="grid grid-cols-2 md:flex md:flex-row gap-3 mb-8 bg-white p-3 rounded-2xl shadow-sm border border-gray-100">
             <a href="{{ route('order_classifications.index', ['tab' => 'colors']) }}"
@@ -43,10 +43,16 @@
                 <i class="fa-solid fa-layer-group"></i> الأنواع
             </a>
 
-            {{-- التبويب الجديد الخاص بأنواع البنطلونات --}}
+            {{-- التبويب الخاص بأنواع البنطلونات --}}
             <a href="{{ route('order_classifications.index', ['tab' => 'pant_types']) }}"
                 class="modern-card flex-1 text-center py-3 px-6 rounded-xl text-base font-semibold transition-all duration-300 flex items-center justify-center gap-2 {{ $activeTab === 'pant_types' ? 'bg-[#8A704C] text-white shadow-md transform scale-[1.02]' : 'bg-gray-50 text-gray-600 hover:bg-gray-100 hover:text-gray-900' }}">
                 <i class="fa-solid fa-tags"></i> أنواع البنطلونات
+            </a>
+
+            {{-- التبويب الجديد الخاص بأنواع الأكمام --}}
+            <a href="{{ route('order_classifications.index', ['tab' => 'sleeve_types']) }}"
+                class="modern-card flex-1 text-center py-3 px-6 rounded-xl text-base font-semibold transition-all duration-300 flex items-center justify-center gap-2 {{ $activeTab === 'sleeve_types' ? 'bg-[#8A704C] text-white shadow-md transform scale-[1.02]' : 'bg-gray-50 text-gray-600 hover:bg-gray-100 hover:text-gray-900' }}">
+                <i class="fa-solid fa-ruler-horizontal"></i> أنواع الأكمام
             </a>
         </div>
 
@@ -80,13 +86,19 @@
                     'icon' => 'fa-layer-group',
                     'items' => $types,
                 ])
-                {{-- استدعاء المكون الجديد وتمرير متغير مصفوفة البنطلونات القادم من الـ Controller --}}
             @elseif ($activeTab === 'pant_types')
                 @include('pages.order_classifications.components.classification_card', [
                     'type' => 'pant_types',
                     'title' => 'نوع بنطلون',
                     'icon' => 'fa-tags',
                     'items' => $pantTypes,
+                ])
+            @elseif ($activeTab === 'sleeve_types')
+                @include('pages.order_classifications.components.classification_card', [
+                    'type' => 'sleeve_types',
+                    'title' => 'نوع كم',
+                    'icon' => 'fa-ruler-horizontal',
+                    'items' => $sleeveTypes,
                 ])
             @endif
         </div>

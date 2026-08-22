@@ -1,620 +1,353 @@
 @extends('layouts.app')
 
-@section('title', 'المدفوعات')
-
 @section('content')
-    <link href="https://cdn.jsdelivr.net/npm/tom-select@2.2.2/dist/css/tom-select.default.css" rel="stylesheet">
-    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    <div class="p-4 md:p-8 space-y-8 bg-gray-50/50 min-h-screen" x-data="{ activeTab: 'all' }">
 
-    <style>
-        /* تصميم سكرول بار أنيق للجدول ليتناسب مع عرض كل البيانات */
-        .custom-scrollbar::-webkit-scrollbar {
-            width: 6px;
-            height: 6px;
-        }
-
-        .custom-scrollbar::-webkit-scrollbar-track {
-            background: #f1f5f9;
-            border-radius: 8px;
-        }
-
-        .custom-scrollbar::-webkit-scrollbar-thumb {
-            background: #cbd5e1;
-            border-radius: 8px;
-        }
-
-        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-            background: #94a3b8;
-        }
-
-        /* لدعم اتجاه الصفحة حسب اللغة ديناميكياً للعناصر الداخلية */
-        html[dir="ltr"] .rtl-flip {
-            transform: scaleX(-1);
-        }
-
-        html[dir="ltr"] .text-right-lang {
-            text-align: left !important;
-        }
-
-        html[dir="rtl"] .text-right-lang {
-            text-align: right !important;
-        }
-
-        /* تخصيص مظهر Tom Select ليتماشى مع تصميمك واللون الذهبي */
-        .ts-control {
-            border-radius: 0.5rem !important;
-            border-color: #d1d5db !important;
-            padding: 0.6rem 1rem !important;
-            font-family: inherit !important;
-            min-height: 46px !important;
-        }
-
-        .ts-control.focus {
-            border-color: #8A704C !important;
-            box-shadow: 0 0 0 1px #8A704C !important;
-        }
-
-        .ts-dropdown {
-            border-radius: 0.5rem !important;
-            font-family: inherit !important;
-            text-align: right;
-            /* Default RTL */
-        }
-
-        html[dir="ltr"] .ts-dropdown {
-            text-align: left;
-        }
-    </style>
-
-    @php
-        // جلب قائمة الطلبات لاستخدامها في نموذج التعديل داخل النافذة المنبثقة
-        $allOrders = \App\Models\Order::latest()->get();
-
-        // تحضير البيانات لـ AlpineJS لضمان تفاعل البطاقات الحسابية ونافذة التعديل
-        $paymentData = $payments->map(function ($p) {
-            return [
-                'id' => $p->id,
-                'amount' => $p->amount,
-                'payment_date' => $p->payment_date ? $p->payment_date->format('Y-m-d') : '',
-                'note' => $p->note,
-                'order_id' => $p->order_id,
-                'order' => $p->order
-                    ? [
-                        'id' => $p->order->id,
-                        'order_number' => $p->order->order_number,
-                        'customer_name' => $p->order->customer_name,
-                        'remaining_amount' => $p->order?->getRemainingAmount(),
-                    ]
-                    : null,
-                'creator' => $p->creator ? ['name' => $p->creator->name] : null,
-            ];
-        });
-    @endphp
-
-    <div class="space-y-6 pb-10 font-sans w-full" x-data="paymentManager({{ json_encode($paymentData) }})" x-init="initData()">
-
-        <div x-show="isEditModalOpen" style="display: none;"
-            class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 overflow-y-auto"
-            x-transition:enter="transition ease-out duration-300" x-transition:enter-start="opacity-0"
-            x-transition:enter-end="opacity-100" x-transition:leave="transition ease-in duration-200"
-            x-transition:leave-start="opacity-100" x-transition:leave-end="opacity-0">
-
-            <div @click.away="closeEditModal()"
-                class="bg-white rounded-2xl shadow-2xl border border-gray-100 w-full max-w-2xl transform transition-all"
-                x-transition:enter="transition ease-out duration-300"
-                x-transition:enter-start="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
-                x-transition:enter-end="opacity-100 translate-y-0 sm:scale-100"
-                x-transition:leave="transition ease-in duration-200"
-                x-transition:leave-start="opacity-100 translate-y-0 sm:scale-100"
-                x-transition:leave-end="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95">
-
-                <div class="flex items-center justify-between p-6 border-b border-gray-100 bg-gray-50/50 rounded-t-2xl">
-                    <h3 class="text-xl font-bold text-gray-800 flex items-center gap-2">
-                        <i class="fa-solid fa-pen-to-square text-activeGold"></i>
-                        <span data-ar="تعديل الدفعة" data-en="Edit Payment">تعديل الدفعة</span>
-                    </h3>
-                    <button @click="closeEditModal()"
-                        class="text-gray-400 hover:text-red-500 transition-colors w-8 h-8 flex items-center justify-center rounded-full hover:bg-red-50">
-                        <i class="fa-solid fa-xmark text-lg"></i>
-                    </button>
-                </div>
-
-                <form @submit.prevent="submitEdit()" class="p-6 space-y-5">
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
-
-                        <div class="md:col-span-2">
-                            <label class="block text-sm font-semibold text-gray-700 mb-2">
-                                <span data-ar="رقم الطلب" data-en="Order">رقم الطلب</span> <span
-                                    class="text-red-500">*</span>
-                            </label>
-                            <div wire:ignore>
-                                <select id="edit_order_id" x-model="editData.order_id" required class="w-full">
-                                    <option value=""></option>
-                                    @foreach ($allOrders as $ord)
-                                        <option value="{{ $ord->id }}">
-                                            #{{ $ord->order_number ?? $ord->id }} - {{ $ord->customer_name ?? 'بدون اسم' }}
-                                        </option>
-                                    @endforeach
-                                </select>
-                            </div>
-                        </div>
-
-                        <div>
-                            <label class="block text-sm font-semibold text-gray-700 mb-2">
-                                <span data-ar="المبلغ" data-en="Amount">المبلغ</span> <span class="text-red-500">*</span>
-                            </label>
-                            <div class="relative">
-                                <div
-                                    class="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none rtl:right-0 rtl:left-auto ltr:left-0 ltr:right-auto rtl:pr-3 ltr:pl-3">
-                                    <span class="text-gray-500 sm:text-sm">ج.م</span>
-                                </div>
-                                <input type="number" step="0.01" min="0" required x-model="editData.amount"
-                                    class="block w-full rounded-lg border-gray-300 border px-4 py-2.5 rtl:pr-10 ltr:pl-10 focus:ring-activeGold focus:border-activeGold transition outline-none">
-                            </div>
-                        </div>
-
-                        <div>
-                            <label class="block text-sm font-semibold text-gray-700 mb-2">
-                                <span data-ar="تاريخ الدفع" data-en="Payment Date">تاريخ الدفع</span> <span
-                                    class="text-red-500">*</span>
-                            </label>
-                            <input type="date" required x-model="editData.payment_date"
-                                class="block w-full rounded-lg border-gray-300 border px-4 py-2.5 focus:ring-activeGold focus:border-activeGold transition outline-none">
-                        </div>
-
-                        <div class="md:col-span-2">
-                            <label class="block text-sm font-semibold text-gray-700 mb-2">
-                                <span data-ar="ملاحظات" data-en="Notes">ملاحظات</span>
-                            </label>
-                            <textarea rows="3" x-model="editData.note"
-                                class="block w-full rounded-lg border-gray-300 border px-4 py-2.5 focus:ring-activeGold focus:border-activeGold transition outline-none resize-none"></textarea>
-                        </div>
-                    </div>
-
-                    <div class="pt-4 border-t border-gray-100 flex justify-end gap-3 mt-6">
-                        <button type="button" @click="closeEditModal()"
-                            class="px-5 py-2.5 rounded-lg border border-gray-300 text-gray-700 font-medium hover:bg-gray-50 transition">
-                            <span data-ar="إلغاء" data-en="Cancel">إلغاء</span>
-                        </button>
-                        <button type="submit" :disabled="isSaving"
-                            class="px-5 py-2.5 rounded-lg bg-activeGold text-white font-medium hover:bg-[#735A3A] shadow-md transition flex items-center gap-2 disabled:opacity-50">
-                            <i class="fa-solid" :class="isSaving ? 'fa-spinner fa-spin' : 'fa-check'"></i>
-                            <span data-ar="حفظ التعديلات" data-en="Save Changes"
-                                x-text="isSaving ? (document.documentElement.lang === 'ar' ? 'جاري الحفظ...' : 'Saving...') : (document.documentElement.lang === 'ar' ? 'حفظ التعديلات' : 'Save Changes')">حفظ
-                                التعديلات</span>
-                        </button>
-                    </div>
-                </form>
+        {{-- الهيدر وأزرار الإجراءات --}}
+        <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-6">
+            <div>
+                <h1 class="text-3xl font-extrabold text-gray-900 tracking-tight">مركز الماليات</h1>
+                <p class="text-sm text-gray-500 mt-1">متابعة المقدمات، توريدات شركات الشحن، والدفعات المتوقعة</p>
+            </div>
+            <div class="flex flex-wrap items-center gap-3">
+                <a href="{{ route('payments.export', request()->all()) }}"
+                    class="flex-1 md:flex-none justify-center px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold rounded-xl text-sm flex items-center gap-2 transform hover:-translate-y-0.5 active:scale-95 transition-all duration-200 shadow-sm hover:shadow-emerald-200">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                    </svg>
+                    تصدير إكسيل
+                </a>
+                <a href="{{ route('payments.company-supply.create') }}"
+                    class="flex-1 md:flex-none justify-center px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-xl text-sm flex items-center gap-2 transform hover:-translate-y-0.5 active:scale-95 transition-all duration-200 shadow-sm hover:shadow-indigo-200">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+                    </svg>
+                    إضافة توريد شركة شحن
+                </a>
             </div>
         </div>
 
-        @if (session('success'))
-            <div x-data="{ show: true }" x-show="show" x-transition.duration.500ms
-                class="bg-emerald-50 border-r-4 border-emerald-500 p-4 rounded-xl flex items-center justify-between shadow-sm">
-                <div class="flex items-center gap-3">
-                    <div class="w-8 h-8 rounded-full bg-emerald-100 flex items-center justify-center shrink-0">
-                        <i class="fa-solid fa-check text-emerald-600"></i>
-                    </div>
-                    <p class="text-emerald-800 font-medium">{{ session('success') }}</p>
+        {{-- شريط الفلاتر السريعة والتواريخ --}}
+        <div
+            class="bg-white p-5 rounded-2xl shadow-sm border border-gray-100 flex flex-col xl:flex-row xl:items-center justify-between gap-6 transition-all">
+            <form method="GET" action="{{ route('payments.index') }}"
+                class="flex flex-wrap items-end gap-4 w-full xl:w-auto">
+                <div class="flex flex-col gap-1.5 flex-1 min-w-[140px]">
+                    <label class="text-xs font-bold text-gray-500 uppercase tracking-wider">من تاريخ</label>
+                    <input type="date" name="from" value="{{ $financialData['from'] }}"
+                        class="w-full text-sm border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all bg-gray-50 hover:bg-white cursor-pointer">
                 </div>
-                <button @click="show = false" class="text-emerald-500 hover:text-emerald-700 transition">
-                    <i class="fa-solid fa-xmark text-lg"></i>
+                <div class="flex flex-col gap-1.5 flex-1 min-w-[140px]">
+                    <label class="text-xs font-bold text-gray-500 uppercase tracking-wider">إلى تاريخ</label>
+                    <input type="date" name="to" value="{{ $financialData['to'] }}"
+                        class="w-full text-sm border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all bg-gray-50 hover:bg-white cursor-pointer">
+                </div>
+                <button type="submit"
+                    class="px-6 py-2.5 h-[42px] bg-gray-900 text-white font-medium rounded-xl text-sm hover:bg-gray-800 active:scale-95 transition-all duration-200 shadow-sm">
+                    تطبيق الفلتر
                 </button>
-            </div>
-        @endif
+            </form>
 
-        <div>
-            <h2 class="text-2xl font-black text-gray-800 flex items-center gap-2">
-                <i class="fa-regular fa-credit-card text-activeGold"></i>
-                <span data-ar="إدارة المدفوعات الذكية" data-en="Smart Payments Management">إدارة المدفوعات الذكية</span>
-            </h2>
-            <p class="text-gray-500 text-sm mt-1" data-ar="تابع وحلل جميع حركات الدفع الخاصة بالطلبات"
-                data-en="Track and analyze all payment transactions for orders">تابع وحلل جميع حركات الدفع الخاصة بالطلبات
-            </p>
-        </div>
-
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-5">
+            {{-- أزرار الوصول السريع للتاريخ --}}
             <div
-                class="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm hover:shadow-md hover:-translate-y-1 transition-all duration-300 flex items-center justify-between group">
-                <div>
-                    <p class="text-gray-500 text-sm font-medium mb-1" data-ar="العمليات المعروضة"
-                        data-en="Displayed Transactions">العمليات المعروضة</p>
-                    <h3 class="text-3xl font-black text-gray-800" x-text="filteredPayments.length">0</h3>
-                </div>
-                <div
-                    class="w-14 h-14 rounded-2xl bg-gradient-to-br from-blue-50 to-blue-100 flex items-center justify-center text-blue-600 group-hover:scale-110 transition-transform">
-                    <i class="fa-solid fa-receipt text-2xl"></i>
-                </div>
-            </div>
-
-            <div
-                class="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm hover:shadow-md hover:-translate-y-1 transition-all duration-300 flex items-center justify-between group">
-                <div>
-                    <p class="text-gray-500 text-sm font-medium mb-1" data-ar="إجمالي المحصل (للبحث الحالي)"
-                        data-en="Total Collected (Current Search)">إجمالي المحصل (للبحث الحالي)</p>
-                    <h3 class="text-2xl font-black text-gray-800">
-                        <span x-text="formatCurrency(totalDisplayedAmount)"></span>
-                        <span class="text-sm text-gray-400 font-normal" data-ar="ج.م" data-en="EGP">ج.م</span>
-                    </h3>
-                </div>
-                <div
-                    class="w-14 h-14 rounded-2xl bg-gradient-to-br from-emerald-50 to-emerald-100 flex items-center justify-center text-emerald-600 group-hover:scale-110 transition-transform">
-                    <i class="fa-solid fa-hand-holding-dollar text-2xl"></i>
-                </div>
-            </div>
-
-            <div
-                class="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm hover:shadow-md hover:-translate-y-1 transition-all duration-300 flex items-center justify-between group">
-                <div>
-                    <p class="text-gray-500 text-sm font-medium mb-1" data-ar="الدفعات المتوقعة للطلبات المعروضة"
-                        data-en="Expected Payments (Displayed Orders)">الدفعات المتوقعة للطلبات المعروضة</p>
-                    <h3 class="text-2xl font-black text-gray-800">
-                        <span x-text="formatCurrency(totalExpectedAmount)"></span>
-                        <span class="text-sm text-gray-400 font-normal" data-ar="ج.م" data-en="EGP">ج.م</span>
-                    </h3>
-                </div>
-                <div
-                    class="w-14 h-14 rounded-2xl bg-gradient-to-br from-rose-50 to-rose-100 flex items-center justify-center text-rose-600 group-hover:scale-110 transition-transform">
-                    <i class="fa-solid fa-sack-dollar text-2xl"></i>
-                </div>
-            </div>
-        </div>
-
-        <div class="bg-white rounded-2xl border border-gray-100 shadow-lg overflow-hidden flex flex-col">
-            <div
-                class="p-5 border-b border-gray-100 bg-gray-50/50 space-y-4 md:space-y-0 md:flex md:items-center justify-between">
-                <div class="flex items-center gap-3">
-                    <a href="{{ route('payments.create') }}"
-                        class="bg-gray-900 hover:bg-gray-800 text-white px-5 py-2.5 rounded-xl text-sm font-bold transition-all shadow-md hover:shadow-lg flex items-center gap-2">
-                        <i class="fa-solid fa-plus"></i>
-                        <span data-ar="دفعة جديدة" data-en="New Payment">دفعة جديدة</span>
+                class="flex flex-wrap items-center gap-1.5 bg-gray-50/80 p-1.5 rounded-xl text-sm font-medium w-full xl:w-auto overflow-x-auto hide-scrollbar">
+                @php
+                    $quickLinks = [
+                        ['label' => 'اليوم', 'from' => now()->toDateString(), 'to' => now()->toDateString()],
+                        [
+                            'label' => 'أمس',
+                            'from' => now()->subDay()->toDateString(),
+                            'to' => now()->subDay()->toDateString(),
+                        ],
+                        [
+                            'label' => 'هذا الأسبوع',
+                            'from' => now()->startOfWeek()->toDateString(),
+                            'to' => now()->endOfWeek()->toDateString(),
+                        ],
+                        [
+                            'label' => 'هذا الشهر',
+                            'from' => now()->startOfMonth()->toDateString(),
+                            'to' => now()->endOfMonth()->toDateString(),
+                        ],
+                    ];
+                @endphp
+                @foreach ($quickLinks as $link)
+                    @php
+                        $isActive =
+                            request('from') == $link['from'] &&
+                            (request('to') == $link['to'] || (!request('to') && $link['label'] == 'أمس'));
+                    @endphp
+                    <a href="{{ route('payments.index', ['from' => $link['from'], 'to' => $link['to']]) }}"
+                        class="px-4 py-2 rounded-lg transition-all duration-200 whitespace-nowrap {{ $isActive ? 'bg-white shadow-sm text-indigo-700 font-bold ring-1 ring-gray-200/50' : 'text-gray-600 hover:text-gray-900 hover:bg-gray-200/50' }}">
+                        {{ $link['label'] }}
                     </a>
-                </div>
+                @endforeach
+            </div>
+        </div>
 
-                <div class="relative w-full md:w-[400px] group">
-                    <div
-                        class="absolute inset-y-0 ltr:right-4 rtl:left-4 flex items-center pointer-events-none transition-colors group-focus-within:text-activeGold">
-                        <i class="fa-solid fa-magnifying-glass text-gray-400 group-focus-within:text-activeGold"></i>
+        {{-- بطاقات الملخص المالي --}}
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {{-- المقدمات --}}
+            <div @click="activeTab = 'advances'"
+                :class="activeTab === 'advances' ? 'ring-2 ring-blue-500 scale-[1.02] shadow-md bg-blue-50/10' :
+                    'border-gray-100 hover:-translate-y-1 hover:shadow-md'"
+                class="bg-white p-6 rounded-2xl shadow-sm border cursor-pointer transition-all duration-300 relative overflow-hidden group">
+                <div
+                    class="absolute top-0 right-0 w-2 h-full bg-blue-500 rounded-r-2xl opacity-0 group-hover:opacity-100 transition-opacity">
+                </div>
+                <div class="flex items-center justify-between">
+                    <span
+                        class="text-xs font-bold uppercase tracking-wider text-blue-700 bg-blue-100/80 px-3 py-1.5 rounded-full">المقدمات
+                        المقبوضة</span>
+                    <span
+                        class="text-xs font-medium text-gray-400 bg-gray-50 px-2 py-1 rounded-md">{{ $financialData['advances']['count'] }}
+                        عملية</span>
+                </div>
+                <div class="mt-6">
+                    <div class="text-3xl font-black text-gray-900 tracking-tight">
+                        {{ number_format($financialData['advances']['total'], 2) }} <span
+                            class="text-lg font-medium text-gray-500">ج.م</span>
                     </div>
-                    <input type="text" x-model="searchQuery"
-                        placeholder="ابحث باسم العميل، رقم الطلب، أو المستلم... | Search..."
-                        class="block w-full rtl:pr-11 rtl:pl-11 ltr:pl-11 ltr:pr-11 py-3 border border-gray-200 rounded-xl text-sm focus:ring-4 focus:ring-activeGold/20 focus:border-activeGold bg-white shadow-sm placeholder-gray-400 transition-all">
-                    <button x-show="searchQuery.length > 0" @click="searchQuery = ''" style="display: none;"
-                        class="absolute inset-y-0 ltr:right-10 rtl:left-4 flex items-center text-gray-400 hover:text-red-500 transition-colors">
-                        <i class="fa-solid fa-circle-xmark"></i>
-                    </button>
+                    <p class="text-sm text-gray-500 mt-2">إجمالي العربون المستلم على الطلبات</p>
                 </div>
             </div>
 
-            <div class="overflow-x-auto overflow-y-auto custom-scrollbar" style="max-height: 65vh;">
-                <table class="w-full text-right-lang text-sm">
+            {{-- توريدات الشحن --}}
+            <div @click="activeTab = 'supplies'"
+                :class="activeTab === 'supplies' ? 'ring-2 ring-indigo-500 scale-[1.02] shadow-md bg-indigo-50/10' :
+                    'border-gray-100 hover:-translate-y-1 hover:shadow-md'"
+                class="bg-white p-6 rounded-2xl shadow-sm border cursor-pointer transition-all duration-300 relative overflow-hidden group">
+                <div
+                    class="absolute top-0 right-0 w-2 h-full bg-indigo-500 rounded-r-2xl opacity-0 group-hover:opacity-100 transition-opacity">
+                </div>
+                <div class="flex items-center justify-between">
+                    <span
+                        class="text-xs font-bold uppercase tracking-wider text-indigo-700 bg-indigo-100/80 px-3 py-1.5 rounded-full">توريدات
+                        شركات الشحن</span>
+                    <span
+                        class="text-xs font-medium text-gray-400 bg-gray-50 px-2 py-1 rounded-md">{{ $financialData['supplies']['count'] }}
+                        عملية</span>
+                </div>
+                <div class="mt-6">
+                    <div class="text-3xl font-black text-gray-900 tracking-tight">
+                        {{ number_format($financialData['supplies']['total'], 2) }} <span
+                            class="text-lg font-medium text-gray-500">ج.م</span>
+                    </div>
+                    <p class="text-sm text-gray-500 mt-2">المبالغ الموردة من شركة الشحن</p>
+                </div>
+            </div>
+
+            {{-- المتوقع --}}
+            <div @click="activeTab = 'expected'"
+                :class="activeTab === 'expected' ? 'ring-2 ring-amber-500 scale-[1.02] shadow-md bg-amber-50/10' :
+                    'border-gray-100 hover:-translate-y-1 hover:shadow-md'"
+                class="bg-white p-6 rounded-2xl shadow-sm border cursor-pointer transition-all duration-300 relative overflow-hidden group">
+                <div
+                    class="absolute top-0 right-0 w-2 h-full bg-amber-500 rounded-r-2xl opacity-0 group-hover:opacity-100 transition-opacity">
+                </div>
+                <div class="flex items-center justify-between">
+                    <span
+                        class="text-xs font-bold uppercase tracking-wider text-amber-700 bg-amber-100/80 px-3 py-1.5 rounded-full">المتوقع
+                        تحصيله</span>
+                    <span
+                        class="text-xs font-medium text-gray-400 bg-gray-50 px-2 py-1 rounded-md">{{ $financialData['expected']['count'] }}
+                        طلب</span>
+                </div>
+                <div class="mt-6">
+                    <div class="text-3xl font-black text-amber-600 tracking-tight">
+                        {{ number_format($financialData['expected']['total'], 2) }} <span
+                            class="text-lg font-medium text-amber-500/70">ج.م</span>
+                    </div>
+                    <p class="text-sm text-gray-500 mt-2">باقي المستحق للطلبات غير المشحونة</p>
+                </div>
+            </div>
+        </div>
+
+        {{-- منطقة عرض البيانات (الجدول / الكروت) --}}
+        <div class="bg-transparent lg:bg-white lg:rounded-2xl lg:shadow-sm lg:border lg:border-gray-100">
+
+            {{-- هيدر التبويبات --}}
+            <div
+                class="border-b border-gray-100 bg-white lg:bg-gray-50/30 px-2 sm:px-6 flex overflow-x-auto hide-scrollbar rounded-t-2xl mb-4 lg:mb-0 shadow-sm lg:shadow-none">
+                <button @click="activeTab = 'all'"
+                    :class="activeTab === 'all' ? 'text-indigo-600 border-indigo-600' :
+                        'text-gray-500 border-transparent hover:text-gray-700 hover:border-gray-300'"
+                    class="py-4 px-4 text-sm font-bold border-b-2 transition-all whitespace-nowrap">جميع الحركة
+                    المالية</button>
+                <button @click="activeTab = 'advances'"
+                    :class="activeTab === 'advances' ? 'text-blue-600 border-blue-600' :
+                        'text-gray-500 border-transparent hover:text-gray-700 hover:border-gray-300'"
+                    class="py-4 px-4 text-sm font-bold border-b-2 transition-all whitespace-nowrap">المقدمات فقط</button>
+                <button @click="activeTab = 'supplies'"
+                    :class="activeTab === 'supplies' ? 'text-indigo-600 border-indigo-600' :
+                        'text-gray-500 border-transparent hover:text-gray-700 hover:border-gray-300'"
+                    class="py-4 px-4 text-sm font-bold border-b-2 transition-all whitespace-nowrap">التوريدات فقط</button>
+                <button @click="activeTab = 'expected'"
+                    :class="activeTab === 'expected' ? 'text-amber-600 border-amber-600' :
+                        'text-gray-500 border-transparent hover:text-gray-700 hover:border-gray-300'"
+                    class="py-4 px-4 text-sm font-bold border-b-2 transition-all whitespace-nowrap">المتوقع تحصيله</button>
+            </div>
+
+            {{-- قائمة المدفوعات المتجاوبة --}}
+            <div x-show="activeTab !== 'expected'" x-transition:enter="transition ease-out duration-300"
+                x-transition:enter-start="opacity-0 transform translate-y-2"
+                x-transition:enter-end="opacity-100 transform translate-y-0" class="w-full">
+
+                {{-- استخدام Table ولكن يتم تحويله لـ Blocks على الموبايل --}}
+                <table class="w-full text-right text-sm block lg:table">
+
+                    {{-- هيدر الجدول (يظهر فقط على الديسكتوب) --}}
                     <thead
-                        class="bg-gray-100 text-gray-600 font-bold sticky top-0 z-10 shadow-sm backdrop-blur-md bg-opacity-90">
+                        class="hidden lg:table-header-group bg-gray-50/80 text-gray-500 font-semibold text-xs uppercase tracking-wider">
                         <tr>
-                            <th class="px-6 py-4 whitespace-nowrap">#</th>
-                            <th class="px-6 py-4 whitespace-nowrap">
-                                <i class="fa-solid fa-hashtag text-xs opacity-50 mx-1"></i>
-                                <span data-ar="رقم الطلب" data-en="Order No">رقم الطلب</span>
-                            </th>
-                            <th class="px-6 py-4 whitespace-nowrap">
-                                <i class="fa-regular fa-user text-xs opacity-50 mx-1"></i>
-                                <span data-ar="العميل" data-en="Customer">العميل</span>
-                            </th>
-                            <th class="px-6 py-4 whitespace-nowrap">
-                                <i class="fa-solid fa-coins text-xs opacity-50 mx-1"></i>
-                                <span data-ar="مبلغ الدفعة" data-en="Payment Amount">مبلغ الدفعة</span>
-                            </th>
-                            <th class="px-6 py-4 whitespace-nowrap">
-                                <i class="fa-regular fa-calendar text-xs opacity-50 mx-1"></i>
-                                <span data-ar="تاريخ الدفع" data-en="Payment Date">تاريخ الدفع</span>
-                            </th>
-                            <th class="px-6 py-4 whitespace-nowrap">
-                                <i class="fa-solid fa-user-pen text-xs opacity-50 mx-1"></i>
-                                <span data-ar="بواسطة" data-en="Created By">بواسطة</span>
-                            </th>
-                            <th class="px-6 py-4 text-center whitespace-nowrap" data-ar="إجراءات" data-en="Actions">
-                                إجراءات
-                            </th>
+                            <th class="py-4 px-6">التاريخ</th>
+                            <th class="py-4 px-6">نوع العملية</th>
+                            <th class="py-4 px-6">المبلغ</th>
+                            <th class="py-4 px-6">الطلب / التفاصيل</th>
+                            <th class="py-4 px-6">المسؤول</th>
+                            <th class="py-4 px-6">ملاحظات</th>
                         </tr>
                     </thead>
-                    <tbody class="divide-y divide-gray-50">
-                        <template x-for="(payment, index) in filteredPayments" :key="payment.id">
-                            <tr class="hover:bg-blue-50/30 transition-colors group" x-transition>
 
-                                <td class="px-6 py-4 text-gray-400 font-medium" x-text="index + 1"></td>
+                    {{-- جسم الجدول (يتحول لكروت على الموبايل) --}}
+                    <tbody class="block lg:table-row-group space-y-4 lg:space-y-0 lg:divide-y lg:divide-gray-100">
+                        @forelse($financialData['payments'] as $payment)
+                            <tr x-show="activeTab === 'all' || (activeTab === 'advances' && '{{ $payment->type }}' === 'order_advance') || (activeTab === 'supplies' && '{{ $payment->type }}' === 'company_supply')"
+                                x-transition
+                                class="block lg:table-row bg-white border border-gray-200 lg:border-0 rounded-2xl lg:rounded-none shadow-sm lg:shadow-none hover:bg-gray-50/80 transition-colors group overflow-hidden">
 
-                                <td class="px-6 py-4 font-bold text-gray-900">
-                                    <template x-if="payment.order">
-                                        <a :href="`/orders/${payment.order.id}`"
-                                            class="hover:text-activeGold transition-colors flex items-center gap-2 group-hover:underline">
-                                            <span x-text="payment.order.order_number"></span>
-                                            <i
-                                                class="fa-solid fa-arrow-up-right-from-square text-[10px] text-gray-400 opacity-0 group-hover:opacity-100 transition-opacity rtl-flip"></i>
-                                        </a>
-                                    </template>
-                                    <template x-if="!payment.order"><span class="text-gray-400">-</span></template>
+                                {{-- التاريخ --}}
+                                <td
+                                    class="flex justify-between items-center lg:table-cell py-3 px-5 lg:py-4 lg:px-6 border-b border-gray-100 border-dashed lg:border-0 text-gray-600 font-medium">
+                                    <span
+                                        class="lg:hidden text-[11px] font-bold text-gray-400 uppercase tracking-wider">التاريخ</span>
+                                    <span>{{ $payment->payment_date->format('Y-m-d') }}</span>
                                 </td>
 
-                                <td class="px-6 py-4">
-                                    <template x-if="payment.order">
-                                        <div class="flex items-center gap-3">
-                                            <div class="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center text-gray-500 font-bold shrink-0"
-                                                x-text="payment.order.customer_name.substring(0, 1)"></div>
-                                            <div class="flex flex-col">
-                                                <span class="font-bold text-gray-800"
-                                                    x-text="payment.order.customer_name"></span>
-                                                <span
-                                                    class="text-xs text-rose-500 font-medium mt-0.5 flex items-center gap-1">
-                                                    <span data-ar="متبقي:" data-en="Remaining:">متبقي:</span>
-                                                    <span x-text="formatCurrency(payment.order.remaining_amount)"></span>
-                                                </span>
-                                            </div>
-                                        </div>
-                                    </template>
-                                    <template x-if="!payment.order"><span class="text-gray-400">-</span></template>
+                                {{-- نوع العملية --}}
+                                <td
+                                    class="flex justify-between items-center lg:table-cell py-3 px-5 lg:py-4 lg:px-6 border-b border-gray-100 border-dashed lg:border-0">
+                                    <span
+                                        class="lg:hidden text-[11px] font-bold text-gray-400 uppercase tracking-wider">نوع
+                                        العملية</span>
+                                    @if ($payment->isOrderAdvance())
+                                        <span
+                                            class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-50 text-blue-700 text-xs rounded-full font-bold border border-blue-100">
+                                            <span class="w-1.5 h-1.5 rounded-full bg-blue-500"></span>
+                                            مقدم طلب
+                                        </span>
+                                    @else
+                                        <span
+                                            class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-indigo-50 text-indigo-700 text-xs rounded-full font-bold border border-indigo-100">
+                                            <span class="w-1.5 h-1.5 rounded-full bg-indigo-500"></span>
+                                            توريد شحن
+                                        </span>
+                                    @endif
                                 </td>
 
-                                <td class="px-6 py-4">
-                                    <div
-                                        class="inline-flex items-center justify-center px-3 py-1.5 rounded-lg bg-emerald-50 text-emerald-700 font-black border border-emerald-100">
-                                        <span x-text="formatCurrency(payment.amount)"></span>
-                                        <span class="text-xs ml-1 font-normal" data-ar="ج.م" data-en="EGP">ج.م</span>
+                                {{-- المبلغ (تصميم بارز للموبايل) --}}
+                                <td
+                                    class="flex justify-between items-center lg:table-cell py-3 px-5 lg:py-4 lg:px-6 border-b border-gray-100 border-dashed lg:border-0 bg-gray-50/50 lg:bg-transparent">
+                                    <span
+                                        class="lg:hidden text-[11px] font-bold text-gray-400 uppercase tracking-wider">المبلغ</span>
+                                    <div class="font-black text-gray-900 text-lg lg:text-base">
+                                        {{ number_format($payment->amount, 2) }} <span
+                                            class="text-xs text-gray-500 font-medium">ج.م</span>
                                     </div>
-                                    <template x-if="payment.note">
-                                        <p class="text-[11px] text-gray-400 mt-1 truncate max-w-[150px]"
-                                            :title="payment.note">
-                                            <i class="fa-regular fa-comment-dots"></i> <span x-text="payment.note"></span>
-                                        </p>
-                                    </template>
                                 </td>
 
-                                <td class="px-6 py-4 text-gray-600 text-sm font-medium">
-                                    <span x-text="payment.payment_date"></span>
+                                {{-- الطلب / التفاصيل --}}
+                                <td
+                                    class="flex flex-col lg:table-cell py-3 px-5 lg:py-4 lg:px-6 border-b border-gray-100 border-dashed lg:border-0 gap-1 lg:gap-0">
+                                    <span
+                                        class="lg:hidden text-[11px] font-bold text-gray-400 uppercase tracking-wider">الطلب
+                                        / التفاصيل</span>
+                                    @if ($payment->order)
+                                        <div class="flex flex-col lg:items-start items-end text-left lg:text-right">
+                                            <a href="{{ route('orders.show', $payment->order_id) }}"
+                                                class="text-indigo-600 font-bold hover:text-indigo-800 hover:underline transition">#{{ $payment->order->order_number }}</a>
+                                            <span
+                                                class="text-xs text-gray-500 mt-0.5">{{ $payment->order->customer?->name }}</span>
+                                        </div>
+                                    @else
+                                        <span
+                                            class="inline-flex self-end lg:self-auto items-center px-2.5 py-1 rounded-md bg-gray-100 text-gray-500 font-mono text-xs">توريد
+                                            شركة الشحن</span>
+                                    @endif
                                 </td>
 
-                                <td class="px-6 py-4">
-                                    <div class="flex items-center gap-2">
+                                {{-- المسؤول --}}
+                                <td
+                                    class="flex justify-between items-center lg:table-cell py-3 px-5 lg:py-4 lg:px-6 border-b border-gray-100 border-dashed lg:border-0 text-gray-600">
+                                    <span
+                                        class="lg:hidden text-[11px] font-bold text-gray-400 uppercase tracking-wider">المسؤول</span>
+                                    <div class="flex items-center gap-2 justify-end">
                                         <div
-                                            class="w-6 h-6 rounded bg-purple-50 flex items-center justify-center text-purple-600 text-xs">
-                                            <i class="fa-solid fa-user-shield"></i>
+                                            class="w-6 h-6 rounded-full bg-gray-200 flex items-center justify-center text-[10px] font-bold text-gray-600">
+                                            {{ mb_substr($payment->creator?->name ?? 'ن', 0, 1) }}
                                         </div>
-                                        <span class="font-medium text-gray-700 text-sm"
-                                            x-text="payment.creator ? payment.creator.name : '-'"></span>
+                                        <span class="text-sm">{{ $payment->creator?->name ?? 'النظام' }}</span>
                                     </div>
                                 </td>
 
-                                <td class="px-6 py-4 text-center">
-                                    <div class="flex items-center justify-center gap-2">
-                                        <template x-if="payment.order">
-                                            <a :href="`/orders/${payment.order.id}`"
-                                                class="w-8 h-8 rounded-lg bg-gray-50 text-gray-600 hover:bg-blue-50 hover:text-blue-600 flex items-center justify-center transition-colors"
-                                                title="عرض الطلب">
-                                                <i class="fa-solid fa-box-open"></i>
-                                            </a>
-                                        </template>
-
-                                        <button @click="openEditModal(payment.id)"
-                                            class="w-8 h-8 rounded-lg bg-gray-50 text-gray-600 hover:bg-activeGold hover:text-white flex items-center justify-center transition-colors"
-                                            title="تعديل">
-                                            <i class="fa-regular fa-pen-to-square"></i>
-                                        </button>
-
-                                        <form :action="`/payments/${payment.id}`" method="POST" class="m-0 inline"
-                                            onsubmit="return confirm('هل أنت متأكد من حذف هذه الدفعة؟');">
-                                            @csrf
-                                            @method('DELETE')
-                                            <button type="submit"
-                                                class="w-8 h-8 rounded-lg bg-gray-50 text-gray-600 hover:bg-rose-50 hover:text-rose-600 flex items-center justify-center transition-colors"
-                                                title="حذف">
-                                                <i class="fa-regular fa-trash-can"></i>
-                                            </button>
-                                        </form>
+                                {{-- ملاحظات --}}
+                                <td
+                                    class="flex flex-col lg:table-cell py-3 px-5 lg:py-4 lg:px-6 lg:border-0 gap-1 lg:gap-0">
+                                    <span
+                                        class="lg:hidden text-[11px] font-bold text-gray-400 uppercase tracking-wider">ملاحظات</span>
+                                    <span
+                                        class="text-gray-500 text-sm max-w-[200px] truncate block text-left lg:text-right"
+                                        title="{{ $payment->note }}">
+                                        {{ $payment->note ?? '-' }}
+                                    </span>
+                                </td>
+                            </tr>
+                        @empty
+                            <tr class="block lg:table-row bg-white rounded-2xl lg:rounded-none shadow-sm lg:shadow-none">
+                                <td colspan="6" class="block lg:table-cell py-12 lg:py-16 text-center border-0">
+                                    <div class="flex flex-col items-center justify-center space-y-3">
+                                        <div
+                                            class="w-16 h-16 bg-gray-50 rounded-full flex items-center justify-center mb-2">
+                                            <svg class="w-8 h-8 text-gray-400" fill="none" stroke="currentColor"
+                                                viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
+                                                    d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z">
+                                                </path>
+                                            </svg>
+                                        </div>
+                                        <h3 class="text-base font-semibold text-gray-900">لا توجد حركات مالية</h3>
+                                        <p class="text-sm text-gray-500">لم يتم تسجيل أي عمليات خلال الفترة المحددة أعلاه.
+                                        </p>
                                     </div>
                                 </td>
                             </tr>
-                        </template>
-
-                        <tr x-show="filteredPayments.length === 0">
-                            <td colspan="7" class="px-6 py-16 text-center">
-                                <div class="flex flex-col items-center justify-center text-gray-400">
-                                    <i class="fa-solid fa-file-invoice-dollar text-6xl mb-4 opacity-50"></i>
-                                    <p class="text-lg font-medium text-gray-500" data-ar="لا توجد نتائج"
-                                        data-en="No results found">لا توجد نتائج</p>
-                                </div>
-                            </td>
-                        </tr>
+                        @endforelse
                     </tbody>
                 </table>
             </div>
 
-            @if ($payments->hasPages())
-                <div class="p-4 border-t border-gray-100 bg-white">
-                    {{ $payments->links() }}
-                </div>
-            @endif
-
-            <div class="p-4 bg-gray-50 border-t border-gray-100 text-center text-xs text-gray-400 font-medium">
-                <span data-ar="نهاية قائمة المدفوعات" data-en="End of payments list">نهاية قائمة المدفوعات</span>
+            {{-- رسالة تبويب "المتوقع تحصيله" --}}
+            <div x-show="activeTab === 'expected'" x-cloak class="p-12 text-center text-gray-500 bg-white rounded-b-2xl"
+                x-transition>
+                يتم حساب المتوقع تلقائياً بناءً على الطلبات الجاري شحنها.
             </div>
         </div>
     </div>
+
+    <style>
+        /* إخفاء شريط التمرير الأفقي مع الاحتفاظ بوظيفته للتبويبات */
+        .hide-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+
+        .hide-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+
+        [x-cloak] {
+            display: none !important;
+        }
+    </style>
 @endsection
-
-@push('scripts')
-    <script src="https://cdn.jsdelivr.net/npm/tom-select@2.2.2/dist/js/tom-select.complete.min.js"></script>
-    <script>
-        document.addEventListener('alpine:init', () => {
-            Alpine.data('paymentManager', (initialPayments) => ({
-                searchQuery: '',
-                payments: initialPayments,
-
-                // متغيرات نافذة التعديل
-                isEditModalOpen: false,
-                isSaving: false,
-                tsInstance: null, // Tom Select Instance
-                editData: {
-                    id: '',
-                    order_id: '',
-                    amount: '',
-                    payment_date: '',
-                    note: ''
-                },
-
-                initData() {
-                    // تفاعل اللغة مع Tom Select 
-                    const btn = document.getElementById("languageBtn");
-                    if (btn) {
-                        btn.addEventListener('click', () => {
-                            if (this.tsInstance) {
-                                const lang = localStorage.getItem("lang") || "ar";
-                                this.tsInstance.settings.placeholder = lang === 'ar' ?
-                                    'ابحث عن الطلب...' : 'Search for order...';
-                                this.tsInstance.inputState();
-                            }
-                        });
-                    }
-                },
-
-                get filteredPayments() {
-                    if (this.searchQuery.trim() === '') return this.payments;
-                    const q = this.searchQuery.toLowerCase();
-                    return this.payments.filter(p => {
-                        const orderNum = p.order && p.order.order_number ? p.order
-                            .order_number.toLowerCase() : '';
-                        const customer = p.order && p.order.customer_name ? p.order
-                            .customer_name.toLowerCase() : '';
-                        const creator = p.creator && p.creator.name ? p.creator.name
-                            .toLowerCase() : '';
-                        return orderNum.includes(q) || customer.includes(q) || creator
-                            .includes(q);
-                    });
-                },
-
-                get totalDisplayedAmount() {
-                    return this.filteredPayments.reduce((sum, p) => sum + parseFloat(p.amount || 0),
-                        0);
-                },
-
-                get totalExpectedAmount() {
-                    const uniqueOrders = new Map();
-                    this.filteredPayments.forEach(p => {
-                        if (p.order && p.order.remaining_amount) {
-                            uniqueOrders.set(p.order.id, parseFloat(p.order
-                                .remaining_amount));
-                        }
-                    });
-                    let sum = 0;
-                    uniqueOrders.forEach(amount => sum += amount);
-                    return sum;
-                },
-
-                formatCurrency(amount) {
-                    return new Intl.NumberFormat('en-US', {
-                        minimumFractionDigits: 0,
-                        maximumFractionDigits: 2
-                    }).format(amount);
-                },
-
-                // --- وظائف التعديل ---
-                openEditModal(id) {
-                    const payment = this.payments.find(p => p.id === id);
-                    if (!payment) return;
-
-                    // تعبئة البيانات
-                    this.editData = {
-                        id: payment.id,
-                        order_id: payment.order_id,
-                        amount: payment.amount,
-                        payment_date: payment.payment_date,
-                        note: payment.note || ''
-                    };
-
-                    this.isEditModalOpen = true;
-
-                    // تهيئة TomSelect 
-                    this.$nextTick(() => {
-                        if (!this.tsInstance) {
-                            const el = document.getElementById('edit_order_id');
-                            const lang = localStorage.getItem("lang") || "ar";
-                            this.tsInstance = new TomSelect(el, {
-                                create: false,
-                                sortField: {
-                                    field: "text",
-                                    direction: "asc"
-                                },
-                                placeholder: lang === 'ar' ? 'ابحث عن الطلب...' :
-                                    'Search for order...',
-                            });
-                        }
-                        this.tsInstance.setValue(this.editData.order_id);
-                    });
-                },
-
-                closeEditModal() {
-                    this.isEditModalOpen = false;
-                },
-
-                async submitEdit() {
-                    this.isSaving = true;
-
-                    // تحديث order_id من TomSelect في حال تغيرت برمجياً ولم تلتقطها Alpine
-                    if (this.tsInstance) {
-                        this.editData.order_id = this.tsInstance.getValue();
-                    }
-
-                    try {
-                        const response = await fetch(`/payments/${this.editData.id}`, {
-                            method: 'PUT',
-                            headers: {
-                                'Content-Type': 'application/json',
-                                'Accept': 'application/json',
-                                'X-CSRF-TOKEN': document.querySelector(
-                                    'meta[name="csrf-token"]').content
-                            },
-                            body: JSON.stringify(this.editData)
-                        });
-
-                        const result = await response.json();
-
-                        if (response.ok) {
-                            const currentLang = document.documentElement.lang || 'ar';
-                            Swal.fire({
-                                icon: 'success',
-                                title: currentLang === 'ar' ? 'تم التعديل!' : 'Updated!',
-                                text: currentLang === 'ar' ? 'تم تعديل الدفعة بنجاح.' :
-                                    'Payment updated successfully.',
-                                confirmButtonColor: '#8A704C',
-                                confirmButtonText: currentLang === 'ar' ? 'حسناً' : 'OK'
-                            }).then(() => {
-                                // تحديث الواجهة أو إعادة تحميل الصفحة لضمان تحديث الإجماليات بشكل سليم من السيرفر
-                                window.location.reload();
-                            });
-                        } else if (response.status === 422) {
-                            // أخطاء Validation
-                            let errorMsgs = [];
-                            for (let key in result.errors) errorMsgs.push(result.errors[key][0]);
-                            Swal.fire({
-                                icon: 'error',
-                                title: 'خطأ',
-                                text: errorMsgs.join('\n'),
-                                confirmButtonColor: '#8A704C'
-                            });
-                        } else {
-                            throw new Error('Server error');
-                        }
-                    } catch (error) {
-                        Swal.fire({
-                            icon: 'error',
-                            title: 'خطأ!',
-                            text: 'حدث خطأ أثناء الاتصال بالخادم.',
-                            confirmButtonColor: '#8A704C'
-                        });
-                    } finally {
-                        this.isSaving = false;
-                    }
-                }
-            }));
-        });
-    </script>
-@endpush

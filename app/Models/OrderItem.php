@@ -13,7 +13,7 @@ class OrderItem extends Model
         'size_id',
         'type_id',
         'pant_type_id',
-        'sleeve',
+        'sleeve_type_id',
         'quantity',
         'price',
         'total',
@@ -46,5 +46,8 @@ class OrderItem extends Model
        public function pantType()
     {
         return $this->belongsTo(PantType::class);
+    }    public function sleeveType()
+    {
+        return $this->belongsTo(SleeveType::class);
     }
 }

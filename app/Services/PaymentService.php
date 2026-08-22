@@ -12,25 +12,119 @@ use Illuminate\Support\Facades\DB;
 
 class PaymentService
 {
-    public function createOrderPayment(Order $order, float $amount, ?string $note = null): void
+   public function createOrderPayment(Order $order, float $amount, ?string $note = null): void
     {
         if ($amount <= 0) {
             return;
         }
 
         $userId = Auth::id() ?? \App\Models\User::first()?->id;
-        if (!$userId) {
-            $user = \App\Models\User::factory()->create();
-            $userId = $user->id;
-        }
 
         Payment::create([
             'order_id'     => $order->id,
+            'type'         => 'order_advance', // تمت إضافة النوع
             'amount'       => $amount,
             'payment_date' => now(),
             'created_by'   => $userId,
             'note'         => $note ?? 'مقدم للطلب #' . $order->order_number,
         ]);
+    }
+
+    public function createCompanySupply(Request $request)
+    {
+        $validator = Validator::make($request->all(), [
+            'amount' => 'required|numeric|min:0.01',
+            'payment_date' => 'required|date',
+            'note' => 'nullable|string|max:500',
+        ]);
+
+        if ($validator->fails()) {
+            throw new ValidationException($validator);
+        }
+
+        return Payment::create([
+            'order_id' => null,
+            'type' => 'company_supply',
+            'amount' => $validator->validated()['amount'],
+            'payment_date' => $validator->validated()['payment_date'],
+            'note' => $validator->validated()['note'] ?? null,
+            'created_by' => auth()->id(),
+        ]);
+    }
+
+    public function financialCenter(?string $from, ?string $to): array
+    {
+        $from = $from ?: now()->startOfDay()->toDateString();
+        $to   = $to ?: now()->endOfDay()->toDateString();
+
+        $payments = Payment::with(['creator', 'order.customer'])
+            ->whereBetween('payment_date', [$from, $to])
+            ->latest('payment_date')
+            ->latest('id')
+            ->get();
+
+        $advances = $payments->where('type', 'order_advance');
+        $supplies = $payments->where('type', 'company_supply');
+
+        // جلب المتوقع للطلبات غير المشحونة/الملغاة والتي لها مقدم في نفس الفترة
+$expectedOrders = Order::query()
+    ->whereNotIn('status', [
+        'shipped',
+        'delivered',
+        'canceled',
+    ])
+    ->with([
+        'customer',
+        'payments' => function ($query) {
+            $query->where('type', 'order_advance');
+        }
+    ])
+    ->get()
+    ->map(function ($order) {
+
+        $totalPaid = $order->payments->sum(
+            fn ($payment) => (float) $payment->amount
+        );
+
+        $remainingAmount = max(
+            0,
+            (float) $order->total_price - $totalPaid
+        );
+
+        $order->total_paid_for_expected = $totalPaid;
+        $order->expected_supply_amount = $remainingAmount;
+
+        return $order;
+    })
+    ->filter(function ($order) {
+        return $order->expected_supply_amount > 0;
+    })
+    ->values();
+
+$expectedTotal = $expectedOrders->sum(
+    fn ($order) => $order->expected_supply_amount
+);
+
+
+        return [
+            'from' => $from,
+            'to' => $to,
+            'payments' => $payments,
+            'advances' => [
+                'total' => $advances->sum('amount'),
+                'count' => $advances->count(),
+                'orders_count' => $advances->pluck('order_id')->filter()->unique()->count(),
+            ],
+            'supplies' => [
+                'total' => $supplies->sum('amount'),
+                'count' => $supplies->count(),
+            ],
+            'expected' => [
+                'total' => $expectedTotal,
+                'count' => $expectedOrders->count(),
+                'orders' => $expectedOrders,
+            ],
+        ];
     }
     public function getAll()
     {
