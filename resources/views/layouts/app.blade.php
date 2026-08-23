@@ -74,7 +74,7 @@
         }
 
         ::-webkit-scrollbar-track {
-            background: #EAE9DF;
+            background: transparent;
         }
 
         ::-webkit-scrollbar-thumb {
@@ -86,12 +86,10 @@
             background: #926857;
         }
 
-        /* Page Transition Wrapper */
         .page-transition {
-            animation: fadeIn 0.5s ease-out;
+            animation: fadeIn 0.4s ease-out;
         }
 
-        /* Active Tab Styling */
         .active-tab {
             background-color: #926857 !important;
             color: #FFFFFF !important;
@@ -99,7 +97,6 @@
             transform: translateY(-1px);
         }
 
-        /* Smooth Dropdown */
         .dropdown-enter {
             opacity: 0;
             transform: scale(0.95) translateY(10px);
@@ -113,7 +110,6 @@
             pointer-events: auto;
         }
 
-        /* Sidebar Logo Container */
         .logo-container {
             width: 100%;
             height: 86px;
@@ -159,7 +155,6 @@
             transition: transform 0.4s ease;
         }
 
-        /* Links Hover Animation */
         .nav-link {
             transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         }
@@ -174,7 +169,6 @@
             transform: translateX(4px);
         }
 
-        /* Mobile Close Btn */
         .mobile-close-btn {
             width: 34px;
             height: 34px;
@@ -218,6 +212,95 @@
                 height: 62px;
             }
         }
+
+        /* =========================================
+           Magnetic Floating Button Styling
+        ========================================= */
+        .floating-add-order-btn {
+            position: fixed;
+            right: 24px;
+            bottom: 24px;
+            z-index: 9999;
+            width: 56px;
+            height: 56px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 16px;
+            /* Android Material You Style */
+            background: #926857;
+            color: #fff;
+            border: 2px solid rgba(255, 255, 255, 0.8);
+            box-shadow: 0 8px 25px rgba(146, 104, 87, 0.35), 0 2px 10px rgba(0, 0, 0, 0.1);
+            cursor: grab;
+            user-select: none;
+            -webkit-user-select: none;
+            touch-action: none;
+            /* Magnetic Snap Transition */
+            transition: left 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.15),
+                top 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.15),
+                background-color 0.3s ease,
+                transform 0.3s ease,
+                border-radius 0.3s ease;
+            animation: floatingAddOrderIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+
+        .floating-add-order-btn i {
+            font-size: 20px;
+            transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .floating-add-order-btn span {
+            display: none;
+        }
+
+        .floating-add-order-btn:hover {
+            background: #503E39;
+            border-radius: 20px;
+            box-shadow: 0 12px 30px rgba(146, 104, 87, 0.45), 0 4px 15px rgba(0, 0, 0, 0.15);
+            transform: translateY(-2px);
+        }
+
+        .floating-add-order-btn:hover i {
+            transform: rotate(90deg) scale(1.1);
+        }
+
+        .floating-add-order-btn:active {
+            cursor: grabbing;
+            transform: scale(0.92);
+        }
+
+        .floating-add-order-btn.is-dragging {
+            cursor: grabbing;
+            transition: none !important;
+            /* Disable transition during drag for smoothness */
+            transform: scale(1.05);
+            border-radius: 50%;
+            /* Becomes circle when dragged */
+            box-shadow: 0 20px 40px rgba(146, 104, 87, 0.5), 0 8px 20px rgba(0, 0, 0, 0.15);
+        }
+
+        @keyframes floatingAddOrderIn {
+            from {
+                opacity: 0;
+                transform: scale(0.5) translateY(20px) rotate(-45deg);
+            }
+
+            to {
+                opacity: 1;
+                transform: scale(1) translateY(0) rotate(0);
+            }
+        }
+
+        @media (max-width: 767px) {
+            .floating-add-order-btn {
+                width: 52px;
+                height: 52px;
+                right: 16px;
+                bottom: calc(20px + env(safe-area-inset-bottom));
+                border-radius: 14px;
+            }
+        }
     </style>
 </head>
 
@@ -225,22 +308,20 @@
 
     <!-- Mobile Overlay -->
     <div id="mobileOverlay"
-        class="fixed inset-0 bg-darkText/40 backdrop-blur-sm z-40 hidden md:hidden transition-opacity opacity-0 duration-300">
+        class="fixed inset-0 bg-darkText/50 backdrop-blur-sm z-40 hidden md:hidden transition-opacity opacity-0 duration-300">
     </div>
 
-    <!-- Sidebar (تم تعديل transition ليصبح transition-all duration-500 لدعم الإخفاء السلس) -->
+    <!-- Sidebar -->
     <aside id="sidebar"
-        class="fixed inset-y-0 left-0 z-50 w-64 bg-white flex flex-col transform -translate-x-full md:relative md:translate-x-0 transition-all duration-500 ease-in-out h-full border-l border-secondaryCream shadow-xl md:shadow-[4px_0_24px_rgba(202,188,176,0.15)] shrink-0">
+        class="fixed inset-y-0 left-0 z-50 w-64 bg-white flex flex-col transform -translate-x-full md:relative md:translate-x-0 transition-transform duration-300 ease-in-out h-full border-l border-secondaryCream shadow-2xl md:shadow-[4px_0_24px_rgba(202,188,176,0.15)] shrink-0">
 
-        <!-- زر طي القائمة الجانبية (للديسكتوب) -->
         <button id="desktopSidebarToggle"
-            class="hidden md:flex absolute top-1/2 -end-4 -translate-y-1/2 z-50 bg-white border border-secondaryCream rounded-full w-8 h-8 items-center justify-center text-primaryBrown shadow-md hover:bg-secondaryCream transition-all duration-300">
+            class="hidden md:flex absolute top-1/2 -end-4 -translate-y-1/2 z-50 bg-white border border-secondaryCream rounded-full w-8 h-8 items-center justify-center text-primaryBrown shadow-md hover:bg-secondaryCream hover:scale-110 transition-all duration-300">
             <span id="sidebarIconWrapper" class="transition-transform duration-300 flex">
                 <i class="fa-solid fa-chevron-left rtl:rotate-180"></i>
             </span>
         </button>
 
-        <!-- Sidebar Header (Logo) -->
         <div class="p-5 flex items-center justify-between">
             <div class="w-full">
                 <div class="logo-container">
@@ -254,38 +335,39 @@
 
         <!-- Navigation -->
         <nav class="flex-1 overflow-y-auto px-4 space-y-1.5 text-sm font-medium pb-4">
-            
-            <a href="{{ route('finished-goods.index') }}" class="nav-link flex items-center gap-3 px-4 py-3 rounded-xl text-mutedBrown {{ request()->routeIs('finished-goods.*') ? 'active-tab' : '' }}">
+            <a href="{{ route('finished-goods.index') }}"
+                class="nav-link flex items-center gap-3 px-4 py-3 rounded-xl text-mutedBrown {{ request()->routeIs('finished-goods.*') ? 'active-tab' : '' }}">
                 <i class="fa-solid fa-box-open w-5 transition-transform group-hover:scale-110"></i>
                 <span data-ar="الطلبات التامة" data-en="Finished Goods">الطلبات التامة</span>
             </a>
-            
-            <a href="{{ route('inventory.index') }}" class="nav-link flex items-center gap-3 px-4 py-3 rounded-xl text-mutedBrown {{ request()->routeIs('inventory.*') ? 'active-tab' : '' }}">
+            <!-- باقي الروابط كما هي في الكود الأصلي -->
+            <a href="{{ route('inventory.index') }}"
+                class="nav-link flex items-center gap-3 px-4 py-3 rounded-xl text-mutedBrown {{ request()->routeIs('inventory.*') ? 'active-tab' : '' }}">
                 <i class="fa-solid fa-boxes-stacked w-5"></i>
                 <span data-ar="المخزون" data-en="Inventory">المخزون</span>
             </a>
-            
-            <a href="{{ route('item-categories.index') }}" class="nav-link flex items-center gap-3 px-4 py-2 mt-1 ml-4 rtl:ml-0 rtl:mr-4 rounded-lg text-sm {{ request()->routeIs('item-categories.*') ? 'text-primaryBrown font-bold' : 'text-mutedBrown/80' }}">
+            <a href="{{ route('item-categories.index') }}"
+                class="nav-link flex items-center gap-3 px-4 py-2 mt-1 ml-4 rtl:ml-0 rtl:mr-4 rounded-lg text-sm {{ request()->routeIs('item-categories.*') ? 'text-primaryBrown font-bold' : 'text-mutedBrown/80' }}">
                 <i class="fa-solid fa-tags w-4"></i>
                 <span data-ar="تصنيفات الأصناف" data-en="Item Categories">تصنيفات الأصناف</span>
             </a>
-            
-            <a href="{{ route('inventory-transactions.index') }}" class="nav-link flex items-center gap-3 px-4 py-2 mt-1 ml-4 rtl:ml-0 rtl:mr-4 rounded-lg text-sm {{ request()->routeIs('inventory.transactions.*') ? 'text-primaryBrown font-bold' : 'text-mutedBrown/80' }}">
+            <a href="{{ route('inventory-transactions.index') }}"
+                class="nav-link flex items-center gap-3 px-4 py-2 mt-1 ml-4 rtl:ml-0 rtl:mr-4 rounded-lg text-sm {{ request()->routeIs('inventory.transactions.*') ? 'text-primaryBrown font-bold' : 'text-mutedBrown/80' }}">
                 <i class="fa-solid fa-arrow-right-arrow-left w-4"></i>
                 <span data-ar="حركات المخزون" data-en="Inventory Transactions">حركات المخزون</span>
             </a>
-            
-            <a href="{{ route('orders.index') }}" class="nav-link flex items-center gap-3 px-4 py-3 rounded-xl text-mutedBrown {{ request()->routeIs('orders.*') ? 'active-tab' : '' }}">
+            <a href="{{ route('orders.index') }}"
+                class="nav-link flex items-center gap-3 px-4 py-3 rounded-xl text-mutedBrown {{ request()->routeIs('orders.*') ? 'active-tab' : '' }}">
                 <i class="fa-solid fa-clipboard-list w-5"></i>
                 <span data-ar="الطلبات" data-en="Orders">الطلبات</span>
             </a>
-            
-            <a href="{{ route('turbo.index') }}" class="nav-link flex items-center gap-3 px-4 py-3 rounded-xl text-mutedBrown {{ request()->routeIs('turbo.*') ? 'active-tab' : '' }}">
+            <a href="{{ route('turbo.index') }}"
+                class="nav-link flex items-center gap-3 px-4 py-3 rounded-xl text-mutedBrown {{ request()->routeIs('turbo.*') ? 'active-tab' : '' }}">
                 <i class="fa-solid fa-truck-fast w-5 text-roseAccent"></i>
                 <span data-ar="مركز عمليات Turbo" data-en="Turbo Ops Center">مركز عمليات Turbo</span>
             </a>
-            
-            <a href="{{ route('production.workflow.index') }}" class="nav-link flex items-center justify-between px-4 py-3 rounded-xl text-mutedBrown {{ request()->routeIs('production.*') ? 'active-tab' : '' }}">
+            <a href="{{ route('production.workflow.index') }}"
+                class="nav-link flex items-center justify-between px-4 py-3 rounded-xl text-mutedBrown {{ request()->routeIs('production.*') ? 'active-tab' : '' }}">
                 <div class="flex items-center gap-3">
                     <i class="fa-solid fa-industry w-5"></i>
                     <span data-ar="مسار عمل الطلبات" data-en="Orders Work Flow">مسار عمل الطلبات</span>
@@ -294,57 +376,63 @@
             </a>
 
             @if (auth()->user() && auth()->user()->role == 'admin')
-                <div class="h-px bg-secondaryCream my-2 w-4/5 mx-auto"></div>
-
-                <a href="{{ route('dashboard') }}" class="nav-link flex items-center gap-3 px-4 py-3 rounded-xl text-mutedBrown {{ request()->routeIs('dashboard') ? 'active-tab' : '' }}">
+                <div class="h-px bg-secondaryCream my-3 w-4/5 mx-auto"></div>
+                <a href="{{ route('dashboard') }}"
+                    class="nav-link flex items-center gap-3 px-4 py-3 rounded-xl text-mutedBrown {{ request()->routeIs('dashboard') ? 'active-tab' : '' }}">
                     <i class="fa-solid fa-chart-line w-5"></i>
                     <span data-ar="لوحة التحكم" data-en="Dashboard">لوحة التحكم</span>
                 </a>
-                <a href="{{ route('payments.index') }}" class="nav-link flex items-center gap-3 px-4 py-3 rounded-xl text-mutedBrown {{ request()->routeIs('payments.*') ? 'active-tab' : '' }}">
+                <a href="{{ route('payments.index') }}"
+                    class="nav-link flex items-center gap-3 px-4 py-3 rounded-xl text-mutedBrown {{ request()->routeIs('payments.*') ? 'active-tab' : '' }}">
                     <i class="fa-regular fa-credit-card w-5"></i>
                     <span data-ar="الدفعات" data-en="Payments">الدفعات</span>
                 </a>
-                <a href="{{ route('suppliers.index') }}" class="nav-link flex items-center gap-3 px-4 py-3 rounded-xl text-mutedBrown {{ request()->routeIs('suppliers.*') ? 'active-tab' : '' }}">
+                <a href="{{ route('suppliers.index') }}"
+                    class="nav-link flex items-center gap-3 px-4 py-3 rounded-xl text-mutedBrown {{ request()->routeIs('suppliers.*') ? 'active-tab' : '' }}">
                     <i class="fa-solid fa-truck-field w-5"></i>
                     <span data-ar="الموردون" data-en="Suppliers">الموردون</span>
                 </a>
-                <a href="{{ route('users.index') }}" class="nav-link flex items-center gap-3 px-4 py-3 rounded-xl text-mutedBrown {{ request()->routeIs('users.*') ? 'active-tab' : '' }}">
+                <a href="{{ route('users.index') }}"
+                    class="nav-link flex items-center gap-3 px-4 py-3 rounded-xl text-mutedBrown {{ request()->routeIs('users.*') ? 'active-tab' : '' }}">
                     <i class="fa-regular fa-user w-5"></i>
                     <span data-ar="المستخدمون" data-en="Users">المستخدمون</span>
                 </a>
-                <a href="{{ route('employees.index') }}" class="nav-link flex items-center gap-3 px-4 py-3 rounded-xl text-mutedBrown {{ request()->routeIs('employees.*') ? 'active-tab' : '' }}">
+                <a href="{{ route('employees.index') }}"
+                    class="nav-link flex items-center gap-3 px-4 py-3 rounded-xl text-mutedBrown {{ request()->routeIs('employees.*') ? 'active-tab' : '' }}">
                     <i class="fa-solid fa-users w-5"></i>
                     <span data-ar="الموظفون" data-en="Employees">الموظفون</span>
                 </a>
-                <a href="{{ route('payroll.index') }}" class="nav-link flex items-center gap-3 px-4 py-3 rounded-xl text-mutedBrown {{ request()->routeIs('payroll.*') ? 'active-tab' : '' }}">
+                <a href="{{ route('payroll.index') }}"
+                    class="nav-link flex items-center gap-3 px-4 py-3 rounded-xl text-mutedBrown {{ request()->routeIs('payroll.*') ? 'active-tab' : '' }}">
                     <i class="fa-solid fa-file-invoice-dollar w-5"></i>
                     <span data-ar="الرواتب" data-en="Payroll">الرواتب</span>
                 </a>
-                <a href="{{ route('reports.index') }}" class="nav-link flex items-center gap-3 px-4 py-3 rounded-xl text-mutedBrown {{ request()->routeIs('reports.*') ? 'active-tab' : '' }}">
+                <a href="{{ route('reports.index') }}"
+                    class="nav-link flex items-center gap-3 px-4 py-3 rounded-xl text-mutedBrown {{ request()->routeIs('reports.*') ? 'active-tab' : '' }}">
                     <i class="fa-solid fa-chart-bar w-5"></i>
                     <span data-ar="التقارير" data-en="Reports">التقارير</span>
                 </a>
             @endif
 
-            <div class="h-px bg-secondaryCream my-2 w-4/5 mx-auto"></div>
-
-            <a href="{{ route('returns.index') }}" class="nav-link flex items-center gap-3 px-4 py-3 rounded-xl text-mutedBrown {{ request()->routeIs('returns.*') ? 'active-tab' : '' }}">
+            <div class="h-px bg-secondaryCream my-3 w-4/5 mx-auto"></div>
+            <a href="{{ route('returns.index') }}"
+                class="nav-link flex items-center gap-3 px-4 py-3 rounded-xl text-mutedBrown {{ request()->routeIs('returns.*') ? 'active-tab' : '' }}">
                 <i class="fa-solid fa-rotate-left w-5"></i>
                 <span data-ar="المرتجعات" data-en="Returns">المرتجعات</span>
             </a>
-            <a href="{{ route('order_classifications.index') }}" class="nav-link flex items-center gap-3 px-4 py-3 rounded-xl text-mutedBrown {{ request()->routeIs('order_classifications.*') ? 'active-tab' : '' }}">
+            <a href="{{ route('order_classifications.index') }}"
+                class="nav-link flex items-center gap-3 px-4 py-3 rounded-xl text-mutedBrown {{ request()->routeIs('order_classifications.*') ? 'active-tab' : '' }}">
                 <i class="fa-solid fa-tags w-5"></i>
                 <span data-ar="تصنيفات الطلبات" data-en="Order Classifications">تصنيفات الطلبات</span>
             </a>
-            <a href="{{ route('settings.index') }}" class="nav-link flex items-center gap-3 px-4 py-3 rounded-xl text-mutedBrown {{ request()->routeIs('settings.*') ? 'active-tab' : '' }}">
+            <a href="{{ route('settings.index') }}"
+                class="nav-link flex items-center gap-3 px-4 py-3 rounded-xl text-mutedBrown {{ request()->routeIs('settings.*') ? 'active-tab' : '' }}">
                 <i class="fa-solid fa-gear w-5"></i>
                 <span data-ar="الإعدادات" data-en="Settings">الإعدادات</span>
             </a>
         </nav>
 
         @php $user = auth()->user(); @endphp
-
-        <!-- Profile Section -->
         <div class="p-4 mt-auto border-t border-secondaryCream relative bg-white">
             <div id="profileDropdownBtn"
                 class="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-secondaryCream cursor-pointer transition-all duration-300 select-none">
@@ -369,7 +457,6 @@
                     id="profileChevron"></i>
             </div>
 
-            <!-- Dropdown Menu -->
             <div id="profileDropdown"
                 class="absolute bottom-[85px] left-4 right-4 bg-white border border-secondaryCream rounded-xl shadow-[0_10px_40px_rgba(146,104,87,0.15)] overflow-hidden hidden dropdown-enter z-50">
                 <div class="p-2 space-y-1">
@@ -392,8 +479,6 @@
 
     <!-- Main Content -->
     <main class="flex-1 flex flex-col h-full overflow-hidden w-full bg-primaryBg relative z-0">
-
-        <!-- Animated Background Element -->
         <div
             class="absolute top-0 right-0 w-[500px] h-[500px] bg-white opacity-40 rounded-full blur-[100px] -z-10 pointer-events-none">
         </div>
@@ -401,11 +486,10 @@
             class="absolute bottom-0 left-0 w-[400px] h-[400px] bg-softPink opacity-20 rounded-full blur-[120px] -z-10 pointer-events-none">
         </div>
 
-        <!-- غلاف الهيدر (المسؤول عن حركة الإخفاء والإظهار) -->
-        <div id="headerWrapper" class="sticky top-0 z-30 transition-transform duration-500 ease-in-out w-full shrink-0">
-            <!-- Header الأصلي -->
+        <div id="headerWrapper"
+            class="sticky top-0 z-30 transition-transform duration-500 ease-in-out w-full shrink-0">
             <header
-                class="bg-white/70 backdrop-blur-md border-b border-secondaryCream p-4 flex justify-between items-center shadow-sm relative">
+                class="bg-white/80 backdrop-blur-lg border-b border-secondaryCream p-4 flex justify-between items-center shadow-sm relative">
                 <div class="flex items-center gap-4">
                     <button id="openSidebarBtn"
                         class="md:hidden text-primaryBrown hover:text-darkText focus:outline-none p-2 rounded-lg hover:bg-secondaryCream transition-colors">
@@ -416,46 +500,40 @@
                             التحكم</h1>
                         <p class="text-sm text-mutedBrown hidden sm:block mt-0.5"
                             data-ar="مرحباً بك في نظام إدارة تاجميديكس" data-en="Welcome to Tagmedix System">مرحباً بك
-                            في
-                            نظام إدارة تاجميديكس</p>
+                            في نظام إدارة تاجميديكس</p>
                     </div>
                 </div>
 
-                <div class="flex items-center gap-3 md:gap-5">
+                <div class="flex items-center gap-2 md:gap-4">
                     <button
-                        class="flex items-center gap-2 bg-white border border-secondaryCream shadow-sm rounded-xl px-3 py-1.5 md:px-4 md:py-2 text-xs md:text-sm font-semibold text-darkText hover:bg-secondaryCream hover:border-softBeige transition-all transform hover:-translate-y-0.5">
+                        class="flex items-center gap-2 bg-white border border-secondaryCream shadow-sm rounded-xl px-3 py-1.5 md:px-4 md:py-2 text-xs md:text-sm font-semibold text-darkText hover:bg-secondaryCream transition-all transform hover:-translate-y-0.5">
                         <span class="hidden sm:inline" data-ar="اليوم" data-en="Today">اليوم</span>
                         <i class="fa-regular fa-calendar sm:mx-1 text-primaryBrown"></i>
                     </button>
                     <button id="languageBtn"
-                        class="bg-white border border-secondaryCream shadow-sm rounded-xl px-4 py-2 text-sm font-semibold text-darkText transition-all hover:bg-secondaryCream hover:-translate-y-0.5">
+                        class="bg-white border border-secondaryCream shadow-sm rounded-xl px-3 py-1.5 md:px-4 md:py-2 text-xs md:text-sm font-semibold text-darkText transition-all hover:bg-secondaryCream hover:-translate-y-0.5">
                         🇪🇬 العربية
                     </button>
                     <button
-                        class="relative p-2.5 bg-white border border-secondaryCream shadow-sm rounded-xl text-primaryBrown hover:text-darkText hover:bg-secondaryCream transition-all transform hover:-translate-y-0.5">
+                        class="relative p-2 md:p-2.5 bg-white border border-secondaryCream shadow-sm rounded-xl text-primaryBrown hover:text-darkText hover:bg-secondaryCream transition-all transform hover:-translate-y-0.5">
                         <i class="fa-regular fa-bell text-lg md:text-xl"></i>
                         <span
-                            class="absolute top-2 right-2 w-2.5 h-2.5 bg-roseAccent rounded-full border-2 border-white animate-pulse"></span>
+                            class="absolute top-2 right-2 w-2 h-2 md:w-2.5 md:h-2.5 bg-roseAccent rounded-full border-2 border-white animate-pulse"></span>
                     </button>
                 </div>
             </header>
 
-            <!-- زر إخفاء/إظهار الهيدر -->
             <button id="headerToggleBtn"
-                class="absolute -bottom-8 left-1/2 -translate-x-1/2 z-40 bg-white border border-secondaryCream rounded-full w-8 h-8 flex items-center justify-center text-primaryBrown shadow-md hover:bg-secondaryCream transition-all duration-300">
+                class="absolute -bottom-8 left-1/2 -translate-x-1/2 z-40 bg-white border border-secondaryCream rounded-full w-8 h-8 flex items-center justify-center text-primaryBrown shadow-md hover:bg-secondaryCream hover:scale-110 transition-all duration-300">
                 <i class="fa-solid fa-chevron-up transition-transform duration-300" id="headerArrowIcon"></i>
             </button>
         </div>
 
-      <!-- Dynamic Content Area -->
         <div class="flex-1 overflow-y-auto p-4 md:p-6 space-y-6 page-transition relative z-10 flex flex-col">
-            
-            <!-- محتوى الصفحات الديناميكي -->
             <div class="flex-1">
                 @yield('content')
             </div>
 
-            <!-- حقوق التطوير -->
             <div class="mt-8 pt-4 border-t border-secondaryCream/40 text-center w-full shrink-0">
                 <p class="text-xs text-mutedBrown font-medium flex items-center justify-center gap-1.5">
                     <span data-ar="تم تطوير النظام بواسطة" data-en="System developed by">تم تطوير النظام بواسطة</span>
@@ -466,50 +544,44 @@
             </div>
         </div>
     </main>
-    
+
+    <!-- Magnetic Floating Button -->
+    <a href="{{ route('orders.create') }}" id="floatingAddOrderBtn" class="floating-add-order-btn"
+        title="إضافة طلب جديد" aria-label="إضافة طلب جديد">
+        <i class="fa-solid fa-plus"></i>
+        <span data-ar="إضافة طلب جديد" data-en="Add New Order">إضافة طلب جديد</span>
+    </a>
+
     <script>
         document.addEventListener('DOMContentLoaded', function() {
-            // ============================================
-            // كود إخفاء وإظهار الـ Sidebar (لأجهزة الديسكتوب)
-            // ============================================
+            // Sidebar Layout Logic
             const desktopSidebarToggle = document.getElementById('desktopSidebarToggle');
             const sidebarIconWrapper = document.getElementById('sidebarIconWrapper');
             const sidebar = document.getElementById('sidebar');
 
             if (desktopSidebarToggle) {
                 desktopSidebarToggle.addEventListener('click', () => {
-                    // الاعتماد على المارجن السالب لجعل المحتوى الأساسي يتمدد لملء الفراغ
                     sidebar.classList.toggle('md:-ms-64');
-                    // لف السهم
                     sidebarIconWrapper.classList.toggle('rotate-180');
                 });
             }
 
-            // ============================================
-            // كود إخفاء وإظهار الـ Header (فوق/تحت)
-            // ============================================
+            // Header Toggle Logic
             const headerToggleBtn = document.getElementById('headerToggleBtn');
             const headerWrapper = document.getElementById('headerWrapper');
             const headerArrowIcon = document.getElementById('headerArrowIcon');
 
             if (headerToggleBtn) {
                 headerToggleBtn.addEventListener('click', () => {
-                    // سحب الهيدر للأعلى بنسبة 100% من حجمه بحيث لا يؤثر على باقي المساحة
                     headerWrapper.classList.toggle('-translate-y-full');
-                    // لف السهم
                     headerArrowIcon.classList.toggle('rotate-180');
                 });
             }
 
-            // ============================================
-            // الأكواد الأصلية المتبقية (الموبايل واللغة الخ..)
-            // ============================================
+            // Mobile Sidebar Logic
             const openBtn = document.getElementById('openSidebarBtn');
             const closeBtn = document.getElementById('closeSidebarBtn');
             const overlay = document.getElementById('mobileOverlay');
-            const profileBtn = document.getElementById('profileDropdownBtn');
-            const profileDropdown = document.getElementById('profileDropdown');
-            const profileChevron = document.getElementById('profileChevron');
 
             function toggleSidebar() {
                 const isOpen = !sidebar.classList.contains('-translate-x-full');
@@ -532,10 +604,14 @@
             closeBtn.addEventListener('click', toggleSidebar);
             overlay.addEventListener('click', toggleSidebar);
 
+            // Profile Dropdown
+            const profileBtn = document.getElementById('profileDropdownBtn');
+            const profileDropdown = document.getElementById('profileDropdown');
+            const profileChevron = document.getElementById('profileChevron');
+
             profileBtn.addEventListener('click', function(e) {
                 e.stopPropagation();
-                const isHidden = profileDropdown.classList.contains('hidden');
-                if (isHidden) {
+                if (profileDropdown.classList.contains('hidden')) {
                     profileDropdown.classList.remove('hidden');
                     setTimeout(() => {
                         profileDropdown.classList.remove('dropdown-enter');
@@ -559,11 +635,151 @@
                     setTimeout(() => profileDropdown.classList.add('hidden'), 250);
                 }
             });
+
+            // =========================================
+            // Magnetic Floating Button Logic
+            // =========================================
+            const floatBtn = document.getElementById('floatingAddOrderBtn');
+            if (floatBtn) {
+                let isDragging = false;
+                let moved = false;
+                let startX = 0,
+                    startY = 0,
+                    startLeft = 0,
+                    startTop = 0;
+                const DRAG_THRESHOLD = 5;
+
+                function getPoint(e) {
+                    return e.touches ? {
+                        x: e.touches[0].clientX,
+                        y: e.touches[0].clientY
+                    } : {
+                        x: e.clientX,
+                        y: e.clientY
+                    };
+                }
+
+                function startDrag(e) {
+                    const point = getPoint(e);
+                    const rect = floatBtn.getBoundingClientRect();
+                    startX = point.x;
+                    startY = point.y;
+                    startLeft = rect.left;
+                    startTop = rect.top;
+                    moved = false;
+                    isDragging = true;
+
+                    // تحويل الإحداثيات من Right/Bottom إلى Left/Top لسهولة الحساب أثناء السحب
+                    floatBtn.style.left = `${startLeft}px`;
+                    floatBtn.style.top = `${startTop}px`;
+                    floatBtn.style.right = 'auto';
+                    floatBtn.style.bottom = 'auto';
+
+                    floatBtn.classList.add('is-dragging');
+                }
+
+                function moveDrag(e) {
+                    if (!isDragging) return;
+                    const point = getPoint(e);
+                    const deltaX = point.x - startX;
+                    const deltaY = point.y - startY;
+
+                    if (Math.abs(deltaX) > DRAG_THRESHOLD || Math.abs(deltaY) > DRAG_THRESHOLD) {
+                        moved = true;
+                    }
+
+                    floatBtn.style.left = `${startLeft + deltaX}px`;
+                    floatBtn.style.top = `${startTop + deltaY}px`;
+
+                    if (e.cancelable) e.preventDefault();
+                }
+
+                function endDrag() {
+                    if (!isDragging) return;
+                    isDragging = false;
+                    floatBtn.classList.remove('is-dragging');
+
+                    if (moved) {
+                        snapToEdge();
+                    }
+                }
+
+                // دالة الالتصاق المغناطيسي للحواف
+                function snapToEdge() {
+                    const rect = floatBtn.getBoundingClientRect();
+                    const windowWidth = window.innerWidth;
+                    const windowHeight = window.innerHeight;
+                    const padding = windowWidth < 768 ? 16 : 24; // مسافة الأمان للحواف
+
+                    let finalLeft, finalTop;
+                    const buttonCenterX = rect.left + (rect.width / 2);
+
+                    // الالتصاق يميناً أو يساراً بناءً على منتصف الشاشة
+                    if (buttonCenterX < windowWidth / 2) {
+                        finalLeft = padding; // الالتصاق باليسار
+                    } else {
+                        finalLeft = windowWidth - rect.width - padding; // الالتصاق باليمين
+                    }
+
+                    // الحفاظ على الزر داخل إطار الشاشة عمودياً
+                    finalTop = rect.top;
+                    if (finalTop < padding) finalTop = padding;
+                    if (finalTop > windowHeight - rect.height - padding) finalTop = windowHeight - rect.height -
+                        padding;
+
+                    // تطبيق الإحداثيات النهائية ليتم تحريكها بنعومة (بسبب transition في CSS)
+                    floatBtn.style.left = `${finalLeft}px`;
+                    floatBtn.style.top = `${finalTop}px`;
+
+                    localStorage.setItem('floatingBtnPos', JSON.stringify({
+                        left: finalLeft,
+                        top: finalTop
+                    }));
+                }
+
+                // Events
+                floatBtn.addEventListener('mousedown', startDrag);
+                document.addEventListener('mousemove', moveDrag);
+                document.addEventListener('mouseup', endDrag);
+
+                floatBtn.addEventListener('touchstart', startDrag, {
+                    passive: false
+                });
+                document.addEventListener('touchmove', moveDrag, {
+                    passive: false
+                });
+                document.addEventListener('touchend', endDrag);
+
+                floatBtn.addEventListener('click', function(e) {
+                    if (moved) {
+                        e.preventDefault();
+                        setTimeout(() => moved = false, 50);
+                    }
+                });
+
+                // استعادة الموقع عند التحميل
+                try {
+                    const saved = JSON.parse(localStorage.getItem('floatingBtnPos'));
+                    if (saved && typeof saved.left === 'number') {
+                        floatBtn.style.left = `${saved.left}px`;
+                        floatBtn.style.top = `${saved.top}px`;
+                        floatBtn.style.right = 'auto';
+                        floatBtn.style.bottom = 'auto';
+                        // إعادة الحساب للتأكد من عدم خروجه من الشاشة بعد تغيير حجمها
+                        setTimeout(snapToEdge, 100);
+                    }
+                } catch (e) {}
+
+                // إعادة الحساب عند تغيير حجم الشاشة (دوران الموبايل أو تصغير المتصفح)
+                window.addEventListener('resize', () => {
+                    setTimeout(snapToEdge, 200);
+                });
+            }
         });
 
         // Language Script
         const html = document.getElementById("htmlRoot");
-        const btn = document.getElementById("languageBtn");
+        const langBtn = document.getElementById("languageBtn");
 
         function applyLanguage(lang) {
             localStorage.setItem("lang", lang);
@@ -574,18 +790,17 @@
             document.querySelectorAll("[data-ar]").forEach(el => {
                 el.innerHTML = lang === "ar" ? el.dataset.ar : el.dataset.en;
             });
-            btn.innerHTML = lang === "ar" ? "🇪🇬 العربية" : "🇺🇸 English";
+            langBtn.innerHTML = lang === "ar" ? "🇪🇬 العربية" : "🇺🇸 English";
         }
 
-        const saved = localStorage.getItem("lang") || "ar";
-        applyLanguage(saved);
+        const savedLang = localStorage.getItem("lang") || "ar";
+        applyLanguage(savedLang);
 
-        btn.onclick = () => {
+        langBtn.onclick = () => {
             const current = localStorage.getItem("lang");
             applyLanguage(current === "ar" ? "en" : "ar");
         }
     </script>
-
     @stack('scripts')
 </body>
 

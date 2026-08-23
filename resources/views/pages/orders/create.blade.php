@@ -32,8 +32,8 @@
     </style>
     <style>
         /* ================================
-                   Custom Location Dropdown
-                ================================= */
+                           Custom Location Dropdown
+                        ================================= */
 
         .custom-select-dropdown {
             max-height: 240px;
@@ -144,8 +144,8 @@
         }
 
         /* =================================
-                   Mobile
-                ================================= */
+                           Mobile
+                        ================================= */
         @media (max-width: 767px) {
 
             .order-page-content {
@@ -173,8 +173,8 @@
         }
 
         /* =================================
-                   Desktop
-                ================================= */
+                           Desktop
+                        ================================= */
         @media (min-width: 768px) {
 
             .custom-select-dropdown {
@@ -190,8 +190,8 @@
         }
 
         /* =================================
-                   Large screens
-                ================================= */
+                           Large screens
+                        ================================= */
         @media (min-width: 1200px) {
 
             .custom-select-dropdown {
@@ -246,7 +246,58 @@
                                     ومريحة</p>
                             </div>
                         </div>
+                        <!-- مرجع الطلب - لا يتم إرساله -->
+                        <div class="md:col-span-2">
+                            <div class="relative rounded-2xl border border-[#8A704C]/15 bg-[#8A704C]/[0.035] p-4 sm:p-5">
 
+                                <div class="flex items-start gap-3 mb-3">
+                                    <span
+                                        class="w-9 h-9 shrink-0 rounded-xl bg-[#8A704C]/10 text-[#8A704C] flex items-center justify-center">
+                                        <i class="fa-solid fa-paste text-sm"></i>
+                                    </span>
+
+                                    <div class="min-w-0">
+                                        <label class="block text-sm font-bold text-gray-700">
+                                            مرجع الطلب
+                                            <span class="text-[10px] font-medium text-gray-400 mr-1">
+                                                للاستخدام الداخلي فقط
+                                            </span>
+                                        </label>
+
+                                        <p class="text-[11px] sm:text-xs text-gray-400 mt-1 leading-relaxed">
+                                            يمكنك لصق أي نص طويل هنا للرجوع إليه أثناء إنشاء الطلب.
+                                            هذا الحقل لا يتم حفظه أو إرساله مع الطلب.
+                                        </p>
+                                    </div>
+                                </div>
+
+                                <textarea id="order_reference" rows="3" autocomplete="off" spellcheck="false"
+                                    placeholder="الصق النص المرجعي هنا..."
+                                    class="order-reference-input w-full px-4 py-3.5
+                   bg-white border border-gray-200 rounded-xl
+                   focus:outline-none focus:ring-2 focus:ring-[#8A704C]/30
+                   focus:border-[#8A704C]/50
+                   transition-all duration-200
+                   text-sm leading-7 text-gray-700
+                   placeholder:text-gray-400
+                   resize-none overflow-hidden
+                   min-h-[90px] max-h-[420px]"></textarea>
+
+                                <div class="flex items-center justify-between mt-2 px-1">
+                                    <span class="text-[10px] text-gray-400">
+                                        <i class="fa-solid fa-eye ml-1"></i>
+                                        مرئي لك فقط أثناء إنشاء الطلب
+                                    </span>
+
+                                    <button type="button" id="clearOrderReference"
+                                        class="hidden text-[11px] font-semibold text-gray-400
+                       hover:text-red-500 transition-colors">
+                                        <i class="fa-solid fa-xmark ml-1"></i>
+                                        مسح
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
                             <div>
                                 <label class="block text-xs font-bold text-gray-600 mb-2">اسم العميل <span
@@ -341,7 +392,8 @@
                                             class="w-full pl-3 pr-8 py-2 text-xs bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-1 focus:ring-[#8A704C]">
                                     </div>
                                     <div id="area_options_list" class="custom-select-dropdown">
-                                        <div class="text-xs text-gray-400 p-3 text-center">يرجى اختيار المحافظة لعرض المناطق
+                                        <div class="text-xs text-gray-400 p-3 text-center">يرجى اختيار المحافظة لعرض
+                                            المناطق
                                         </div>
                                     </div>
                                 </div>
@@ -579,6 +631,12 @@
             </div>
         </div>
     </template>
+<!-- زر الإضافة العائم (FAB) للموبايل والديسكتوب -->
+<button type="button" id="floatingAddItemBtn"
+    class="fixed bottom-24 lg:bottom-10 right-6 lg:right-10 z-50 bg-emerald-600 hover:bg-emerald-700 text-white rounded-full w-14 h-14 sm:w-16 sm:h-16 flex items-center justify-center shadow-[0_8px_30px_rgb(0,0,0,0.2)] transition-all transform hover:scale-105 focus:outline-none focus:ring-4 focus:ring-emerald-600/30 group animate-slide-up"
+    title="إضافة منتج جديد">
+    <i class="fa-solid fa-plus text-xl sm:text-2xl group-hover:rotate-90 transition-transform duration-300"></i>
+</button>
 @endsection
 
 @push('scripts')
@@ -755,30 +813,65 @@
                 });
             });
 
-            function addNewItemRow(oldData = null) {
-                let itemHtml = template.replace(/{index}/g, itemIndex);
-                container.insertAdjacentHTML('beforeend', itemHtml);
+// استبدل دالة addNewItemRow الحالية بهذه الدالة
+function addNewItemRow(oldData = null, autoFocus = false) {
+    let itemHtml = template.replace(/{index}/g, itemIndex);
+    container.insertAdjacentHTML('beforeend', itemHtml);
 
-                const newRow = container.lastElementChild;
+    const newRow = container.lastElementChild;
 
-                if (oldData) {
-                    const fields = ['pant_type_id', 'type_id', 'style_id', 'color_id', 'size_id', 'sleeve',
-                        'quantity', 'price', 'notes'
-                    ];
-                    fields.forEach(field => {
-                        const input = newRow.querySelector(`[name="items[${itemIndex}][${field}]"]`);
-                        if (input && oldData[field] !== undefined) {
-                            input.value = oldData[field];
-                        }
-                    });
-                    calculateRowTotal(newRow);
-                }
-
-                itemIndex++;
-
-                bindRowCalculations();
-                calculateFullOrderSummary();
+    if (oldData) {
+        const fields = ['pant_type_id', 'type_id', 'style_id', 'color_id', 'size_id', 'sleeve_type_id', 'quantity', 'price', 'notes'];
+        fields.forEach(field => {
+            const input = newRow.querySelector(`[name="items[${itemIndex}][${field}]"]`);
+            if (input && oldData[field] !== undefined) {
+                input.value = oldData[field];
             }
+        });
+        calculateRowTotal(newRow);
+    }
+
+    itemIndex++;
+    bindRowCalculations();
+    calculateFullOrderSummary();
+
+    // التمرير التلقائي والتركيز للمنتجات المضافة يدوياً فقط (وليس أثناء استرجاع البيانات القديمة)
+    if (autoFocus) {
+        setTimeout(() => {
+            // التمرير السلس للمنتج الجديد
+            newRow.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            
+            // تأثير بصري خفيف (ومضة) لتنبيه المستخدم
+            newRow.classList.add('ring-2', 'ring-[#8A704C]', 'shadow-lg');
+            setTimeout(() => newRow.classList.remove('ring-2', 'ring-[#8A704C]', 'shadow-lg'), 1200);
+
+            // التركيز على أول حقل اختيار
+            const firstInput = newRow.querySelector('select');
+            if (firstInput) {
+                firstInput.focus({ preventScroll: true });
+            }
+        }, 150);
+    }
+}
+
+// ابحث عن السطر: addItemBtn.addEventListener('click', () => addNewItemRow());
+// وقم بتعديله وإضافة الزر العائم أيضاً هكذا:
+addItemBtn.addEventListener('click', () => addNewItemRow(null, true));
+
+const floatingBtn = document.getElementById('floatingAddItemBtn');
+if(floatingBtn) {
+    floatingBtn.addEventListener('click', () => addNewItemRow(null, true));
+}
+
+// ابحث عن السطر الخاص باسترجاع البيانات القديمة وقم بتمرير false لمنع التمرير وقت التحميل
+const oldItems = /* ... الكود الموجود لديك ... */;
+if (oldItems && Object.keys(oldItems).length > 0) {
+    Object.values(oldItems).forEach(itemData => {
+        addNewItemRow(itemData, false);
+    });
+} else {
+    addNewItemRow(null, false);
+}
 
             function bindRowCalculations() {
                 const rows = container.querySelectorAll('.order-item-card');
@@ -874,6 +967,52 @@
                 });
             } else {
                 addNewItemRow();
+            }
+            const orderReference = document.getElementById('order_reference');
+            const clearOrderReference = document.getElementById('clearOrderReference');
+
+            if (orderReference) {
+
+                function autoResizeReference() {
+                    orderReference.style.height = 'auto';
+
+                    const newHeight = Math.min(
+                        Math.max(orderReference.scrollHeight, 90),
+                        420
+                    );
+
+                    orderReference.style.height = newHeight + 'px';
+                }
+
+                function updateClearButton() {
+                    if (orderReference.value.trim().length > 0) {
+                        clearOrderReference.classList.remove('hidden');
+                    } else {
+                        clearOrderReference.classList.add('hidden');
+                    }
+                }
+
+                orderReference.addEventListener('input', function() {
+                    autoResizeReference();
+                    updateClearButton();
+                });
+
+                orderReference.addEventListener('paste', function() {
+                    setTimeout(() => {
+                        autoResizeReference();
+                        updateClearButton();
+                    }, 0);
+                });
+
+                clearOrderReference.addEventListener('click', function() {
+                    orderReference.value = '';
+                    autoResizeReference();
+                    updateClearButton();
+                    orderReference.focus();
+                });
+
+                // الحجم الابتدائي
+                autoResizeReference();
             }
         });
     </script>

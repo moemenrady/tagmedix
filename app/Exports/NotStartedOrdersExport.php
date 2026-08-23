@@ -23,6 +23,10 @@ class NotStartedOrdersExport implements
     WithEvents,
     WithCustomStartCell
 {
+    // تعريف متغيرات لتتبع الصفوف وتحديد بداية ونهاية كل أوردر
+    private int $currentRow = 3; 
+    private array $orderRowRanges = [];
+
     public function collection()
     {
         $orders = Order::with([
@@ -32,23 +36,26 @@ class NotStartedOrdersExport implements
             'items.size',
             'items.type',
             'items.pantType',
-            'items.sleeveType' // تم إضافة علاقة نوع الكم هنا
+            'items.sleeveType'
         ])
             ->where('status', 'new')
             ->orderBy('id')
             ->get();
 
         $rows = [];
+        $this->currentRow = 3; // نبدأ من الصف الثالث (لأن 1 و 2 للعناوين)
 
         foreach ($orders as $order) {
-            foreach ($order->items as $item) {
+            $isFirstItem = true; // مؤشر لمعرفة هل نحن في أول عنصر من الأوردر أم لا
+            $startRow = $this->currentRow; // حفظ رقم صف بداية الأوردر
 
-                // جلب اسم نوع الكم من العلاقة الجديدة
+            foreach ($order->items as $item) {
                 $sleeve = $item->sleeveType?->name ?? '-';
 
                 $rows[] = [
-                    'order_number'  => $order->order_number,
-                    'customer_name' => $order->customer?->name ?? '-',
+                    // طباعة رقم الأوردر واسم العميل في أول صف فقط، وتركها فارغة للباقي
+                    'order_number'  => $isFirstItem ? $order->order_number : '',
+                    'customer_name' => $isFirstItem ? ($order->customer?->name ?? '-') : '',
                     'design'        => $item->style?->name ?? '-',
                     'product_type'  => $item->type?->name ?? '-',
                     'pant_type'     => $item->pantType?->name ?? '-',
@@ -58,7 +65,18 @@ class NotStartedOrdersExport implements
                     'extra_size'    => $item->quantity ? $item->quantity . ' قطعة' : '-',
                     'notes'         => $item->notes ?? '-',
                 ];
+
+                $isFirstItem = false;
+                $this->currentRow++;
             }
+
+            $endRow = $this->currentRow - 1; // حفظ رقم صف نهاية الأوردر
+            
+            // تخزين نطاق صفوف هذا الأوردر لاستخدامه في التنسيق لاحقاً
+            $this->orderRowRanges[] = [
+                'start' => $startRow,
+                'end'   => $endRow
+            ];
         }
 
         return collect($rows);
@@ -90,7 +108,7 @@ class NotStartedOrdersExport implements
         $highestRow = $sheet->getHighestRow();
         $sheet->setRightToLeft(true);
 
-        // تنسيق صف العناوين (رقم 2) بالأخضر الغامق مثل الصورة
+        // تنسيق صف العناوين (رقم 2)
         $sheet->getStyle('A2:J2')->applyFromArray([
             'font' => ['bold' => true, 'color' => ['rgb' => 'FFFFFF'], 'size' => 11],
             'fill' => ['fillType' => Fill::FILL_SOLID, 'color' => ['rgb' => '205A43']],
@@ -104,7 +122,7 @@ class NotStartedOrdersExport implements
         ]);
         $sheet->getRowDimension(2)->setRowHeight(35);
 
-        // تنسيق صفوف البيانات
+        // تنسيق صفوف البيانات الأساسي
         if ($highestRow >= 3) {
             $sheet->getStyle("A3:J{$highestRow}")->applyFromArray([
                 'font' => ['size' => 11],
@@ -114,11 +132,46 @@ class NotStartedOrdersExport implements
                     'wrapText' => true,
                 ],
                 'borders' => [
-                    'allBorders' => ['borderStyle' => Border::BORDER_THIN, 'color' => ['rgb' => 'D1D5DB']],
+                    'allBorders' => ['borderStyle' => Border::BORDER_THIN, 'color' => ['rgb' => 'D1D5DB']], // حدود خفيفة بين كل الخلايا
                 ],
             ]);
 
-            // تلوين خلايا عمود "اللون" برمجياً
+            // === [تنسيق المجموعات (الأوردرات)] ===
+            $isAlternate = false; // للتبديل بين الألوان
+
+            foreach ($this->orderRowRanges as $range) {
+                $start = $range['start'];
+                $end = $range['end'];
+
+                // 1. دمج خلايا رقم الأوردر واسم العميل إذا كان الأوردر يحتوي على أكثر من منتج
+                if ($start < $end) {
+                    $sheet->mergeCells("A{$start}:A{$end}");
+                    $sheet->mergeCells("B{$start}:B{$end}");
+                }
+
+                // 2. تلوين متبادل لخلفية الأوردرات (أوردر أبيض وأوردر رمادي فاتح جداً لسهولة القراءة)
+                if ($isAlternate) {
+                    $sheet->getStyle("A{$start}:J{$end}")->applyFromArray([
+                        'fill' => [
+                            'fillType' => Fill::FILL_SOLID,
+                            'color' => ['rgb' => 'F9FAFB'] // رمادي فاتح جداً
+                        ]
+                    ]);
+                }
+                $isAlternate = !$isAlternate;
+
+                // 3. إضافة خط سفلي واضح يفصل بين كل أوردر والآخر
+                $sheet->getStyle("A{$end}:J{$end}")->applyFromArray([
+                    'borders' => [
+                        'bottom' => [
+                            'borderStyle' => Border::BORDER_MEDIUM, // خط متوسط السماكة
+                            'color' => ['rgb' => '6B7280'] // رمادي غامق ليكون واضحاً
+                        ],
+                    ]
+                ]);
+            }
+
+            // تلوين خلايا عمود "اللون" برمجياً (يتم تنفيذه بعد تلوين الخلفية المتبادلة لكي لا يتم تغطيته)
             for ($row = 3; $row <= $highestRow; $row++) {
                 $sheet->getRowDimension($row)->setRowHeight(40);
                 $colorText = trim($sheet->getCell("G{$row}")->getValue());

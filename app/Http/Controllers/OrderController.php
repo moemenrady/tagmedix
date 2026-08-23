@@ -265,36 +265,51 @@ class OrderController extends Controller
 
     public function update(Request $request, $id)
     {
-        $order = Order::with([
-            'items',
-            'payments',
-        ])->withSum('payments', 'amount')->findOrFail($id);
+        $order = Order::with(['items', 'payments', 'customer', 'address'])->findOrFail($id);
 
         // --- 1. التعامل مع طلبات التحديث الجزئية الذكية (AJAX / JSON) ---
         if ($request->wantsJson() || $request->ajax()) {
             DB::beginTransaction();
             try {
-                // أ. تحديث حالة الطلب
                 if ($request->has('status')) {
                     $order->update(['status' => $request->status]);
                 }
 
-                // ب. تحديث المبلغ المدفوع
-
-                // ج. تحديث بيانات العميل فقط
                 if ($request->has('customer_info')) {
                     $info = $request->customer_info;
-                    $order->update([
-                        'customer_name' => $info['name'] ?? $order->customer_name,
-                        'phone_1' => $info['phone1'] ?? $order->phone_1,
-                        'phone_2' => $info['phone2'] ?? $order->phone_2,
-                        'governorate' => $info['gov'] ?? $order->governorate,
-                        'full_address' => $info['address'] ?? $order->full_address,
-                        'instagram_profile' => $info['insta'] ?? $order->instagram_profile,
-                    ]);
+
+                    if ($order->customer) {
+                        $order->customer->update([
+                            'name' => $info['name'] ?? $order->customer->name,
+                            'phone_1' => $info['phone1'] ?? $order->customer->phone_1,
+                            'phone_2' => $info['phone2'] ?? $order->customer->phone_2,
+                            'instagram_profile' => $info['insta'] ?? $order->customer->instagram_profile,
+                        ]);
+                    }
+
+                    if ($order->address) {
+                        $order->address->update([
+                            'governorate' => $info['gov'] ?? $order->address->governorate,
+                            'full_address' => $info['address'] ?? $order->address->full_address,
+                        ]);
+                    }
                 }
 
-                // د. تحديث بيانات منتج (Item) واحد وإعادة حساب الإجمالي
+                if ($request->has('update_financials')) {
+                    $newPaidAmount = $request->paid_amount;
+
+                    $order->payments()->delete();
+                    if ($newPaidAmount > 0) {
+                        $order->payments()->create([
+                            'type' => 'order_advance',
+                            'amount' => $newPaidAmount,
+                            'payment_date' => now(),
+                            'note' => 'تعديل من واجهة تفاصيل الطلب',
+                            'created_by' => auth()->id(),
+                        ]);
+                    }
+                }
+
                 if ($request->has('order_item')) {
                     $itemData = $request->order_item;
                     $item = $order->items()->findOrFail($itemData['id']);
@@ -304,36 +319,32 @@ class OrderController extends Controller
                     $itemTotal = $quantity * $price;
 
                     $item->update([
-                        'product_name' => $itemData['productName'] ?? $item->product_name,
                         'quantity' => $quantity,
                         'price' => $price,
                         'total' => $itemTotal,
                         'notes' => $itemData['notes'] ?? $item->notes,
                     ]);
-
-                    // إعادة حساب إجماليات الطلب بعد تعديل المنتج
-                    $totalPrice = $order->items()->sum('total');
-                    $order->update([
-                        'total_price' => $totalPrice,
-                        'remaining_amount' => $totalPrice - $order->paid_amount,
-                    ]);
                 }
+
+                $totalPrice = $order->items()->sum('total');
+                $totalPaid = $order->payments()->sum('amount');
+
+                $order->update([
+                    'total_price' => $totalPrice,
+                    'remaining_amount' => $totalPrice - $totalPaid,
+                ]);
 
                 DB::commit();
 
-                // إرجاع الطلب المحدث لتحديث الواجهة تلقائياً
                 return response()->json([
                     'success' => true,
                     'message' => 'تم التحديث بنجاح',
                     'order' => $order->fresh(['items']),
+                    'paid_amount' => $totalPaid
                 ]);
             } catch (\Exception $e) {
                 DB::rollBack();
-
-                return response()->json([
-                    'success' => false,
-                    'message' => $e->getMessage(),
-                ], 500);
+                return response()->json(['success' => false, 'message' => $e->getMessage()], 500);
             }
         }
 
@@ -353,28 +364,50 @@ class OrderController extends Controller
         DB::beginTransaction();
 
         try {
+            if ($order->customer) {
+                $order->customer->update([
+                    'name' => $request->customer_name,
+                    'phone_1' => $request->phone_1,
+                    'phone_2' => $request->phone_2,
+                    'instagram_profile' => $request->instagram_profile,
+                ]);
+            }
+
+            if ($order->address) {
+                $order->address->update([
+                    'governorate' => $request->governorate,
+                    'full_address' => $request->full_address,
+                ]);
+            }
+
             $order->update([
-                'customer_name' => $request->customer_name,
-                'phone_1' => $request->phone_1,
-                'phone_2' => $request->phone_2,
-                'governorate' => $request->governorate,
-                'full_address' => $request->full_address,
-                'instagram_profile' => $request->instagram_profile,
-                'paid_amount' => $request->paid_amount ?? 0,
                 'source' => $request->source,
             ]);
 
-            $order->items()->delete();
+            if ($request->has('paid_amount')) {
+                $order->payments()->delete();
+                if ($request->paid_amount > 0) {
+                    $order->payments()->create([
+                        'type' => 'order_advance',
+                        'amount' => $request->paid_amount,
+                        'payment_date' => now(),
+                        'note' => 'دفع من التعديل الشامل',
+                        'created_by' => auth()->id(),
+                    ]);
+                }
+            }
 
+            $order->items()->delete();
             $totalPrice = 0;
 
             foreach ($request->items as $item) {
                 $itemTotal = $item['price'] * $item['quantity'];
                 $order->items()->create([
-                    'product_id' => $item['product_id'] ?? null,
-                    'design' => $item['design'] ?? null,
-                    'color' => $item['color'] ?? null,
-                    'size' => $item['size'] ?? null,
+                    'style_id' => $item['style_id'] ?? null,
+                    'color_id' => $item['color_id'] ?? null,
+                    'size_id' => $item['size_id'] ?? null,
+                    'type_id' => $item['type_id'] ?? null,
+                    'pant_type_id' => $item['pant_type_id'] ?? null,
                     'sleeve_type_id' => $item['sleeve_type_id'] ?? null,
                     'quantity' => $item['quantity'],
                     'price' => $item['price'],
@@ -384,9 +417,11 @@ class OrderController extends Controller
                 $totalPrice += $itemTotal;
             }
 
+            $totalPaid = $order->payments()->sum('amount');
+
             $order->update([
                 'total_price' => $totalPrice,
-                'remaining_amount' => $totalPrice - $order->paid_amount,
+                'remaining_amount' => $totalPrice - $totalPaid,
             ]);
 
             DB::commit();
@@ -394,11 +429,9 @@ class OrderController extends Controller
             return redirect()->route('orders.index')->with('success', 'تم تحديث الطلب بنجاح');
         } catch (\Exception $e) {
             DB::rollBack();
-
             return redirect()->back()->with('fail', $e->getMessage());
         }
     }
-
     public function destroy($id)
     {
         $order = Order::findOrFail($id);
