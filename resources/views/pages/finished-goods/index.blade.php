@@ -616,57 +616,72 @@
                                     class="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-xs focus:bg-white focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500">
                             </div>
 
-                            {{-- المطلوب تحصيله شامل الشحن --}}
-                            <div>
-                                <label class="block text-xs font-semibold text-gray-700 mb-1">المطلوب تحصيله شامل الشحن
-                                    <span class="text-rose-500">*</span></label>
-                                <input type="number" step="0.01" name="amount_to_be_collected"
-                                    x-model="shipForm.amount_to_be_collected" required
-                                    class="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-xs font-bold text-amber-800 focus:bg-white focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500">
-                            </div>
+                            {{-- تفاصيل التحصيل (Order + Shipping = Total) --}}
+                            <div class="md:col-span-2 bg-amber-50/50 p-4 rounded-xl border border-amber-100">
+                                <h4 class="text-xs font-bold text-amber-800 mb-4 flex items-center gap-2">
+                                    <i class="fa-solid fa-calculator"></i> تفاصيل التحصيل المالي
+                                </h4>
+                                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                                    {{-- Box 1: Order Remaining --}}
+                                    <div>
+                                        <label class="block text-[11px] font-semibold text-gray-600 mb-1.5">المتبقي من الطلب</label>
+                                        <div class="px-3 py-2 bg-white border border-gray-200 rounded-xl text-xs font-bold text-gray-700 flex justify-between items-center shadow-sm">
+                                            <span x-text="shipForm.order_remaining"></span>
+                                            <span class="text-[10px] text-gray-400">ج.م</span>
+                                        </div>
+                                    </div>
+                                    
+                                    {{-- Box 2: Shipment Price (Calculates Total) --}}
+                                    <div>
+                                        <div class="flex items-center justify-between mb-1.5">
+                                            <label class="block text-[11px] font-semibold text-gray-700">تكلفة الشحن <span class="text-rose-500">*</span></label>
+                                            <template x-if="shipForm.original_return_amount !== '' && shipForm.shipment_price == shipForm.original_return_amount">
+                                                <span class="text-[9px] text-emerald-600 font-bold bg-emerald-50 px-1.5 py-0.5 rounded flex items-center gap-1">
+                                                    <i class="fa-solid fa-check"></i>
+                                                    تلقائي
+                                                </span>
+                                            </template>
+                                        </div>
+                                        <div class="relative">
+                                            <input type="number" step="0.01" x-model="shipForm.shipment_price" @input="shipForm.return_amount = shipForm.shipment_price" placeholder="تكلفة الشحن" required
+                                                class="w-full pl-20 pr-3 py-2 bg-white border border-gray-200 rounded-xl text-xs focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 font-bold shadow-sm transition-all text-gray-700"
+                                                :class="{'border-emerald-500 ring-1 ring-emerald-500': shipForm.original_return_amount !== '' && shipForm.shipment_price == shipForm.original_return_amount}">
+                                            <div class="absolute left-2 top-1/2 -translate-y-1/2 flex items-center gap-1.5">
+                                                <template x-if="shipForm.original_return_amount !== '' && shipForm.shipment_price != shipForm.original_return_amount">
+                                                    <button type="button" @click="shipForm.shipment_price = shipForm.original_return_amount; shipForm.return_amount = shipForm.original_return_amount" 
+                                                        class="text-[9px] bg-gray-100 hover:bg-gray-200 text-gray-600 px-1.5 py-1 rounded font-bold transition flex items-center gap-1 shadow-sm"
+                                                        title="العودة للسعر التلقائي">
+                                                        <i class="fa-solid fa-rotate-left"></i>
+                                                        التلقائي
+                                                    </button>
+                                                </template>
+                                                <span class="text-[10px] text-gray-400 font-normal">ج.م</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                    {{-- Box 3: Total Amount --}}
+                                    <div>
+                                        <label class="block text-[11px] font-semibold text-gray-700 mb-1.5">المطلوب تحصيله شامل الشحن</label>
+                                        <div class="px-3 py-2 bg-gradient-to-l from-amber-100 to-amber-50 border border-amber-200 rounded-xl text-xs font-black text-amber-900 flex justify-between items-center shadow-inner">
+                                            <span x-text="(parseFloat(shipForm.order_remaining || 0) + parseFloat(shipForm.shipment_price || 0)).toFixed(2)"></span>
+                                            <span class="text-[10px] text-amber-700 font-normal">ج.م</span>
+                                        </div>
+                                        {{-- Hidden input to send with form --}}
+                                        <input type="hidden" name="amount_to_be_collected" :value="parseFloat(shipForm.order_remaining || 0) + parseFloat(shipForm.shipment_price || 0)">
+                                    </div>
 
-                            {{-- في حاله الارتجاع نطالب المستلم ب --}}
-                            <div class="relative">
-                                <div class="flex items-center justify-between mb-1">
-                                    <label class="block text-xs font-semibold text-gray-700">في حاله الارتجاع نطالب المستلم
-                                        ب <span class="text-rose-500">*</span></label>
-                                    <template
-                                        x-if="shipForm.original_return_amount !== '' && shipForm.return_amount == shipForm.original_return_amount">
-                                        <span
-                                            class="text-[10px] text-emerald-600 font-bold bg-emerald-50 px-2 py-0.5 rounded-lg flex items-center gap-1">
-                                            <i class="fa-solid fa-check"></i>
-                                            تلقائي
-                                        </span>
-                                    </template>
-                                </div>
-                                <div class="relative">
-                                    <input type="number" step="0.01" name="return_amount"
-                                        x-model="shipForm.return_amount" x-ref="returnInput" placeholder="سعر الشحن"
-                                        required
-                                        class="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-xs focus:bg-white focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500"
-                                        :class="{ 'border-emerald-500 ring-1 ring-emerald-500': shipForm
-                                                .original_return_amount !== '' && shipForm.return_amount ==
-                                                shipForm.original_return_amount }">
-
-                                    <template
-                                        x-if="shipForm.original_return_amount !== '' && shipForm.return_amount == shipForm.original_return_amount">
-                                        <button type="button"
-                                            @click="shipForm.return_amount = ''; $refs.returnInput.focus()"
-                                            class="absolute left-2 top-1/2 -translate-y-1/2 text-[10px] bg-rose-50 hover:bg-rose-100 text-rose-600 px-2 py-1 rounded-lg font-bold transition flex items-center gap-1">
-                                            <i class="fa-solid fa-xmark"></i>
-                                            سعر مخصص
-                                        </button>
-                                    </template>
-
-                                    <template
-                                        x-if="shipForm.original_return_amount !== '' && shipForm.return_amount != shipForm.original_return_amount">
-                                        <button type="button"
-                                            @click="shipForm.return_amount = shipForm.original_return_amount"
-                                            class="absolute left-2 top-1/2 -translate-y-1/2 text-[10px] bg-gray-100 hover:bg-gray-200 text-gray-600 px-2 py-1 rounded-lg font-bold transition flex items-center gap-1">
-                                            <i class="fa-solid fa-rotate-left"></i>
-                                            التلقائي
-                                        </button>
-                                    </template>
+                                    {{-- Box 4: Return Amount (Sent to API) --}}
+                                    <div class="relative">
+                                        <label class="block text-[11px] font-semibold text-gray-700 mb-1.5">في حالة الارتجاع يدفع العميل <span class="text-rose-500">*</span></label>
+                                        <div class="relative">
+                                            <input type="number" step="0.01" name="return_amount" x-model="shipForm.return_amount" placeholder="سعر الارتجاع" required
+                                                class="w-full pl-8 pr-3 py-2 bg-white border border-gray-200 rounded-xl text-xs focus:ring-2 focus:ring-rose-500/20 focus:border-rose-500 font-bold shadow-sm transition-all text-rose-700">
+                                            <div class="absolute left-3 top-1/2 -translate-y-1/2">
+                                                <span class="text-[10px] text-rose-400">ج.م</span>
+                                            </div>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
 
@@ -819,6 +834,8 @@
                     government: '',
                     area: '',
                     address: '',
+                    order_remaining: 0,
+                    shipment_price: '',
                     amount_to_be_collected: 0,
                     return_amount: '',
                     original_return_amount: '',
@@ -870,6 +887,8 @@
                         government: gov,
                         area: area,
                         address: addr,
+                        order_remaining: remaining,
+                        shipment_price: matchedReturnAmount,
                         amount_to_be_collected: remaining,
                         return_amount: matchedReturnAmount,
                         original_return_amount: matchedReturnAmount,
