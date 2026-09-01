@@ -301,11 +301,77 @@
                 border-radius: 14px;
             }
         }
+
+        /* =========================================
+   Pull-to-Refresh Styling
+========================================= */
+        /* إيقاف سحب المتصفح الافتراضي لمنع التداخل مع الأنيميشن الخاص بنا */
+        body {
+            overscroll-behavior-y: none;
+        }
+
+        .ptr-indicator {
+            position: fixed;
+            top: 0;
+            left: 50%;
+            z-index: 9999;
+            width: 48px;
+            height: 48px;
+            background: #FFFFFF;
+            border: 2px solid #DBD0C3;
+            /* secondaryCream */
+            border-radius: 50%;
+            box-shadow: 0 8px 25px rgba(146, 104, 87, 0.25);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            /* يبدأ مختفياً أعلى الشاشة */
+            transform: translate(-50%, -150%);
+            pointer-events: none;
+            will-change: transform;
+        }
+
+        .ptr-indicator i {
+            color: #926857;
+            /* primaryBrown */
+            font-size: 20px;
+            will-change: transform;
+        }
+
+        /* حالة التحديث مع أنيميشن النبض والدوران */
+        .ptr-indicator.is-refreshing {
+            transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275), border-color 0.3s;
+            transform: translate(-50%, 90px) !important;
+            border-color: #C19077;
+            /* roseAccent */
+        }
+
+        .ptr-indicator.is-refreshing i {
+            animation: ptr-spin 0.7s linear infinite;
+            color: #C19077;
+        }
+
+        /* حالة الإلغاء وعودة المؤشر لأعلى بمرونة */
+        .ptr-resetting {
+            transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        @keyframes ptr-spin {
+            from {
+                transform: rotate(0deg);
+            }
+
+            to {
+                transform: rotate(360deg);
+            }
+        }
     </style>
 </head>
 
 <body class="bg-primaryBg text-darkText font-sans flex h-screen overflow-hidden">
-
+    <div id="ptrIndicator" class="ptr-indicator">
+        <i class="fa-solid fa-rotate-right" id="ptrIcon"></i>
+    </div>
     <!-- Mobile Overlay -->
     <div id="mobileOverlay"
         class="fixed inset-0 bg-darkText/50 backdrop-blur-sm z-40 hidden md:hidden transition-opacity opacity-0 duration-300">
@@ -335,13 +401,39 @@
 
         <!-- Navigation -->
         <nav class="flex-1 overflow-y-auto px-4 space-y-1.5 text-sm font-medium pb-4">
-            <a href="{{ route('finished-goods.index') }}"
-                class="nav-link flex items-center gap-3 px-4 py-3 rounded-xl text-mutedBrown {{ request()->routeIs('finished-goods.*') ? 'active-tab' : '' }}">
-                <i class="fa-solid fa-box-open w-5 transition-transform group-hover:scale-110"></i>
-                <span data-ar="الطلبات التامة" data-en="Finished Goods">الطلبات التامة</span>
-            </a>
+            <div class="space-y-1">
+
+                {{-- الطلبات التامة --}}
+                <a href="{{ route('finished-goods.index') }}"
+                    class="nav-link flex items-center gap-3 px-4 py-3 rounded-xl text-mutedBrown
+        {{ request()->routeIs('finished-goods.*') ? 'active-tab' : '' }}">
+
+                    <i class="fa-solid fa-box-open w-5 transition-transform group-hover:scale-110"></i>
+
+                    <span data-ar="الطلبات التامة" data-en="Finished Goods">
+                        الطلبات التامة
+                    </span>
+                </a>
+
+                {{-- Sub Tab: أوردرات تم شحنها --}}
+                <a href="{{ route('shipments.index') }}"
+                    class="nav-link flex items-center gap-3 px-4 py-2.5 mt-1
+        ml-4 rtl:ml-0 rtl:mr-4 rounded-lg text-sm
+        border-r-2 rtl:border-r-2 rtl:border-l-0
+        {{ request()->routeIs('shipments.*')
+            ? 'bg-secondaryCream text-primaryBrown font-bold border-primaryBrown'
+            : 'text-mutedBrown/80 border-transparent hover:bg-secondaryCream/60' }}">
+
+                    <i class="fa-solid fa-truck-fast w-4"></i>
+
+                    <span data-ar="أوردرات تم شحنها" data-en="Shipped Orders">
+                        أوردرات تم شحنها
+                    </span>
+                </a>
+
+            </div>
             <!-- باقي الروابط كما هي في الكود الأصلي -->
-            <a href="{{ route('inventory.index') }}"
+            <a href="{{ route('inventory.dashboard') }}"
                 class="nav-link flex items-center gap-3 px-4 py-3 rounded-xl text-mutedBrown {{ request()->routeIs('inventory.*') ? 'active-tab' : '' }}">
                 <i class="fa-solid fa-boxes-stacked w-5"></i>
                 <span data-ar="المخزون" data-en="Inventory">المخزون</span>
@@ -530,6 +622,8 @@
         </div>
 
         <div class="flex-1 overflow-y-auto p-4 md:p-6 space-y-6 page-transition relative z-10 flex flex-col">
+            <div id="mainScrollArea"
+                class="flex-1 overflow-y-auto p-4 md:p-6 space-y-6 page-transition relative z-10 flex flex-col"></div>
             <div class="flex-1">
                 @yield('content')
             </div>
@@ -799,6 +893,108 @@
         langBtn.onclick = () => {
             const current = localStorage.getItem("lang");
             applyLanguage(current === "ar" ? "en" : "ar");
+        }
+    </script>
+    {{-- انيماشن الريفرش --}}
+    <script>
+        // =========================================
+        // Pull-to-Refresh Logic (Mobile & Desktop)
+        // =========================================
+        const ptrIndicator = document.getElementById('ptrIndicator');
+        const ptrIcon = document.getElementById('ptrIcon');
+        const scrollArea = document.getElementById('mainScrollArea');
+
+        if (ptrIndicator && scrollArea) {
+            let startY = 0;
+            let currentY = 0;
+            let isDragging = false;
+            let isRefreshing = false;
+            const triggerThreshold = 85; // المسافة اللازمة لتفعيل التحديث (بيكسل)
+            const resistance = 0.45; // مقاومة السحب لإعطاء إحساس بالوزن والواقعية
+
+            // توحيد قراءة إحداثيات اللمس أو الماوس
+            function getEventY(e) {
+                return e.touches ? e.touches[0].clientY : e.clientY;
+            }
+
+            function handlePtrStart(e) {
+                // نمنع بدء السحب إذا كنا نقوم بالتحديث حالياً، أو إذا لم نكن في أعلى الصفحة تماماً
+                if (isRefreshing || scrollArea.scrollTop > 5) return;
+
+                startY = getEventY(e);
+                isDragging = true;
+                ptrIndicator.classList.remove('ptr-resetting');
+            }
+
+            function handlePtrMove(e) {
+                if (!isDragging) return;
+
+                // إذا تحرك المستخدم للأسفل بالشريط أثناء السحب، نلغي العملية
+                if (scrollArea.scrollTop > 5) {
+                    isDragging = false;
+                    handlePtrEnd();
+                    return;
+                }
+
+                currentY = getEventY(e);
+                const distance = currentY - startY;
+
+                // إذا كان السحب للأسفل
+                if (distance > 0) {
+                    const pullDistance = Math.min(distance * resistance, triggerThreshold + 30);
+
+                    // تحريك المؤشر وتدوير الأيقونة بشكل متناسب مع قوة السحب
+                    ptrIndicator.style.transform = `translate(-50%, calc(-100% + ${pullDistance}px))`;
+                    ptrIcon.style.transform = `rotate(${pullDistance * 2.5}deg)`;
+
+                    // منع التحديد الافتراضي للماوس أثناء السحب
+                    if (e.cancelable && !e.touches) {
+                        e.preventDefault();
+                    }
+                }
+            }
+
+            function handlePtrEnd() {
+                if (!isDragging) return;
+                isDragging = false;
+
+                const distance = currentY - startY;
+                const pullDistance = distance * resistance;
+
+                if (pullDistance >= triggerThreshold) {
+                    // تفعيل التحديث
+                    isRefreshing = true;
+                    ptrIndicator.classList.add('is-refreshing');
+                    ptrIndicator.style.transform = ''; // يتم التحكم فيه بواسطة الـ CSS الآن
+                    ptrIcon.style.transform = '';
+
+                    // محاكاة الأنيماشن لثواني قبل إعادة تحميل الصفحة بسلاسة
+                    setTimeout(() => {
+                        window.location.reload();
+                    }, 600);
+                } else {
+                    // التراجع (إلغاء التحديث) لإنه لم يصل للحد المطلوب
+                    ptrIndicator.classList.add('ptr-resetting');
+                    ptrIndicator.style.transform = 'translate(-50%, -150%)';
+                }
+
+                startY = 0;
+                currentY = 0;
+            }
+
+            // دعم أجهزة اللمس (الموبايل/التابلت)
+            scrollArea.addEventListener('touchstart', handlePtrStart, {
+                passive: true
+            });
+            scrollArea.addEventListener('touchmove', handlePtrMove, {
+                passive: false
+            });
+            scrollArea.addEventListener('touchend', handlePtrEnd);
+
+            // دعم الماوس (الديسكتوب)
+            scrollArea.addEventListener('mousedown', handlePtrStart);
+            document.addEventListener('mousemove', handlePtrMove);
+            document.addEventListener('mouseup', handlePtrEnd);
         }
     </script>
     @stack('scripts')

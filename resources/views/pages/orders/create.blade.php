@@ -3,56 +3,24 @@
 @section('title', 'إنشاء طلب جديد')
 @section('page_title', 'إضافة طلب جديد للشركة')
 
-
-
 @section('content')
-
-    <style>
-        .custom-select-dropdown {
-            max-height: 260px;
-            overflow-y: auto;
-            scrollbar-width: thin;
-            scrollbar-color: #cbd5e1 #f8fafc;
-        }
-
-        .custom-select-dropdown::-webkit-scrollbar {
-            width: 6px;
-        }
-
-        .custom-select-dropdown::-webkit-scrollbar-thumb {
-            background-color: #cbd5e1;
-            border-radius: 9999px;
-        }
-
-        @media (max-width: 767px) {
-            .order-page-content {
-                padding-bottom: calc(100px + env(safe-area-inset-bottom)) !important;
-            }
-        }
-    </style>
     <style>
         /* ================================
-                           Custom Location Dropdown
-                        ================================= */
-
+               Custom Select Dropdown & Scrollbar
+            ================================= */
         .custom-select-dropdown {
             max-height: 240px;
             overflow-y: auto;
             overflow-x: hidden;
-
             display: grid;
             grid-template-columns: repeat(2, minmax(0, 1fr));
             gap: 6px;
-
             padding: 4px;
-
             scrollbar-width: thin;
             scrollbar-color: #cbd5e1 transparent;
-
             scroll-behavior: smooth;
         }
 
-        /* Scrollbar */
         .custom-select-dropdown::-webkit-scrollbar {
             width: 5px;
         }
@@ -70,25 +38,17 @@
             background: #8A704C;
         }
 
+        /* Options */
         .gov-option,
         .area-option {
             min-width: 0;
             min-height: 42px;
-
             padding: 9px 10px !important;
-
             display: flex;
             align-items: center;
             justify-content: space-between;
-
             border: 1px solid transparent;
-
-            transition:
-                background-color .15s ease,
-                color .15s ease,
-                border-color .15s ease,
-                transform .12s ease,
-                opacity .15s ease;
+            transition: background-color .15s ease, color .15s ease, border-color .15s ease, transform .12s ease, opacity .15s ease;
         }
 
         .gov-option:hover,
@@ -104,26 +64,7 @@
             white-space: nowrap;
         }
 
-
-        @keyframes locationOptionIn {
-            from {
-                opacity: 0;
-                transform: translateY(4px);
-            }
-
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
-
-        /* Animation للقائمة نفسها */
-        #gov_dropdown,
-        #area_dropdown {
-            animation: dropdownLocationIn .16s ease-out;
-            transform-origin: top center;
-        }
-
+        /* Animations */
         @keyframes dropdownLocationIn {
             from {
                 opacity: 0;
@@ -136,7 +77,13 @@
             }
         }
 
-        /* البحث */
+        #gov_dropdown,
+        #area_dropdown {
+            animation: dropdownLocationIn .16s ease-out;
+            transform-origin: top center;
+        }
+
+        /* Search Inputs */
         #gov_search_input,
         #area_search_input {
             height: 40px;
@@ -144,17 +91,15 @@
         }
 
         /* =================================
-                           Mobile
-                        ================================= */
+               Responsive Styles
+            ================================= */
         @media (max-width: 767px) {
-
             .order-page-content {
                 padding-bottom: calc(120px + env(safe-area-inset-bottom)) !important;
             }
 
             .custom-select-dropdown {
                 max-height: 220px;
-                grid-template-columns: repeat(2, minmax(0, 1fr));
                 gap: 5px;
             }
 
@@ -172,35 +117,22 @@
             }
         }
 
-        /* =================================
-                           Desktop
-                        ================================= */
         @media (min-width: 768px) {
-
             .custom-select-dropdown {
                 max-height: 250px;
-                grid-template-columns: repeat(2, minmax(0, 1fr));
-                gap: 6px;
-            }
-
-            .gov-option,
-            .area-option {
-                min-height: 42px;
             }
         }
 
-        /* =================================
-                           Large screens
-                        ================================= */
         @media (min-width: 1200px) {
-
             .custom-select-dropdown {
                 max-height: 260px;
-                grid-template-columns: repeat(2, minmax(0, 1fr));
             }
         }
     </style>
+
     <div class="order-page-content max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6" dir="rtl">
+
+        <!-- Alerts -->
         @if ($errors->any())
             <div class="mb-6 p-5 bg-red-50 border-r-4 border-red-500 text-red-700 rounded-2xl shadow-sm animate-fade-in">
                 <div class="flex items-center gap-2 mb-2">
@@ -231,8 +163,7 @@
             <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
 
                 <div class="lg:col-span-2 space-y-6">
-
-                    <!-- بيانات العميل والطلب -->
+                    <!-- Customer and Order Data Section -->
                     <div
                         class="order-item-card modern-card bg-white rounded-2xl p-5 sm:p-6 border border-gray-100 shadow-sm transition-all hover:shadow-md">
                         <div class="flex items-center gap-3 mb-6 border-b border-gray-50 pb-4">
@@ -246,58 +177,43 @@
                                     ومريحة</p>
                             </div>
                         </div>
-                        <!-- مرجع الطلب - لا يتم إرساله -->
-                        <div class="md:col-span-2">
-                            <div class="relative rounded-2xl border border-[#8A704C]/15 bg-[#8A704C]/[0.035] p-4 sm:p-5">
 
+                        <!-- Order Reference -->
+                        <div class="mb-5">
+                            <div class="relative rounded-2xl border border-[#8A704C]/15 bg-[#8A704C]/[0.035] p-4 sm:p-5">
                                 <div class="flex items-start gap-3 mb-3">
                                     <span
                                         class="w-9 h-9 shrink-0 rounded-xl bg-[#8A704C]/10 text-[#8A704C] flex items-center justify-center">
                                         <i class="fa-solid fa-paste text-sm"></i>
                                     </span>
-
                                     <div class="min-w-0">
                                         <label class="block text-sm font-bold text-gray-700">
                                             مرجع الطلب
-                                            <span class="text-[10px] font-medium text-gray-400 mr-1">
-                                                للاستخدام الداخلي فقط
-                                            </span>
+                                            <span class="text-[10px] font-medium text-gray-400 mr-1">للاستخدام الداخلي
+                                                فقط</span>
                                         </label>
-
                                         <p class="text-[11px] sm:text-xs text-gray-400 mt-1 leading-relaxed">
-                                            يمكنك لصق أي نص طويل هنا للرجوع إليه أثناء إنشاء الطلب.
-                                            هذا الحقل لا يتم حفظه أو إرساله مع الطلب.
+                                            يمكنك لصق أي نص طويل هنا للرجوع إليه أثناء إنشاء الطلب. هذا الحقل لا يتم حفظه أو
+                                            إرساله مع الطلب.
                                         </p>
                                     </div>
                                 </div>
-
                                 <textarea id="order_reference" rows="3" autocomplete="off" spellcheck="false"
                                     placeholder="الصق النص المرجعي هنا..."
-                                    class="order-reference-input w-full px-4 py-3.5
-                   bg-white border border-gray-200 rounded-xl
-                   focus:outline-none focus:ring-2 focus:ring-[#8A704C]/30
-                   focus:border-[#8A704C]/50
-                   transition-all duration-200
-                   text-sm leading-7 text-gray-700
-                   placeholder:text-gray-400
-                   resize-none overflow-hidden
-                   min-h-[90px] max-h-[420px]"></textarea>
-
+                                    class="order-reference-input w-full px-4 py-3.5 bg-white border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#8A704C]/30 focus:border-[#8A704C]/50 transition-all duration-200 text-sm leading-7 text-gray-700 placeholder:text-gray-400 resize-none overflow-hidden min-h-[90px] max-h-[420px]"></textarea>
                                 <div class="flex items-center justify-between mt-2 px-1">
                                     <span class="text-[10px] text-gray-400">
-                                        <i class="fa-solid fa-eye ml-1"></i>
-                                        مرئي لك فقط أثناء إنشاء الطلب
+                                        <i class="fa-solid fa-eye ml-1"></i> مرئي لك فقط أثناء إنشاء الطلب
                                     </span>
-
                                     <button type="button" id="clearOrderReference"
-                                        class="hidden text-[11px] font-semibold text-gray-400
-                       hover:text-red-500 transition-colors">
-                                        <i class="fa-solid fa-xmark ml-1"></i>
-                                        مسح
+                                        class="hidden text-[11px] font-semibold text-gray-400 hover:text-red-500 transition-colors">
+                                        <i class="fa-solid fa-xmark ml-1"></i> مسح
                                     </button>
                                 </div>
                             </div>
                         </div>
+
+                        <!-- Form Inputs -->
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
                             <div>
                                 <label class="block text-xs font-bold text-gray-600 mb-2">اسم العميل <span
@@ -333,13 +249,12 @@
                                     class="w-full h-[46px] px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#8A704C] focus:bg-white transition-all text-sm font-semibold text-gray-800 font-sans tracking-wide">
                             </div>
 
-                            <!-- المحافظة -->
+                            <!-- Governorate Custom Dropdown -->
                             <div class="relative">
                                 <label class="block text-xs font-bold text-gray-600 mb-2">المحافظة <span
                                         class="text-red-500">*</span></label>
                                 <input type="hidden" name="address[governorate]" id="governorate_id_hidden"
                                     value="{{ old('address.governorate') }}" required>
-
                                 <div id="gov_trigger"
                                     class="w-full h-[46px] px-4 bg-gray-50 border border-gray-200 rounded-xl flex items-center justify-between cursor-pointer hover:bg-white focus-within:ring-2 focus-within:ring-[#8A704C] transition-all">
                                     <span id="gov_selected_text" class="text-sm font-medium text-gray-400">اختر أو ابحث عن
@@ -347,7 +262,6 @@
                                     <i class="fa-solid fa-chevron-down text-xs text-gray-400 transition-transform duration-200"
                                         id="gov_arrow"></i>
                                 </div>
-
                                 <div id="gov_dropdown"
                                     class="hidden absolute top-full right-0 left-0 mt-2 bg-white border border-gray-100 rounded-2xl shadow-xl z-50 p-2 animate-fade-in">
                                     <div class="relative mb-2">
@@ -368,13 +282,12 @@
                                 </div>
                             </div>
 
-                            <!-- المنطقة / الحي -->
+                            <!-- Area Custom Dropdown -->
                             <div class="relative">
                                 <label class="block text-xs font-bold text-gray-600 mb-2">المنطقة / الحي <span
                                         class="text-red-500">*</span></label>
                                 <input type="hidden" name="address[area]" id="area_id_hidden"
                                     value="{{ old('address.area') }}" required>
-
                                 <div id="area_trigger"
                                     class="w-full h-[46px] px-4 bg-gray-100 border border-gray-200 rounded-xl flex items-center justify-between cursor-not-allowed opacity-70 transition-all">
                                     <span id="area_selected_text" class="text-sm font-medium text-gray-400">اختر المحافظة
@@ -382,7 +295,6 @@
                                     <i class="fa-solid fa-chevron-down text-xs text-gray-400 transition-transform duration-200"
                                         id="area_arrow"></i>
                                 </div>
-
                                 <div id="area_dropdown"
                                     class="hidden absolute top-full right-0 left-0 mt-2 bg-white border border-gray-100 rounded-2xl shadow-xl z-50 p-2 animate-fade-in">
                                     <div class="relative mb-2">
@@ -393,8 +305,7 @@
                                     </div>
                                     <div id="area_options_list" class="custom-select-dropdown">
                                         <div class="text-xs text-gray-400 p-3 text-center">يرجى اختيار المحافظة لعرض
-                                            المناطق
-                                        </div>
+                                            المناطق</div>
                                     </div>
                                 </div>
                             </div>
@@ -421,7 +332,7 @@
                         </div>
                     </div>
 
-                    <!-- منتجات ومحتويات الطلب -->
+                    <!-- Products Section -->
                     <div
                         class="order-item-card modern-card bg-white rounded-2xl p-5 sm:p-6 border border-gray-100 shadow-sm transition-all hover:shadow-md">
                         <div
@@ -437,19 +348,16 @@
                                         بالكامل</p>
                                 </div>
                             </div>
-
                             <button type="button" id="addItemBtn"
                                 class="modern-card bg-emerald-600 hover:bg-emerald-700 text-white font-semibold py-2.5 px-4 rounded-xl text-sm transition-all flex items-center justify-center gap-2 shadow-sm transform hover:-translate-y-0.5">
                                 <i class="fa-solid fa-circle-plus text-base"></i> إضافة منتج للطلب
                             </button>
                         </div>
-
                         <div id="itemsContainer" class="space-y-5"></div>
                     </div>
-
                 </div>
 
-                <!-- الملخص المالي -->
+                <!-- Financial Summary -->
                 <div class="space-y-6 lg:sticky lg:top-6">
                     <div class="bg-[#111827] text-gray-300 rounded-2xl shadow-xl border border-gray-800 p-5 sm:p-6">
                         <div class="flex items-center gap-3 mb-6 border-b border-gray-800 pb-4">
@@ -512,11 +420,17 @@
         </form>
     </div>
 
-    <!-- Template إضافة عنصر ديناميكي -->
+    <!-- Floating Add Item Button -->
+    <button type="button" id="floatingAddItemBtn"
+        class="fixed bottom-24 lg:bottom-10 right-6 lg:right-10 z-50 bg-emerald-600 hover:bg-emerald-700 text-white rounded-full w-14 h-14 sm:w-16 sm:h-16 flex items-center justify-center shadow-[0_8px_30px_rgb(0,0,0,0.2)] transition-all transform hover:scale-105 focus:outline-none focus:ring-4 focus:ring-emerald-600/30 group animate-slide-up"
+        title="إضافة منتج جديد">
+        <i class="fa-solid fa-plus text-xl sm:text-2xl group-hover:rotate-90 transition-transform duration-300"></i>
+    </button>
+
+    <!-- Product Item Template -->
     <template id="itemTemplate">
         <div
             class="order-item-card modern-card bg-white rounded-2xl p-5 sm:p-6 border border-gray-100 shadow-sm relative transition-all hover:shadow-md mb-5 group">
-
             <div class="flex justify-between items-center mb-5 pb-4 border-b border-gray-50">
                 <div class="flex items-center gap-3">
                     <span
@@ -528,7 +442,7 @@
                 <button type="button"
                     class="remove-item-btn text-gray-400 hover:text-red-600 hover:bg-red-50 w-8 h-8 rounded-xl flex items-center justify-center transition-all"
                     title="إلغاء المنتج">
-                    <i class="fa-solid fa-trash-can text-lg"></i>
+                    <i class="fa-solid fa-trash-can text-lg pointer-events-none"></i>
                 </button>
             </div>
 
@@ -537,7 +451,7 @@
                     <label class="block text-xs font-bold text-gray-600 mb-2">نوع البنطلون <span
                             class="text-red-500">*</span></label>
                     <select name="items[{index}][pant_type_id]" required
-                        class="w-full h-[46px] px-4 py-2 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#8A704C] focus:bg-white transition-all text-sm font-medium text-gray-800 cursor-pointer">
+                        class="w-full h-[46px] px-4 py-2 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#8A704C] transition-all text-sm text-gray-800">
                         <option value="">اختر نوع البنطلون</option>
                         @foreach ($pantTypes as $pantType)
                             <option value="{{ $pantType->id }}">{{ $pantType->name }}</option>
@@ -548,7 +462,7 @@
                     <label class="block text-xs font-bold text-gray-600 mb-2">نوع المنتج <span
                             class="text-red-500">*</span></label>
                     <select name="items[{index}][type_id]" required
-                        class="w-full h-[46px] px-4 py-2 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#8A704C] focus:bg-white transition-all text-sm font-medium text-gray-800 cursor-pointer">
+                        class="w-full h-[46px] px-4 py-2 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#8A704C] transition-all text-sm text-gray-800">
                         <option value="">اختر نوع المنتج</option>
                         @foreach ($types as $type)
                             <option value="{{ $type->id }}">{{ $type->name }}</option>
@@ -558,44 +472,40 @@
                 <div>
                     <label class="block text-xs font-bold text-gray-600 mb-2">الستايل</label>
                     <select name="items[{index}][style_id]"
-                        class="w-full h-[46px] px-4 py-2 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#8A704C] focus:bg-white transition-all text-sm font-medium text-gray-800 cursor-pointer">
+                        class="w-full h-[46px] px-4 py-2 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#8A704C] transition-all text-sm text-gray-800">
                         @foreach ($styles as $style)
                             <option value="{{ $style->id }}">{{ $style->name }}</option>
                         @endforeach
                     </select>
                 </div>
-
                 <div>
                     <label class="block text-xs font-bold text-gray-600 mb-2">اللون</label>
                     <select name="items[{index}][color_id]"
-                        class="w-full h-[46px] px-4 py-2 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#8A704C] focus:bg-white transition-all text-sm font-medium text-gray-800 cursor-pointer">
+                        class="w-full h-[46px] px-4 py-2 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#8A704C] transition-all text-sm text-gray-800">
                         @foreach ($colors as $color)
                             <option value="{{ $color->id }}">{{ $color->name }}</option>
                         @endforeach
                     </select>
                 </div>
-
                 <div>
                     <label class="block text-xs font-bold text-gray-600 mb-2">المقاس</label>
                     <select name="items[{index}][size_id]"
-                        class="w-full h-[46px] px-4 py-2 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#8A704C] focus:bg-white transition-all text-sm font-medium text-gray-800 cursor-pointer">
+                        class="w-full h-[46px] px-4 py-2 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#8A704C] transition-all text-sm text-gray-800">
                         @foreach ($sizes as $size)
                             <option value="{{ $size->id }}">{{ $size->name }}</option>
                         @endforeach
                     </select>
                 </div>
-
                 <div>
                     <label class="block text-xs font-bold text-gray-600 mb-2">نوع الكم</label>
                     <select name="items[{index}][sleeve_type_id]"
-                        class="w-full h-[46px] px-4 py-2 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#8A704C] focus:bg-white transition-all text-sm font-medium text-gray-800 cursor-pointer">
+                        class="w-full h-[46px] px-4 py-2 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#8A704C] transition-all text-sm text-gray-800">
                         <option value="">اختر نوع الكم</option>
                         @foreach ($sleeveType as $sleeve)
                             <option value="{{ $sleeve->id }}">{{ $sleeve->name }}</option>
                         @endforeach
                     </select>
                 </div>
-
                 <div class="md:col-span-2 lg:col-span-3">
                     <label class="block text-xs font-bold text-gray-600 mb-3">الحسابات (الكمية - السعر - الإجمالي)</label>
                     <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 items-end">
@@ -620,31 +530,26 @@
                         </div>
                     </div>
                 </div>
-
                 <div class="md:col-span-2 lg:col-span-3">
                     <label class="block text-xs font-bold text-gray-500 mb-2">ملاحظات خاصة ومقاسات مخصصة لهذه القطعة (إن
                         وجد)</label>
                     <input type="text" name="items[{index}][notes]"
                         placeholder="أدخل أي ملاحظات للتفصيل أو التعديل هنا..."
-                        class="w-full h-[46px] px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#8A704C] focus:bg-white transition-all text-sm font-medium text-gray-800">
+                        class="w-full h-[46px] px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#8A704C] transition-all text-sm font-medium text-gray-800">
                 </div>
             </div>
         </div>
     </template>
-<!-- زر الإضافة العائم (FAB) للموبايل والديسكتوب -->
-<button type="button" id="floatingAddItemBtn"
-    class="fixed bottom-24 lg:bottom-10 right-6 lg:right-10 z-50 bg-emerald-600 hover:bg-emerald-700 text-white rounded-full w-14 h-14 sm:w-16 sm:h-16 flex items-center justify-center shadow-[0_8px_30px_rgb(0,0,0,0.2)] transition-all transform hover:scale-105 focus:outline-none focus:ring-4 focus:ring-emerald-600/30 group animate-slide-up"
-    title="إضافة منتج جديد">
-    <i class="fa-solid fa-plus text-xl sm:text-2xl group-hover:rotate-90 transition-transform duration-300"></i>
-</button>
 @endsection
 
 @push('scripts')
     <script>
         document.addEventListener('DOMContentLoaded', function() {
+            // --- DOM Elements ---
             const container = document.getElementById('itemsContainer');
             const template = document.getElementById('itemTemplate').innerHTML;
             const addItemBtn = document.getElementById('addItemBtn');
+            const floatingAddItemBtn = document.getElementById('floatingAddItemBtn');
 
             const totalPriceDisplay = document.getElementById('totalPriceDisplay');
             const totalPriceHidden = document.getElementById('total_price_hidden');
@@ -668,9 +573,13 @@
             const areaHiddenInput = document.getElementById('area_id_hidden');
             const areaArrow = document.getElementById('area_arrow');
 
+            const orderReference = document.getElementById('order_reference');
+            const clearOrderReference = document.getElementById('clearOrderReference');
+
             let itemIndex = 0;
             let isAreaEnabled = false;
 
+            // --- Dropdowns Logic ---
             document.addEventListener('click', function(e) {
                 if (!govTrigger.contains(e.target) && !govDropdown.contains(e.target)) {
                     govDropdown.classList.add('hidden');
@@ -685,47 +594,41 @@
             govTrigger.addEventListener('click', () => {
                 govDropdown.classList.toggle('hidden');
                 govArrow.classList.toggle('rotate-180');
-                if (!govDropdown.classList.contains('hidden')) {
-                    govSearchInput.focus();
-                }
+                if (!govDropdown.classList.contains('hidden')) govSearchInput.focus();
             });
+
             govSearchInput.addEventListener('input', function() {
                 const query = this.value.trim().toLowerCase();
-
                 govOptionsList.querySelectorAll('.gov-option').forEach(opt => {
-                    const text = opt.querySelector('span').innerText.trim().toLowerCase();
-
+                    const text = opt.textContent.trim().toLowerCase();
                     opt.style.display = text.includes(query) ? '' : 'none';
                 });
             });
-            govOptionsList.querySelectorAll('.gov-option').forEach(opt => {
-                opt.addEventListener('click', function() {
-                    const val = this.getAttribute('data-value');
-                    const text = this.querySelector('span').innerText.trim();
 
-                    // Pass the name (text) instead of ID (val)
-                    govHiddenInput.value = text;
+            govOptionsList.addEventListener('click', function(e) {
+                const option = e.target.closest('.gov-option');
+                if (!option) return;
 
-                    govSelectedText.innerText = text;
-                    govSelectedText.classList.remove('text-gray-400');
-                    govSelectedText.classList.add('text-gray-800');
+                const val = option.getAttribute('data-value');
+                const text = option.querySelector('span').innerText.trim();
 
-                    govOptionsList.querySelectorAll('.gov-option').forEach(o => o.querySelector('i')
-                        .classList.add('hidden'));
-                    this.querySelector('i').classList.remove('hidden');
+                govHiddenInput.value = text;
+                govSelectedText.innerText = text;
+                govSelectedText.classList.replace('text-gray-400', 'text-gray-800');
 
-                    govDropdown.classList.add('hidden');
-                    govArrow.classList.remove('rotate-180');
+                govOptionsList.querySelectorAll('.gov-option i').forEach(i => i.classList.add('hidden'));
+                option.querySelector('i').classList.remove('hidden');
 
-                    loadAreasForGovernorate(val);
-                });
+                govDropdown.classList.add('hidden');
+                govArrow.classList.remove('rotate-180');
+
+                loadAreasForGovernorate(val);
             });
 
             function loadAreasForGovernorate(govId, preselectedArea = null) {
                 areaHiddenInput.value = '';
                 areaSelectedText.innerText = 'جاري تحميل المناطق...';
                 areaSelectedText.classList.add('text-gray-400');
-
                 areaTrigger.classList.remove('cursor-not-allowed', 'opacity-70', 'bg-gray-100');
                 areaTrigger.classList.add('cursor-pointer', 'hover:bg-white');
                 isAreaEnabled = true;
@@ -759,33 +662,16 @@
                                 item.querySelector('i').classList.remove('hidden');
                                 areaHiddenInput.value = cleanName;
                                 areaSelectedText.innerText = cleanName;
-                                areaSelectedText.classList.remove('text-gray-400');
-                                areaSelectedText.classList.add('text-gray-800');
+                                areaSelectedText.classList.replace('text-gray-400', 'text-gray-800');
                                 areaFound = true;
                             }
-
-                            item.addEventListener('click', function() {
-                                areaHiddenInput.value = cleanName;
-                                areaSelectedText.innerText = cleanName;
-                                areaSelectedText.classList.remove('text-gray-400');
-                                areaSelectedText.classList.add('text-gray-800');
-
-                                areaOptionsList.querySelectorAll('.area-option').forEach(o => o
-                                    .querySelector('i').classList.add('hidden'));
-                                this.querySelector('i').classList.remove('hidden');
-
-                                areaDropdown.classList.add('hidden');
-                                areaArrow.classList.remove('rotate-180');
-                            });
-
                             areaOptionsList.appendChild(item);
                         });
 
                         if (preselectedArea && !areaFound) {
                             areaHiddenInput.value = preselectedArea;
                             areaSelectedText.innerText = preselectedArea;
-                            areaSelectedText.classList.remove('text-gray-400');
-                            areaSelectedText.classList.add('text-gray-800');
+                            areaSelectedText.classList.replace('text-gray-400', 'text-gray-800');
                         }
                     })
                     .catch(err => {
@@ -798,105 +684,34 @@
                 if (!isAreaEnabled) return;
                 areaDropdown.classList.toggle('hidden');
                 areaArrow.classList.toggle('rotate-180');
-                if (!areaDropdown.classList.contains('hidden')) {
-                    areaSearchInput.focus();
-                }
+                if (!areaDropdown.classList.contains('hidden')) areaSearchInput.focus();
             });
 
             areaSearchInput.addEventListener('input', function() {
                 const query = this.value.trim().toLowerCase();
-
                 areaOptionsList.querySelectorAll('.area-option').forEach(opt => {
-                    const text = opt.querySelector('span').innerText.trim().toLowerCase();
-
+                    const text = opt.textContent.trim().toLowerCase();
                     opt.style.display = text.includes(query) ? '' : 'none';
                 });
             });
 
-// استبدل دالة addNewItemRow الحالية بهذه الدالة
-function addNewItemRow(oldData = null, autoFocus = false) {
-    let itemHtml = template.replace(/{index}/g, itemIndex);
-    container.insertAdjacentHTML('beforeend', itemHtml);
+            areaOptionsList.addEventListener('click', function(e) {
+                const option = e.target.closest('.area-option');
+                if (!option) return;
 
-    const newRow = container.lastElementChild;
+                const cleanName = option.querySelector('span').innerText.trim();
+                areaHiddenInput.value = cleanName;
+                areaSelectedText.innerText = cleanName;
+                areaSelectedText.classList.replace('text-gray-400', 'text-gray-800');
 
-    if (oldData) {
-        const fields = ['pant_type_id', 'type_id', 'style_id', 'color_id', 'size_id', 'sleeve_type_id', 'quantity', 'price', 'notes'];
-        fields.forEach(field => {
-            const input = newRow.querySelector(`[name="items[${itemIndex}][${field}]"]`);
-            if (input && oldData[field] !== undefined) {
-                input.value = oldData[field];
-            }
-        });
-        calculateRowTotal(newRow);
-    }
+                areaOptionsList.querySelectorAll('.area-option i').forEach(i => i.classList.add('hidden'));
+                option.querySelector('i').classList.remove('hidden');
 
-    itemIndex++;
-    bindRowCalculations();
-    calculateFullOrderSummary();
+                areaDropdown.classList.add('hidden');
+                areaArrow.classList.remove('rotate-180');
+            });
 
-    // التمرير التلقائي والتركيز للمنتجات المضافة يدوياً فقط (وليس أثناء استرجاع البيانات القديمة)
-    if (autoFocus) {
-        setTimeout(() => {
-            // التمرير السلس للمنتج الجديد
-            newRow.scrollIntoView({ behavior: 'smooth', block: 'center' });
-            
-            // تأثير بصري خفيف (ومضة) لتنبيه المستخدم
-            newRow.classList.add('ring-2', 'ring-[#8A704C]', 'shadow-lg');
-            setTimeout(() => newRow.classList.remove('ring-2', 'ring-[#8A704C]', 'shadow-lg'), 1200);
-
-            // التركيز على أول حقل اختيار
-            const firstInput = newRow.querySelector('select');
-            if (firstInput) {
-                firstInput.focus({ preventScroll: true });
-            }
-        }, 150);
-    }
-}
-
-// ابحث عن السطر: addItemBtn.addEventListener('click', () => addNewItemRow());
-// وقم بتعديله وإضافة الزر العائم أيضاً هكذا:
-addItemBtn.addEventListener('click', () => addNewItemRow(null, true));
-
-const floatingBtn = document.getElementById('floatingAddItemBtn');
-if(floatingBtn) {
-    floatingBtn.addEventListener('click', () => addNewItemRow(null, true));
-}
-
-// ابحث عن السطر الخاص باسترجاع البيانات القديمة وقم بتمرير false لمنع التمرير وقت التحميل
-const oldItems = /* ... الكود الموجود لديك ... */;
-if (oldItems && Object.keys(oldItems).length > 0) {
-    Object.values(oldItems).forEach(itemData => {
-        addNewItemRow(itemData, false);
-    });
-} else {
-    addNewItemRow(null, false);
-}
-
-            function bindRowCalculations() {
-                const rows = container.querySelectorAll('.order-item-card');
-                rows.forEach(row => {
-                    const qtyInput = row.querySelector('.item-qty');
-                    const priceInput = row.querySelector('.item-price');
-                    const removeBtn = row.querySelector('.remove-item-btn');
-
-                    if (qtyInput && priceInput && removeBtn) {
-                        qtyInput.oninput = () => {
-                            calculateRowTotal(row);
-                            calculateFullOrderSummary();
-                        };
-                        priceInput.oninput = () => {
-                            calculateRowTotal(row);
-                            calculateFullOrderSummary();
-                        };
-                        removeBtn.onclick = () => {
-                            row.remove();
-                            calculateFullOrderSummary();
-                        };
-                    }
-                });
-            }
-
+            // --- Dynamic Items Logic (Optimized using Event Delegation) ---
             function calculateRowTotal(row) {
                 const qtyInput = row.querySelector('.item-qty');
                 const priceInput = row.querySelector('.item-price');
@@ -905,23 +720,16 @@ if (oldItems && Object.keys(oldItems).length > 0) {
                 if (qtyInput && priceInput && totalDisplay) {
                     const qty = parseFloat(qtyInput.value) || 0;
                     const price = parseFloat(priceInput.value) || 0;
-                    const total = qty * price;
-                    totalDisplay.textContent = total.toFixed(2);
+                    totalDisplay.textContent = (qty * price).toFixed(2);
                 }
             }
 
             function calculateFullOrderSummary() {
                 let orderTotal = 0;
-                const rows = container.querySelectorAll('.order-item-card');
-
-                rows.forEach(row => {
-                    const qtyInput = row.querySelector('.item-qty');
-                    const priceInput = row.querySelector('.item-price');
-                    if (qtyInput && priceInput) {
-                        const qty = parseFloat(qtyInput.value) || 0;
-                        const price = parseFloat(priceInput.value) || 0;
-                        orderTotal += (qty * price);
-                    }
+                container.querySelectorAll('.order-item-card').forEach(row => {
+                    const qty = parseFloat(row.querySelector('.item-qty').value) || 0;
+                    const price = parseFloat(row.querySelector('.item-price').value) || 0;
+                    orderTotal += (qty * price);
                 });
 
                 const paidAmount = parseFloat(paidAmountInput.value) || 0;
@@ -929,90 +737,123 @@ if (oldItems && Object.keys(oldItems).length > 0) {
 
                 totalPriceDisplay.textContent = orderTotal.toFixed(2);
                 totalPriceHidden.value = orderTotal.toFixed(2);
-
                 remainingPriceDisplay.textContent = remainingAmount.toFixed(2);
                 remainingAmountHidden.value = remainingAmount.toFixed(2);
             }
 
+            // Event Delegation for dynamically added fields (Performance Boost)
+            container.addEventListener('input', function(e) {
+                if (e.target.classList.contains('item-qty') || e.target.classList.contains('item-price')) {
+                    calculateRowTotal(e.target.closest('.order-item-card'));
+                    calculateFullOrderSummary();
+                }
+            });
+
+            container.addEventListener('click', function(e) {
+                const removeBtn = e.target.closest('.remove-item-btn');
+                if (removeBtn) {
+                    removeBtn.closest('.order-item-card').remove();
+                    calculateFullOrderSummary();
+                }
+            });
+
             paidAmountInput.addEventListener('input', calculateFullOrderSummary);
-            addItemBtn.addEventListener('click', () => addNewItemRow());
 
-            // Restore old data if validation failed
-            const oldGov = @json(old('address.governorate', ''));
-            const oldArea = @json(old('address.area', ''));
+            function addNewItemRow(oldData = null, autoFocus = false) {
+                container.insertAdjacentHTML('beforeend', template.replace(/{index}/g, itemIndex));
+                const newRow = container.lastElementChild;
 
-            if (oldGov) {
-                govSelectedText.innerText = oldGov;
-                govSelectedText.classList.remove('text-gray-400');
-                govSelectedText.classList.add('text-gray-800');
+                if (oldData) {
+                    const fields = ['pant_type_id', 'type_id', 'style_id', 'color_id', 'size_id', 'sleeve_type_id',
+                        'quantity', 'price', 'notes'
+                    ];
+                    fields.forEach(field => {
+                        const input = newRow.querySelector(`[name="items[${itemIndex}][${field}]"]`);
+                        if (input && oldData[field] !== undefined) {
+                            input.value = oldData[field];
+                        }
+                    });
+                    calculateRowTotal(newRow);
+                }
 
-                const govOptions = govOptionsList.querySelectorAll('.gov-option');
-                let govId = null;
-                govOptions.forEach(opt => {
-                    if (opt.querySelector('span').innerText.trim() === oldGov) {
-                        govId = opt.getAttribute('data-value');
-                        opt.querySelector('i').classList.remove('hidden');
-                    }
-                });
+                itemIndex++;
+                calculateFullOrderSummary();
 
-                if (govId) {
-                    loadAreasForGovernorate(govId, oldArea);
+                if (autoFocus) {
+                    setTimeout(() => {
+                        newRow.scrollIntoView({
+                            behavior: 'smooth',
+                            block: 'center'
+                        });
+                        newRow.classList.add('ring-2', 'ring-[#8A704C]', 'shadow-lg');
+                        setTimeout(() => newRow.classList.remove('ring-2', 'ring-[#8A704C]', 'shadow-lg'),
+                            1200);
+                        const firstInput = newRow.querySelector('select');
+                        if (firstInput) firstInput.focus({
+                            preventScroll: true
+                        });
+                    }, 150);
                 }
             }
 
-            const oldItems = @json(old('items', []));
-            if (oldItems && Object.keys(oldItems).length > 0) {
-                Object.values(oldItems).forEach(itemData => {
-                    addNewItemRow(itemData);
-                });
-            } else {
-                addNewItemRow();
+            addItemBtn.addEventListener('click', () => addNewItemRow(null, true));
+            if (floatingAddItemBtn) {
+                floatingAddItemBtn.addEventListener('click', () => addNewItemRow(null, true));
             }
-            const orderReference = document.getElementById('order_reference');
-            const clearOrderReference = document.getElementById('clearOrderReference');
 
+            // --- Order Reference Logic ---
             if (orderReference) {
-
-                function autoResizeReference() {
+                const autoResizeReference = () => {
                     orderReference.style.height = 'auto';
+                    orderReference.style.height = Math.min(Math.max(orderReference.scrollHeight, 90), 420) +
+                        'px';
+                };
+                const updateClearButton = () => {
+                    clearOrderReference.classList.toggle('hidden', orderReference.value.trim().length === 0);
+                };
 
-                    const newHeight = Math.min(
-                        Math.max(orderReference.scrollHeight, 90),
-                        420
-                    );
-
-                    orderReference.style.height = newHeight + 'px';
-                }
-
-                function updateClearButton() {
-                    if (orderReference.value.trim().length > 0) {
-                        clearOrderReference.classList.remove('hidden');
-                    } else {
-                        clearOrderReference.classList.add('hidden');
-                    }
-                }
-
-                orderReference.addEventListener('input', function() {
+                orderReference.addEventListener('input', () => {
                     autoResizeReference();
                     updateClearButton();
                 });
+                orderReference.addEventListener('paste', () => setTimeout(() => {
+                    autoResizeReference();
+                    updateClearButton();
+                }, 0));
 
-                orderReference.addEventListener('paste', function() {
-                    setTimeout(() => {
-                        autoResizeReference();
-                        updateClearButton();
-                    }, 0);
-                });
-
-                clearOrderReference.addEventListener('click', function() {
+                clearOrderReference.addEventListener('click', () => {
                     orderReference.value = '';
                     autoResizeReference();
                     updateClearButton();
                     orderReference.focus();
                 });
 
-                // الحجم الابتدائي
                 autoResizeReference();
+            }
+
+            // --- Initial Data Load (Validation Failures) ---
+            const oldGov = @json(old('address.governorate', ''));
+            const oldArea = @json(old('address.area', ''));
+
+            if (oldGov) {
+                govSelectedText.innerText = oldGov;
+                govSelectedText.classList.replace('text-gray-400', 'text-gray-800');
+
+                let govId = null;
+                govOptionsList.querySelectorAll('.gov-option').forEach(opt => {
+                    if (opt.querySelector('span').innerText.trim() === oldGov) {
+                        govId = opt.getAttribute('data-value');
+                        opt.querySelector('i').classList.remove('hidden');
+                    }
+                });
+                if (govId) loadAreasForGovernorate(govId, oldArea);
+            }
+
+            const oldItems = @json(old('items', []));
+            if (oldItems && Object.keys(oldItems).length > 0) {
+                Object.values(oldItems).forEach(itemData => addNewItemRow(itemData, false));
+            } else {
+                addNewItemRow(null, false);
             }
         });
     </script>

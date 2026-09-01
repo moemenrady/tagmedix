@@ -93,7 +93,9 @@ class TurboApiService
             'address'                => $shipmentData['address'] ?? null,
             'api_followup_phone'     => $shipmentData['api_followup_phone'] ?? null,
             'amount_to_be_collected' => $shipmentData['amount_to_be_collected'] ?? 0,
-            'order_summary'          => $shipmentData['order_summary'] ?? null,
+            // 'order_summary'          => $shipmentData['order_summary'] ?? null,
+            //   Not required for now, but can be added if needed
+            'order_summary'          => "",
             'weight'                 => $shipmentData['weight'] ?? 1,
             'notes'                  => $shipmentData['notes'] ?? null,
             'delivery_type'          => $shipmentData['delivery_type'] ?? 0,

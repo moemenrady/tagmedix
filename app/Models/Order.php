@@ -2,10 +2,18 @@
 
 namespace App\Models;
 
+use App\Integrations\Turbo\Models\Shipment;
+
 use Illuminate\Database\Eloquent\Model;
+
 use Illuminate\Database\Eloquent\SoftDeletes;
 
+use Illuminate\Database\Eloquent\Relations\HasMany;
+
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+
 class Order extends Model
+
 {
 
     protected $fillable = [
@@ -78,8 +86,11 @@ class Order extends Model
     {
         return $this->hasOne(CustomerOrderAddress::class);
     }
-
-    public function items()
+    public function shipments()
+    {
+        return $this->hasMany(Shipment::class);
+    }
+    public function items(): HasMany
     {
         return $this->hasMany(OrderItem::class);
     }
