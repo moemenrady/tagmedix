@@ -27,7 +27,7 @@ class InventoryStockOutService
             if (!$item->is_active) {
                 throw ValidationException::withMessages([
                     'inventory_item_id' =>
-                        'This inventory item is inactive.',
+                    'This inventory item is inactive.',
                 ]);
             }
 
@@ -81,7 +81,7 @@ class InventoryStockOutService
 
             throw ValidationException::withMessages([
                 'inventory_item_id' =>
-                    'Unsupported stock tracking type.',
+                'Unsupported stock tracking type.',
             ]);
         });
     }
@@ -101,22 +101,14 @@ class InventoryStockOutService
         $quantity = (float) $data['quantity'];
 
         $stock = InventoryStock::query()
-            ->where(
-                'inventory_item_id',
-                $item->id
-            )
-            ->where(
-                'inventory_item_variant_id',
-                $variant->id
-            )
-           
+            ->where('inventory_item_id', $item->id)
+            ->where('inventory_item_variant_id', $variant->id)
             ->lockForUpdate()
             ->first();
 
         if (!$stock) {
             throw ValidationException::withMessages([
-                'quantity' =>
-                    'No stock available for this item.',
+                'quantity' => 'No stock available for this item.',
             ]);
         }
 
@@ -124,27 +116,18 @@ class InventoryStockOutService
 
         if ($quantity > $availableQuantity) {
             throw ValidationException::withMessages([
-                'quantity' =>
-                    "Insufficient stock. Available quantity: {$availableQuantity}.",
+                'quantity' => "Insufficient stock. Available quantity: {$availableQuantity}.",
             ]);
         }
 
         $unitCost = (float) $stock->unit_cost;
-
         $totalCost = $quantity * $unitCost;
-
-        $remainingQuantity =
-            $availableQuantity - $quantity;
-
-        $remainingTotalCost =
-            $remainingQuantity * $unitCost;
+        $remainingQuantity = $availableQuantity - $quantity;
+        $remainingTotalCost = $remainingQuantity * $unitCost;
 
         if ($remainingQuantity <= 0) {
-
             $stock->delete();
-
         } else {
-
             $stock->update([
                 'quantity' => $remainingQuantity,
                 'total_cost' => $remainingTotalCost,
@@ -166,60 +149,62 @@ class InventoryStockOutService
             totalCost: $totalCost,
             notes: $data['notes'] ?? null,
             userId: $userId,
-            balanceAfter: (float) $balanceAfter
+            balanceAfter: (float) $balanceAfter,
+            type: $data['type'] ?? 'issue'
         );
     }
 
-    /*
-    |--------------------------------------------------------------------------
-    | INDIVIDUAL
-    |--------------------------------------------------------------------------
-    */
-
+    /* 
+|-------------------------------------------------------------------------- 
+| INDIVIDUAL 
+|-------------------------------------------------------------------------- 
+*/
     private function stockOutIndividual(
         InventoryItem $item,
         InventoryItemVariant $variant,
         array $data,
         int $userId
     ): void {
-        $units = InventoryUnit::query()
-            ->whereIn('id', $data['unit_ids'])
-            ->where(
-                'inventory_item_variant_id',
-                $variant->id
-            )
-        
-            ->where(
-                'status',
-                'available'
-            )
-            ->lockForUpdate()
-            ->get();
+        $unitIds = $data['unit_ids'] ?? [];
 
-        /*
-        |--------------------------------------------------------------------------
-        | Make sure all requested units exist
-        |--------------------------------------------------------------------------
-        */
-
-        if ($units->count() !== count($data['unit_ids'])) {
+        if (empty($unitIds)) {
             throw ValidationException::withMessages([
-                'unit_ids' =>
-                    'One or more selected units are no longer available.',
+                'inventory_unit_id' => 'لم يتم تحديد أي وحدة/توب للصرف.',
             ]);
         }
 
-        foreach ($units as $unit) {
+        $units = InventoryUnit::query()
+            ->whereIn('id', $unitIds)
+            ->where('inventory_item_variant_id', $variant->id)
+            ->where('status', 'available')
+            ->lockForUpdate()
+            ->get();
 
+        if ($units->count() !== count($unitIds)) {
+            throw ValidationException::withMessages([
+                'inventory_unit_id' => 'الوحدة المحددة غير متاحة أو تم صرفها مسبقاً.',
+            ]);
+        }
+
+        // تحديد حالة التوب الجديدة بناءً على نوع الحركة
+        $newStatus = match ($data['type'] ?? 'issue') {
+            'damage' => 'damaged',
+            default => 'issued',
+        };
+
+        foreach ($units as $unit) {
+            // 1. تغيير حالة التوب
             $unit->update([
-                'status' => 'issued',
+                'status' => $newStatus,
             ]);
 
+            // 2. حساب رصيد التوبات المتبقية المتاحة
             $balanceAfter = InventoryUnit::query()
                 ->where('inventory_item_variant_id', $variant->id)
                 ->where('status', 'available')
                 ->sum('quantity');
 
+            // 3. إنشـاء حركة الصرف
             $this->createTransaction(
                 item: $item,
                 variant: $variant,
@@ -230,17 +215,17 @@ class InventoryStockOutService
                 totalCost: (float) $unit->total_cost,
                 notes: $data['notes'] ?? null,
                 userId: $userId,
-                balanceAfter: (float) $balanceAfter
+                balanceAfter: (float) $balanceAfter,
+                type: $data['type'] ?? 'issue'
             );
         }
     }
 
-    /*
-    |--------------------------------------------------------------------------
-    | Transaction
-    |--------------------------------------------------------------------------
-    */
-
+    /* 
+|-------------------------------------------------------------------------- 
+| Transaction 
+|-------------------------------------------------------------------------- 
+*/
     private function createTransaction(
         InventoryItem $item,
         InventoryItemVariant $variant,
@@ -251,13 +236,14 @@ class InventoryStockOutService
         float $totalCost,
         ?string $notes,
         int $userId,
-        float $balanceAfter
+        float $balanceAfter,
+        string $type = 'issue'
     ): InventoryTransaction {
         return InventoryTransaction::create([
             'inventory_item_id' => $item->id,
             'inventory_item_variant_id' => $variant->id,
             'inventory_unit_id' => $unit?->id,
-            'type' => 'issue',
+            'type' => $type,
             'quantity' => $quantity,
             'unit_type' => $unitType,
             'unit_cost' => $unitCost,

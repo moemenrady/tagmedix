@@ -37,36 +37,44 @@ class InventoryTransactionController extends Controller
         //
     }
 
-    public function store(Request $request, InventoryStockOutService $stockOutService)
-    {
-        $request->validate([
-            'type' => 'required|string',
-            'inventory_item_variant_id' => 'required|exists:inventory_item_variants,id',
-            'quantity' => 'required|numeric|gt:0',
-        ]);
+  public function store(Request $request, InventoryStockOutService $stockOutService) 
+{ 
+    $request->validate([ 
+        'type' => 'required|string|in:issue,adjustment_out,damage', 
+        'inventory_item_variant_id' => 'required|exists:inventory_item_variants,id', 
+        'inventory_unit_id' => 'nullable|exists:inventory_units,id',
+        'quantity' => 'required|numeric|gt:0', 
+        'notes' => 'nullable|string',
+    ]); 
 
-        $variant = InventoryItemVariant::with('inventoryItem')->findOrFail($request->inventory_item_variant_id);
+    $variant = InventoryItemVariant::with('inventoryItem')->findOrFail($request->inventory_item_variant_id); 
 
-        if ($variant->inventoryItem->stock_tracking_type === 'individual') {
-            return redirect()->back()->with('error', 'لا يمكن صرف الأصناف ذات التتبع الفردي (التوبات) من خلال نافذة الصرف السريع. يرجى استخدام صفحة الصرف المخصصة.');
-        }
-
-        $data = [
-            'inventory_item_id' => $variant->inventory_item_id,
-            'inventory_item_variant_id' => $variant->id,
-            'quantity' => $request->quantity,
-            'notes' => $request->notes,
-        ];
-
-        try {
-            $stockOutService->execute($data, auth()->id());
-            return redirect()->back()->with('success', 'تم تسجيل الصرف بنجاح.');
-        } catch (ValidationException $e) {
-            return redirect()->back()->withErrors($e->errors())->withInput();
-        } catch (\Exception $e) {
-            return redirect()->back()->with('error', $e->getMessage());
-        }
+    // التحقق من وجود التوب في حالة الصرف الفردي
+    if ($variant->inventoryItem->stock_tracking_type === 'individual' && !$request->filled('inventory_unit_id')) {
+        return redirect()->back()
+            ->withErrors(['inventory_unit_id' => 'يرجى اختيار التوب / الوحدة المراد صرفها.'])
+            ->withInput();
     }
+
+    $data = [ 
+        'inventory_item_id' => $variant->inventory_item_id, 
+        'inventory_item_variant_id' => $variant->id, 
+        'quantity' => $request->quantity, 
+        'notes' => $request->notes, 
+        'type' => $request->type,
+        // تمرير ID التوب كـ Array ليتوافق مع منطق الـ Service
+        'unit_ids' => $request->inventory_unit_id ? [$request->inventory_unit_id] : [], 
+    ]; 
+
+    try { 
+        $stockOutService->execute($data, auth()->id()); 
+        return redirect()->back()->with('success', 'تم تسجيل الصرف بنجاح.'); 
+    } catch (ValidationException $e) { 
+        return redirect()->back()->withErrors($e->errors())->withInput(); 
+    } catch (\Exception $e) { 
+        return redirect()->back()->with('error', $e->getMessage()); 
+    } 
+}
 
     public function show(string $id)
     {

@@ -244,7 +244,8 @@
                                                             <div>
                                                                 <span class="text-mutedBrown">القيمة: </span>
                                                                 <span
-                                                                    class="font-bold text-emerald-700">{{ number_format($variant->dashboard_value, 2) }} ج.م
+                                                                    class="font-bold text-emerald-700">{{ number_format($variant->dashboard_value, 2) }}
+                                                                    ج.م
                                                                     ج.م</span>
                                                             </div>
                                                             <button type="button"
@@ -426,18 +427,31 @@
                             </select>
                         </div>
 
+                        <!-- اختيار الصنف / المتغير -->
                         <div>
                             <label class="block font-bold text-darkText mb-1">اختر الصنف / المتغير <span
                                     class="text-red-500">*</span></label>
-                            <select name="inventory_item_variant_id" required
+                            <select id="stockOutVariantSelect" name="inventory_item_variant_id" required
                                 class="w-full bg-primaryBg/40 border border-secondaryCream rounded-xl p-2.5">
                                 <option value="">اختر العنصر...</option>
                                 @foreach ($items as $i)
                                     @foreach ($i->variants as $v)
-                                        <option value="{{ $v->id }}">{{ $i->name }} -
-                                            {{ $v->color->name ?? '' }} ({{ $v->sku }})</option>
+                                        <option value="{{ $v->id }}" data-tracking="{{ $i->stock_tracking_type }}"
+                                            data-units='@json($v->inventoryUnits->where('status', 'available')->values())'>
+                                            {{ $i->name }} - {{ $v->color->name ?? '' }} ({{ $v->sku }})
+                                        </option>
                                     @endforeach
                                 @endforeach
+                            </select>
+                        </div>
+
+                        <!-- قائمة اختيار التوب/الوحدة (تظهر فقط عند اختيار صنف individual) -->
+                        <div id="unitSelectContainer" class="hidden">
+                            <label class="block font-bold text-darkText mb-1">اختر التوب / الوحدة (Unit) <span
+                                    class="text-red-500">*</span></label>
+                            <select id="stockOutUnitSelect" name="inventory_unit_id"
+                                class="w-full bg-primaryBg/40 border border-secondaryCream rounded-xl p-2.5">
+                                <option value="">اختر التوب المتاح...</option>
                             </select>
                         </div>
 
@@ -478,6 +492,64 @@
 
         <!-- Vanilla JS Implementation -->
         <script>
+            document.addEventListener('DOMContentLoaded', function() {
+                const variantSelect = document.getElementById('stockOutVariantSelect');
+                const unitContainer = document.getElementById('unitSelectContainer');
+                const unitSelect = document.getElementById('stockOutUnitSelect');
+                const quantityInput = document.querySelector('#stockOutModal input[name="quantity"]');
+
+                if (variantSelect) {
+                    variantSelect.addEventListener('change', function() {
+                        const selectedOption = this.options[this.selectedIndex];
+                        const trackingType = selectedOption.getAttribute('data-tracking');
+                        const unitsData = selectedOption.getAttribute('data-units');
+
+                        // تفريغ قائمة التوبات وحقل الكمية
+                        unitSelect.innerHTML = '<option value="">اختر التوب المتاح...</option>';
+                        if (quantityInput) quantityInput.value = '';
+
+                        if (trackingType === 'individual' && unitsData) {
+                            const units = JSON.parse(unitsData);
+
+                            if (units.length > 0) {
+                                units.forEach(unit => {
+                                    const opt = document.createElement('option');
+                                    opt.value = unit.id;
+                                    opt.textContent =
+                                        `كود التوب: ${unit.unit_code} (الكمية: ${parseFloat(unit.quantity)} ${unit.unit_type})`;
+                                    opt.setAttribute('data-qty', unit.quantity);
+                                    unitSelect.appendChild(opt);
+                                });
+                            } else {
+                                const opt = document.createElement('option');
+                                opt.value = "";
+                                opt.textContent = "لا توجد توبات متاحة لهذا العنصر";
+                                unitSelect.appendChild(opt);
+                            }
+
+                            // إظهار قائمة التوبات وجعلها مطلوبة
+                            unitContainer.classList.remove('hidden');
+                            unitSelect.setAttribute('required', 'required');
+                        } else {
+                            // إخفاء قائمة التوبات وإلغاء شطبيتها للـ bulk
+                            unitContainer.classList.add('hidden');
+                            unitSelect.removeAttribute('required');
+                            unitSelect.value = '';
+                        }
+                    });
+                }
+
+                // تعبئة الكمية تلقائياً عند اختيار توب معين
+                if (unitSelect) {
+                    unitSelect.addEventListener('change', function() {
+                        const selectedUnitOption = this.options[this.selectedIndex];
+                        const qty = selectedUnitOption.getAttribute('data-qty');
+                        if (qty && quantityInput) {
+                            quantityInput.value = parseFloat(qty);
+                        }
+                    });
+                }
+            });
             // Modal functions
             function openGuideModal() {
                 const modal = document.getElementById('guideModal');

@@ -100,6 +100,7 @@
         <form id="inventoryForm" action="{{ route('inventory.stocks.store') }}" method="POST" class="space-y-6">
             @csrf
 
+            <input type="hidden" name="unit_type" id="unit_type" value="{{ old('unit_type', 'meter') }}">
             <!-- Card 1: Main Details (Common Fields) -->
             <div class="bg-white rounded-2xl p-5 md:p-6 border border-secondaryCream shadow-sm space-y-4">
                 <h3
@@ -139,7 +140,9 @@
                     <div>
                         <label class="block text-xs font-bold text-darkText mb-1.5 flex justify-between">
                             <span>اللون <span class="text-red-500">*</span></span>
-                            <button type="button" onclick="document.getElementById('addColorModal').classList.remove('hidden')" class="text-primaryBrown hover:text-mutedBrown flex items-center gap-1 cursor-pointer">
+                            <button type="button"
+                                onclick="document.getElementById('addColorModal').classList.remove('hidden')"
+                                class="text-primaryBrown hover:text-mutedBrown flex items-center gap-1 cursor-pointer">
                                 <i class="fa-solid fa-plus"></i> إضافة لون
                             </button>
                         </label>
@@ -178,7 +181,8 @@
             </div>
 
             <!-- Section 2A: Bulk Entry -->
-            <div id="bulkSection" class="bg-white rounded-2xl p-5 md:p-6 border border-secondaryCream shadow-sm space-y-4">
+            <div id="bulkSection"
+                class="bg-white rounded-2xl p-5 md:p-6 border border-secondaryCream shadow-sm space-y-4">
                 <h3
                     class="font-bold text-darkText text-base border-b border-secondaryCream/60 pb-3 flex items-center gap-2">
                     <i class="fa-solid fa-cubes text-primaryBrown"></i>
@@ -329,6 +333,7 @@
             // Handle Tracking Type Change & Payload Formatter
             function handleTrackingTypeChange() {
                 const type = trackingTypeSelect.value;
+
                 const bulkInputs = bulkSection.querySelectorAll('input, select, textarea');
                 const individualInputs = individualSection.querySelectorAll('input, select, textarea');
 
@@ -336,22 +341,36 @@
                     bulkSection.classList.add('hidden');
                     individualSection.classList.remove('hidden');
 
-                    // Disable bulk inputs so they don't get sent in POST request
+                    // Disable bulk inputs
                     bulkInputs.forEach(el => el.disabled = true);
+
                     // Enable individual inputs
                     individualInputs.forEach(el => el.disabled = false);
 
                     if (unitsContainer.children.length === 0) {
                         addUnitRow();
                     }
+
+                    // أخذ unit_type من أول وحدة
+                    const firstUnitType = unitsContainer.querySelector('.unit-type');
+
+                    if (firstUnitType) {
+                        document.getElementById('unit_type').value = firstUnitType.value;
+                    }
+
                 } else {
                     bulkSection.classList.remove('hidden');
                     individualSection.classList.add('hidden');
 
                     // Enable bulk inputs
                     bulkInputs.forEach(el => el.disabled = false);
-                    // Disable individual inputs so they don't get sent in POST request
+
+                    // Disable individual inputs
                     individualInputs.forEach(el => el.disabled = true);
+
+                    // إرسال unit_type الخاص بالـ Bulk
+                    document.getElementById('unit_type').value =
+                        document.getElementById('bulk_unit_type').value;
                 }
             }
 
@@ -536,8 +555,10 @@
         });
     </script>
     <!-- Add Color Modal -->
-    <div id="addColorModal" class="fixed inset-0 bg-darkText/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
-        <div class="bg-white rounded-2xl max-w-md w-full border border-secondaryCream shadow-2xl overflow-hidden animate-slide-up">
+    <div id="addColorModal"
+        class="fixed inset-0 bg-darkText/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+        <div
+            class="bg-white rounded-2xl max-w-md w-full border border-secondaryCream shadow-2xl overflow-hidden animate-slide-up">
             <div class="bg-primaryBrown text-white p-4 flex justify-between items-center">
                 <h3 class="font-bold text-base flex items-center gap-2">
                     <i class="fa-solid fa-palette"></i>
@@ -550,12 +571,16 @@
             </div>
             <div class="p-5 space-y-4">
                 <div>
-                    <label class="block text-xs font-bold text-darkText mb-1.5">اسم اللون <span class="text-red-500">*</span></label>
-                    <input type="text" id="new_color_name" placeholder="مثال: أحمر" class="w-full bg-primaryBg/40 border border-secondaryCream rounded-xl px-3 py-2.5 text-xs sm:text-sm focus:outline-none focus:border-primaryBrown">
+                    <label class="block text-xs font-bold text-darkText mb-1.5">اسم اللون <span
+                            class="text-red-500">*</span></label>
+                    <input type="text" id="new_color_name" placeholder="مثال: أحمر"
+                        class="w-full bg-primaryBg/40 border border-secondaryCream rounded-xl px-3 py-2.5 text-xs sm:text-sm focus:outline-none focus:border-primaryBrown">
                 </div>
                 <div>
-                    <label class="block text-xs font-bold text-darkText mb-1.5">المعرف (Identifier) <span class="text-red-500">*</span></label>
-                    <input type="text" id="new_color_identifier" placeholder="مثال: red" class="w-full bg-primaryBg/40 border border-secondaryCream rounded-xl px-3 py-2.5 text-xs sm:text-sm focus:outline-none focus:border-primaryBrown">
+                    <label class="block text-xs font-bold text-darkText mb-1.5">المعرف (Identifier) <span
+                            class="text-red-500">*</span></label>
+                    <input type="text" id="new_color_identifier" placeholder="مثال: red"
+                        class="w-full bg-primaryBg/40 border border-secondaryCream rounded-xl px-3 py-2.5 text-xs sm:text-sm focus:outline-none focus:border-primaryBrown">
                 </div>
                 <div id="addColorError" class="hidden text-xs text-red-500 font-bold"></div>
             </div>
@@ -594,30 +619,35 @@
                     btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> جاري الحفظ...';
 
                     try {
-                        const token = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') 
-                                      || document.querySelector('input[name="_token"]')?.value;
-                        const response = await fetch('{{ route("colors.store") }}', {
+                        const token = document.querySelector('meta[name="csrf-token"]')?.getAttribute(
+                                'content') ||
+                            document.querySelector('input[name="_token"]')?.value;
+                        const response = await fetch('{{ route('colors.store') }}', {
                             method: 'POST',
                             headers: {
                                 'Content-Type': 'application/json',
                                 'Accept': 'application/json',
                                 'X-CSRF-TOKEN': token
                             },
-                            body: JSON.stringify({ name, identifier })
+                            body: JSON.stringify({
+                                name,
+                                identifier
+                            })
                         });
 
                         const data = await response.json();
-                        
+
                         if (response.ok && data.success) {
                             const select = document.getElementById('color_id');
                             const option = new Option(data.color.name, data.color.id, false, true);
                             select.add(option);
-                            
+
                             document.getElementById('addColorModal').classList.add('hidden');
                             document.getElementById('new_color_name').value = '';
                             document.getElementById('new_color_identifier').value = '';
                         } else {
-                            errorDiv.textContent = data.message || 'حدث خطأ أثناء حفظ اللون. قد يكون الاسم أو المعرف مستخدماً من قبل.';
+                            errorDiv.textContent = data.message ||
+                                'حدث خطأ أثناء حفظ اللون. قد يكون الاسم أو المعرف مستخدماً من قبل.';
                             errorDiv.classList.remove('hidden');
                         }
                     } catch (e) {
