@@ -22,6 +22,7 @@ class InventoryTransaction extends Model
         'unit_type',
         'unit_cost',
         'total_cost',
+        'balance_after',
         'reference_type',
         'reference_id',
         'notes',
@@ -33,6 +34,7 @@ class InventoryTransaction extends Model
         'quantity' => 'decimal:3',
         'unit_cost' => 'decimal:4',
         'total_cost' => 'decimal:4',
+        'balance_after' => 'decimal:3',
         'transaction_date' => 'datetime',
     ];
 

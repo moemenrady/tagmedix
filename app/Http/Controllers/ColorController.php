@@ -14,7 +14,14 @@ class ColorController extends Controller
             'identifier' => 'required|string|max:255|unique:colors,identifier',
         ]);
 
-        Color::create($data);
+        $color = Color::create($data);
+
+        if ($request->expectsJson()) {
+            return response()->json([
+                'success' => true,
+                'color' => $color
+            ]);
+        }
 
          return redirect()->back()  
             ->with('success', 'Color added successfully!');

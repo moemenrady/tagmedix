@@ -55,7 +55,7 @@
                 <span data-ar="سجل حركات المخزون" data-en="Inventory Transactions Log">سجل حركات المخزون</span>
             </h2>
             <p class="text-sm text-gray-500 mt-1 flex items-center gap-2">
-                <a href="{{ route('inventory.index') }}" class="hover:text-activeGold transition">
+                <a href="{{ route('inventory.dashboard') }}" class="hover:text-activeGold transition">
                     <i class="fa-solid fa-boxes-stacked text-[10px]"></i>
                     <span data-ar="المخزون" data-en="Inventory">المخزون</span>
                 </a>
@@ -84,6 +84,7 @@
                 <select name="type"
                     class="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-activeGold/30 outline-none transition bg-gray-50 cursor-pointer">
                     <option value="">-- <span data-ar="الكل" data-en="All">الكل</span> --</option>
+                    <option value="receipt" {{ request('type') == 'receipt' ? 'selected' : '' }}>استلام / Receipt (In)</option>
                     <option value="purchase" {{ request('type') == 'purchase' ? 'selected' : '' }}>شراء / Purchase (In)
                     </option>
                     <option value="issue" {{ request('type') == 'issue' ? 'selected' : '' }}>صرف / Issue (Out)</option>
@@ -151,10 +152,16 @@
                 <tbody class="divide-y divide-gray-100">
                     @forelse($transactions as $transaction)
                         @php
-                            $isIncoming = in_array($transaction->type, ['purchase', 'adjustment_in', 'return_in']);
+                            $isIncoming = in_array($transaction->type, ['purchase', 'receipt', 'adjustment_in', 'return_in']);
 
                             // Badge Configuration based on type
                             $badge = match ($transaction->type) {
+                                'receipt' => [
+                                    'color' => 'bg-emerald-100 text-emerald-800 border-emerald-200',
+                                    'icon' => 'fa-arrow-down',
+                                    'ar' => 'استلام',
+                                    'en' => 'Receipt',
+                                ],
                                 'purchase' => [
                                     'color' => 'bg-emerald-100 text-emerald-800 border-emerald-200',
                                     'icon' => 'fa-arrow-down',
@@ -210,9 +217,9 @@
                             </td>
                             <td class="px-5 py-4">
                                 <div class="flex flex-col">
-                                    <span class="font-bold text-activeGold">{{ $transaction->item->name ?? '-' }}</span>
+                                    <span class="font-bold text-activeGold">{{ $transaction->inventoryItem->name ?? '-' }}</span>
                                     <span
-                                        class="text-xs text-gray-500 font-mono">{{ $transaction->item->code ?? '-' }}</span>
+                                        class="text-xs text-gray-500 font-mono">{{ $transaction->inventoryItem->code ?? '-' }}</span>
                                 </div>
                             </td>
                             <td class="px-5 py-4">
@@ -229,7 +236,7 @@
                                     <span>{{ $isIncoming ? '+' : '-' }}</span>
                                     <span>{{ floatval($transaction->quantity) }}</span>
                                     <span
-                                        class="text-xs font-normal text-gray-400">{{ $transaction->item->unit ?? '' }}</span>
+                                        class="text-xs font-normal text-gray-400">{{ $transaction->unit_type ?? '' }}</span>
                                 </div>
                             </td>
                             <td class="px-5 py-4 text-center">
@@ -416,7 +423,7 @@
                     document.getElementById('m_item_code').textContent = data.item.code;
 
                     // Qty Logic
-                    const isIncoming = ['purchase', 'adjustment_in', 'return_in'].includes(data.type);
+                    const isIncoming = ['purchase', 'receipt', 'adjustment_in', 'return_in'].includes(data.type);
                     const qtyEl = document.getElementById('m_qty');
                     const qtyContainer = document.getElementById('m_qty_container');
 

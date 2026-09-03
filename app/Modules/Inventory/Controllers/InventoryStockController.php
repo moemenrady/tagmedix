@@ -38,12 +38,6 @@ public function store(
 
     $item = $this->stockInService->execute($data);
 
-    dd([
-        'SERVICE_FINISHED' => true,
-        'ITEM_ID' => $item->id,
-        'ITEM_CODE' => $item->code,
-        'ITEM' => $item->toArray(),
-    ]);
 
     return redirect()
         ->route('inventory.dashboard')

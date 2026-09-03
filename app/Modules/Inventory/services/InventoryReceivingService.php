@@ -164,6 +164,11 @@ class InventoryReceivingService
             ]);
         }
 
+        $balanceAfter = InventoryStock::query()
+            ->where('inventory_item_id', $item->id)
+            ->where('inventory_item_variant_id', $variant->id)
+            ->sum('quantity');
+
         InventoryTransaction::create([
             'inventory_item_id' => $item->id,
             'inventory_item_variant_id' => $variant->id,
@@ -173,6 +178,7 @@ class InventoryReceivingService
             'unit_type' => $data->unitType,
             'unit_cost' => $unitCost,
             'total_cost' => $totalCost,
+            'balance_after' => $balanceAfter,
             'notes' => $data->notes,
             'created_by' => $userId,
             'transaction_date' => now(),
@@ -221,6 +227,11 @@ class InventoryReceivingService
                 'notes' => $unitData['notes'] ?? null,
             ]);
 
+            $balanceAfter = InventoryUnit::query()
+                ->where('inventory_item_variant_id', $variant->id)
+                ->where('status', 'available')
+                ->sum('quantity');
+
             InventoryTransaction::create([
                 'inventory_item_id' => $item->id,
                 'inventory_item_variant_id' => $variant->id,
@@ -230,6 +241,7 @@ class InventoryReceivingService
                 'unit_type' => $unitData['unit_type'],
                 'unit_cost' => $unitCost,
                 'total_cost' => $totalCost,
+                'balance_after' => $balanceAfter,
                 'notes' => $unitData['notes'] ?? null,
                 'created_by' => $userId,
                 'transaction_date' => now(),

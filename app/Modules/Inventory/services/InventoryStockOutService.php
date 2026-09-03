@@ -151,6 +151,11 @@ class InventoryStockOutService
             ]);
         }
 
+        $balanceAfter = InventoryStock::query()
+            ->where('inventory_item_id', $item->id)
+            ->where('inventory_item_variant_id', $variant->id)
+            ->sum('quantity');
+
         $this->createTransaction(
             item: $item,
             variant: $variant,
@@ -160,7 +165,8 @@ class InventoryStockOutService
             unitCost: $unitCost,
             totalCost: $totalCost,
             notes: $data['notes'] ?? null,
-            userId: $userId
+            userId: $userId,
+            balanceAfter: (float) $balanceAfter
         );
     }
 
@@ -209,6 +215,11 @@ class InventoryStockOutService
                 'status' => 'issued',
             ]);
 
+            $balanceAfter = InventoryUnit::query()
+                ->where('inventory_item_variant_id', $variant->id)
+                ->where('status', 'available')
+                ->sum('quantity');
+
             $this->createTransaction(
                 item: $item,
                 variant: $variant,
@@ -218,7 +229,8 @@ class InventoryStockOutService
                 unitCost: (float) $unit->unit_cost,
                 totalCost: (float) $unit->total_cost,
                 notes: $data['notes'] ?? null,
-                userId: $userId
+                userId: $userId,
+                balanceAfter: (float) $balanceAfter
             );
         }
     }
@@ -238,7 +250,8 @@ class InventoryStockOutService
         float $unitCost,
         float $totalCost,
         ?string $notes,
-        int $userId
+        int $userId,
+        float $balanceAfter
     ): InventoryTransaction {
         return InventoryTransaction::create([
             'inventory_item_id' => $item->id,
@@ -249,6 +262,7 @@ class InventoryStockOutService
             'unit_type' => $unitType,
             'unit_cost' => $unitCost,
             'total_cost' => $totalCost,
+            'balance_after' => $balanceAfter,
             'notes' => $notes,
             'created_by' => $userId,
             'transaction_date' => now(),

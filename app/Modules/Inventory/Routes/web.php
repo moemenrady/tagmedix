@@ -9,6 +9,7 @@ use App\Modules\Inventory\Controllers\InventoryTransactionController;
 
 Route::prefix('inventory')
     ->name('inventory.')
+    ->middleware(['web', 'auth'])
     ->group(function () {
 
         /*

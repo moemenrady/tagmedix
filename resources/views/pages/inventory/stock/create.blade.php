@@ -137,8 +137,12 @@
 
                     <!-- Color -->
                     <div>
-                        <label class="block text-xs font-bold text-darkText mb-1.5">اللون <span
-                                class="text-red-500">*</span></label>
+                        <label class="block text-xs font-bold text-darkText mb-1.5 flex justify-between">
+                            <span>اللون <span class="text-red-500">*</span></span>
+                            <button type="button" onclick="document.getElementById('addColorModal').classList.remove('hidden')" class="text-primaryBrown hover:text-mutedBrown flex items-center gap-1 cursor-pointer">
+                                <i class="fa-solid fa-plus"></i> إضافة لون
+                            </button>
+                        </label>
                         <select name="color_id" id="color_id" required
                             class="w-full bg-primaryBg/40 border border-secondaryCream rounded-xl px-3 py-2.5 text-xs sm:text-sm focus:outline-none focus:border-primaryBrown transition-colors">
                             <option value="">اختر اللون...</option>
@@ -529,6 +533,102 @@
 
             // Initialize state
             handleTrackingTypeChange();
+        });
+    </script>
+    <!-- Add Color Modal -->
+    <div id="addColorModal" class="fixed inset-0 bg-darkText/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl max-w-md w-full border border-secondaryCream shadow-2xl overflow-hidden animate-slide-up">
+            <div class="bg-primaryBrown text-white p-4 flex justify-between items-center">
+                <h3 class="font-bold text-base flex items-center gap-2">
+                    <i class="fa-solid fa-palette"></i>
+                    إضافة لون جديد
+                </h3>
+                <button type="button" onclick="document.getElementById('addColorModal').classList.add('hidden')"
+                    class="text-white/80 hover:text-white text-lg cursor-pointer">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+            <div class="p-5 space-y-4">
+                <div>
+                    <label class="block text-xs font-bold text-darkText mb-1.5">اسم اللون <span class="text-red-500">*</span></label>
+                    <input type="text" id="new_color_name" placeholder="مثال: أحمر" class="w-full bg-primaryBg/40 border border-secondaryCream rounded-xl px-3 py-2.5 text-xs sm:text-sm focus:outline-none focus:border-primaryBrown">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-darkText mb-1.5">المعرف (Identifier) <span class="text-red-500">*</span></label>
+                    <input type="text" id="new_color_identifier" placeholder="مثال: red" class="w-full bg-primaryBg/40 border border-secondaryCream rounded-xl px-3 py-2.5 text-xs sm:text-sm focus:outline-none focus:border-primaryBrown">
+                </div>
+                <div id="addColorError" class="hidden text-xs text-red-500 font-bold"></div>
+            </div>
+            <div class="p-4 border-t border-secondaryCream bg-primaryBg/30 flex justify-end gap-2">
+                <button type="button" onclick="document.getElementById('addColorModal').classList.add('hidden')"
+                    class="bg-secondaryCream hover:bg-softBeige text-darkText font-bold px-5 py-2.5 rounded-xl transition-colors cursor-pointer">
+                    إلغاء
+                </button>
+                <button type="button" id="submitNewColorBtn"
+                    class="bg-primaryBrown hover:bg-mutedBrown text-white font-bold px-6 py-2.5 rounded-xl transition-all shadow-md flex items-center gap-2 cursor-pointer">
+                    <i class="fa-solid fa-check"></i>
+                    حفظ اللون
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const submitNewColorBtn = document.getElementById('submitNewColorBtn');
+            if (submitNewColorBtn) {
+                submitNewColorBtn.addEventListener('click', async function() {
+                    const name = document.getElementById('new_color_name').value.trim();
+                    const identifier = document.getElementById('new_color_identifier').value.trim();
+                    const errorDiv = document.getElementById('addColorError');
+                    errorDiv.classList.add('hidden');
+
+                    if (!name || !identifier) {
+                        errorDiv.textContent = 'يرجى إدخال اسم اللون والمعرف';
+                        errorDiv.classList.remove('hidden');
+                        return;
+                    }
+
+                    const btn = this;
+                    btn.disabled = true;
+                    btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> جاري الحفظ...';
+
+                    try {
+                        const token = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') 
+                                      || document.querySelector('input[name="_token"]')?.value;
+                        const response = await fetch('{{ route("colors.store") }}', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'Accept': 'application/json',
+                                'X-CSRF-TOKEN': token
+                            },
+                            body: JSON.stringify({ name, identifier })
+                        });
+
+                        const data = await response.json();
+                        
+                        if (response.ok && data.success) {
+                            const select = document.getElementById('color_id');
+                            const option = new Option(data.color.name, data.color.id, false, true);
+                            select.add(option);
+                            
+                            document.getElementById('addColorModal').classList.add('hidden');
+                            document.getElementById('new_color_name').value = '';
+                            document.getElementById('new_color_identifier').value = '';
+                        } else {
+                            errorDiv.textContent = data.message || 'حدث خطأ أثناء حفظ اللون. قد يكون الاسم أو المعرف مستخدماً من قبل.';
+                            errorDiv.classList.remove('hidden');
+                        }
+                    } catch (e) {
+                        errorDiv.textContent = 'حدث خطأ في الاتصال بالخادم';
+                        errorDiv.classList.remove('hidden');
+                    } finally {
+                        btn.disabled = false;
+                        btn.innerHTML = '<i class="fa-solid fa-check"></i> حفظ اللون';
+                    }
+                });
+            }
         });
     </script>
 @endsection

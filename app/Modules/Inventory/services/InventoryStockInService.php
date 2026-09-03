@@ -2,75 +2,79 @@
 
 namespace App\Modules\Inventory\Services;
 
+use App\Modules\Inventory\DTOs\CreateInventoryStockData;
 use App\Modules\Inventory\Models\InventoryItem;
 use App\Modules\Inventory\Models\InventoryItemVariant;
 use App\Modules\Inventory\Models\InventoryStock;
 use App\Modules\Inventory\Models\InventoryTransaction;
 use App\Modules\Inventory\Models\InventoryUnit;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 
 class InventoryStockInService
 {
-    public function execute(
-        array $data,
-        int $userId
-    ): void {
-        DB::transaction(function () use ($data, $userId) {
-            $item = InventoryItem::query()
-                ->lockForUpdate()
-                ->findOrFail(
-                    $data['inventory_item_id']
-                );
-            if (!$item->is_active) {
+    public function execute(CreateInventoryStockData $data): InventoryItem
+    {
+        return DB::transaction(function () use ($data) {
+            $this->validateBusinessRules($data);
+
+            $item = $this->createItem($data);
+            $variant = $this->createVariant($item, $data);
+
+            if ($data->isBulk()) {
+                $this->stockInBulk($item, $variant, $data);
+            } elseif ($data->isIndividual()) {
+                $this->stockInIndividual($item, $variant, $data);
+            } else {
                 throw ValidationException::withMessages([
-                    'inventory_item_id' =>
-                        'This inventory item is inactive.',
+                    'stock_tracking_type' => 'Unsupported stock tracking type.',
                 ]);
             }
-            $variant = InventoryItemVariant::query()
-                ->where('id', $data['inventory_item_variant_id'])
-                ->where('inventory_item_id', $item->id)
-                ->where('is_active', true)
-                ->firstOrFail();
 
-            /*
-            |--------------------------------------------------------------------------
-            | IMPORTANT
-            |--------------------------------------------------------------------------
-            | Never trust stock_tracking_type from frontend.
-            | Always get it from inventory_items.
-            */
-
-            if ($item->stock_tracking_type === 'bulk') {
-
-                $this->stockInBulk(
-                    item: $item,
-                    variant: $variant,
-                    data: $data,
-                    userId: $userId
-                );
-
-                return;
-            }
-
-            if ($item->stock_tracking_type === 'individual') {
-
-                $this->stockInIndividual(
-                    item: $item,
-                    variant: $variant,
-                    data: $data,
-                    userId: $userId
-                );
-
-                return;
-            }
-
-            throw ValidationException::withMessages([
-                'inventory_item_id' =>
-                    'Unsupported stock tracking type.',
-            ]);
+            return $item;
         });
+    }
+
+    private function validateBusinessRules(CreateInventoryStockData $data): void
+    {
+        if ($data->isIndividual()) {
+            foreach ($data->units as $unitData) {
+                $exists = InventoryUnit::withTrashed()
+                    ->where('unit_code', $unitData->unitCode)
+                    ->exists();
+
+                if ($exists) {
+                    throw ValidationException::withMessages([
+                        'units' => "Unit code {$unitData->unitCode} already exists.",
+                    ]);
+                }
+            }
+        }
+    }
+
+    private function createItem(CreateInventoryStockData $data): InventoryItem
+    {
+        return InventoryItem::create([
+            'code' => 'ITM-' . strtoupper(Str::random(6)),
+            'name' => $data->name,
+            'category' => $data->category,
+            'unit_type' => $data->unitType,
+            'stock_tracking_type' => $data->stockTrackingType,
+            'is_active' => true,
+            'minimum_stock' => $data->minimumStock,
+            'created_by' => $data->createdBy,
+        ]);
+    }
+
+    private function createVariant(InventoryItem $item, CreateInventoryStockData $data): InventoryItemVariant
+    {
+        return InventoryItemVariant::create([
+            'inventory_item_id' => $item->id,
+            'color_id' => $data->colorId,
+            'sku' => 'VAR-' . strtoupper(Str::random(8)),
+            'is_active' => true,
+        ]);
     }
 
     /*
@@ -82,64 +86,38 @@ class InventoryStockInService
     private function stockInBulk(
         InventoryItem $item,
         InventoryItemVariant $variant,
-        array $data,
-        int $userId
+        CreateInventoryStockData $data
     ): void {
-        $quantity = (float) $data['quantity'];
-        $unitCost = (float) $data['unit_cost'];
+        $quantity = $data->quantity ?? 0;
+        $unitCost = $data->unitCost ?? 0;
 
         $totalCost = $quantity * $unitCost;
 
-        $stock = InventoryStock::query()
+        InventoryStock::create([
+            'inventory_item_id' => $item->id,
+            'inventory_item_variant_id' => $variant->id,
+            'quantity' => $quantity,
+            'unit_type' => $data->unitType,
+            'unit_cost' => $unitCost,
+            'total_cost' => $totalCost,
+        ]);
+
+        $balanceAfter = InventoryStock::query()
             ->where('inventory_item_id', $item->id)
-            ->where(
-                'inventory_item_variant_id',
-                $variant->id
-            )
-          
-            ->lockForUpdate()
-            ->first();
-
-        if ($stock) {
-
-            $oldQuantity = (float) $stock->quantity;
-            $oldTotalCost = (float) $stock->total_cost;
-
-            $newQuantity = $oldQuantity + $quantity;
-            $newTotalCost = $oldTotalCost + $totalCost;
-
-            $averageCost = $newQuantity > 0
-                ? $newTotalCost / $newQuantity
-                : 0;
-
-            $stock->update([
-                'quantity' => $newQuantity,
-                'unit_cost' => $averageCost,
-                'total_cost' => $newTotalCost,
-            ]);
-
-        } else {
-
-            InventoryStock::create([
-                'inventory_item_id' => $item->id,
-                'inventory_item_variant_id' => $variant->id,
-                'quantity' => $quantity,
-                'unit_type' => $data['unit_type'],
-                'unit_cost' => $unitCost,
-                'total_cost' => $totalCost,
-            ]);
-        }
+            ->where('inventory_item_variant_id', $variant->id)
+            ->sum('quantity');
 
         $this->createTransaction(
             item: $item,
             variant: $variant,
             unit: null,
             quantity: $quantity,
-            unitType: $data['unit_type'],
+            unitType: (string) $data->unitType,
             unitCost: $unitCost,
             totalCost: $totalCost,
-            notes: $data['notes'] ?? null,
-            userId: $userId
+            notes: $data->notes,
+            userId: $data->createdBy,
+            balanceAfter: (float) $balanceAfter
         );
     }
 
@@ -152,58 +130,42 @@ class InventoryStockInService
     private function stockInIndividual(
         InventoryItem $item,
         InventoryItemVariant $variant,
-        array $data,
-        int $userId
+        CreateInventoryStockData $data
     ): void {
-        foreach ($data['units'] as $unitData) {
+        foreach ($data->units as $unitData) {
+            $quantity = $unitData->quantity;
+            $unitCost = $unitData->unitCost;
 
-            /*
-            |--------------------------------------------------------------------------
-            | Unit Code must be globally unique
-            |--------------------------------------------------------------------------
-            */
-
-            $exists = InventoryUnit::withTrashed()
-                ->where(
-                    'unit_code',
-                    $unitData['unit_code']
-                )
-                ->exists();
-
-            if ($exists) {
-                throw ValidationException::withMessages([
-                    'units' =>
-                        "Unit code {$unitData['unit_code']} already exists.",
-                ]);
-            }
-
-            $quantity = (float) $unitData['quantity'];
-            $unitCost = (float) $unitData['unit_cost'];
-
-            $totalCost = $quantity * $unitCost;
+            $totalCost = $unitData->totalCost();
 
             $unit = InventoryUnit::create([
                 'inventory_item_variant_id' => $variant->id,
-                'unit_code' => $unitData['unit_code'],
+                'unit_code' => $unitData->unitCode,
                 'quantity' => $quantity,
-                'unit_type' => $unitData['unit_type'],
+                'unit_type' => $unitData->unitType,
                 'status' => 'available',
                 'unit_cost' => $unitCost,
                 'total_cost' => $totalCost,
                 'received_at' => now(),
-                'notes' => $unitData['notes'] ?? null,
+                'notes' => $unitData->notes,
             ]);
+
+            $balanceAfter = InventoryUnit::query()
+                ->where('inventory_item_variant_id', $variant->id)
+                ->where('status', 'available')
+                ->sum('quantity');
 
             $this->createTransaction(
                 item: $item,
                 variant: $variant,
                 unit: $unit,
                 quantity: $quantity,
-                unitType: $unitData['unit_type'],
+                unitType: $unitData->unitType,
                 unitCost: $unitCost,
                 totalCost: $totalCost,
-                notes: $unitData['notes'] ?? null,
-                userId: $userId
+                notes: $unitData->notes,
+                userId: $data->createdBy,
+                balanceAfter: (float) $balanceAfter
             );
         }
     }
@@ -223,7 +185,8 @@ class InventoryStockInService
         float $unitCost,
         float $totalCost,
         ?string $notes,
-        int $userId
+        ?int $userId,
+        float $balanceAfter
     ): InventoryTransaction {
         return InventoryTransaction::create([
             'inventory_item_id' => $item->id,
@@ -234,6 +197,7 @@ class InventoryStockInService
             'unit_type' => $unitType,
             'unit_cost' => $unitCost,
             'total_cost' => $totalCost,
+            'balance_after' => $balanceAfter,
             'notes' => $notes,
             'created_by' => $userId,
             'transaction_date' => now(),

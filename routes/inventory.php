@@ -1,6 +1,6 @@
 <?php
 
-use App\Http\Controllers\InventoryTransactionController;
+use App\Modules\Inventory\Controllers\InventoryTransactionController;
 use App\Http\Controllers\ItemCategoryController;
 use App\Http\Controllers\ItemController;
 use Illuminate\Support\Facades\Route;
