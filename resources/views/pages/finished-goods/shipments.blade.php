@@ -4,87 +4,89 @@
 
 @section('content')
     <div class="space-y-6 animate-fade-in pb-20 md:pb-6">
-
-        <!-- 1. شريط الإحصائيات (Statistics) -->
-        <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <!-- إجمالي الطلبات -->
-            <div
-                class="bg-white rounded-2xl p-4 md:p-5 shadow-[0_4px_15px_rgba(202,188,176,0.15)] border border-secondaryCream relative overflow-hidden group hover:-translate-y-1 transition-transform duration-300">
+        @if (auth()->user() && auth()->user()->role == 'admin')
+            <!-- 1. شريط الإحصائيات (Statistics) -->
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <!-- إجمالي الطلبات -->
                 <div
-                    class="absolute top-0 right-0 w-24 h-24 bg-roseAccent opacity-10 rounded-full -mr-10 -mt-10 group-hover:scale-150 transition-transform duration-500">
-                </div>
-                <div class="flex justify-between items-start relative z-10">
-                    <div>
-                        <p class="text-xs text-mutedBrown mb-1 font-bold" data-ar="إجمالي الطلبات" data-en="Total Orders">
-                            إجمالي الطلبات</p>
-                        <h3 class="text-2xl font-bold text-darkText">{{ number_format($statistics['total']) }}</h3>
+                    class="bg-white rounded-2xl p-4 md:p-5 shadow-[0_4px_15px_rgba(202,188,176,0.15)] border border-secondaryCream relative overflow-hidden group hover:-translate-y-1 transition-transform duration-300">
+                    <div
+                        class="absolute top-0 right-0 w-24 h-24 bg-roseAccent opacity-10 rounded-full -mr-10 -mt-10 group-hover:scale-150 transition-transform duration-500">
                     </div>
-                    <div class="w-10 h-10 rounded-xl bg-primaryBg flex items-center justify-center text-primaryBrown">
-                        <i class="fa-solid fa-box-open"></i>
+                    <div class="flex justify-between items-start relative z-10">
+                        <div>
+                            <p class="text-xs text-mutedBrown mb-1 font-bold" data-ar="إجمالي الطلبات" data-en="Total Orders">
+                                إجمالي الطلبات</p>
+                            <h3 class="text-2xl font-bold text-darkText">{{ number_format($statistics['total']) }}</h3>
+                        </div>
+                        <div class="w-10 h-10 rounded-xl bg-primaryBg flex items-center justify-center text-primaryBrown">
+                            <i class="fa-solid fa-box-open"></i>
+                        </div>
+                    </div>
+                </div>
+                {{-- إحصائيات الأدمن --}}
+                <div
+                    class="bg-white rounded-2xl p-4 md:p-5 shadow-[0_4px_15px_rgba(202,188,176,0.15)] border border-secondaryCream relative overflow-hidden group hover:-translate-y-1 transition-transform duration-300">
+                    <div
+                        class="absolute top-0 right-0 w-24 h-24 bg-primaryBrown opacity-10 rounded-full -mr-10 -mt-10 group-hover:scale-150 transition-transform duration-500">
+                    </div>
+                    <div class="flex justify-between items-start relative z-10">
+                        <div>
+                            <p class="text-xs text-mutedBrown mb-1 font-bold" data-ar="قيمة الطلبات" data-en="Total Amount">
+                                قيمة
+                                الطلبات</p>
+                            <h3 class="text-2xl font-bold text-darkText">{{ number_format($statistics['total_amount'], 0) }}
+                                <span class="text-sm font-normal">ج.م</span>
+                            </h3>
+                        </div>
+                        <div class="w-10 h-10 rounded-xl bg-primaryBg flex items-center justify-center text-primaryBrown">
+                            <i class="fa-solid fa-money-bill-wave"></i>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- الإجمالي المحصل -->
+                <div
+                    class="bg-white rounded-2xl p-4 md:p-5 shadow-[0_4px_15px_rgba(202,188,176,0.15)] border border-secondaryCream relative overflow-hidden group hover:-translate-y-1 transition-transform duration-300">
+                    <div
+                        class="absolute top-0 right-0 w-24 h-24 bg-green-500 opacity-10 rounded-full -mr-10 -mt-10 group-hover:scale-150 transition-transform duration-500">
+                    </div>
+                    <div class="flex justify-between items-start relative z-10">
+                        <div>
+                            <p class="text-xs text-mutedBrown mb-1 font-bold" data-ar="المبلغ المحصل"
+                                data-en="Collected Amount">المبلغ المحصل</p>
+                            <h3 class="text-2xl font-bold text-green-700">
+                                {{ number_format($statistics['total_collected_amount'], 0) }} <span
+                                    class="text-sm font-normal">ج.م</span></h3>
+                        </div>
+                        <div class="w-10 h-10 rounded-xl bg-green-50 flex items-center justify-center text-green-600">
+                            <i class="fa-solid fa-hand-holding-dollar"></i>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- المرتجعات -->
+                <div
+                    class="bg-white rounded-2xl p-4 md:p-5 shadow-[0_4px_15px_rgba(202,188,176,0.15)] border border-secondaryCream relative overflow-hidden group hover:-translate-y-1 transition-transform duration-300">
+                    <div
+                        class="absolute top-0 right-0 w-24 h-24 bg-red-500 opacity-10 rounded-full -mr-10 -mt-10 group-hover:scale-150 transition-transform duration-500">
+                    </div>
+                    <div class="flex justify-between items-start relative z-10">
+                        <div>
+                            <p class="text-xs text-mutedBrown mb-1 font-bold" data-ar="قيمة المرتجعات"
+                                data-en="Return Amount">
+                                قيمة المرتجعات</p>
+                            <h3 class="text-2xl font-bold text-red-700">
+                                {{ number_format($statistics['total_return_amount'], 0) }} <span
+                                    class="text-sm font-normal">ج.م</span></h3>
+                        </div>
+                        <div class="w-10 h-10 rounded-xl bg-red-50 flex items-center justify-center text-red-500">
+                            <i class="fa-solid fa-arrow-right-arrow-left"></i>
+                        </div>
                     </div>
                 </div>
             </div>
-
-            <!-- الإجمالي المالي -->
-            <div
-                class="bg-white rounded-2xl p-4 md:p-5 shadow-[0_4px_15px_rgba(202,188,176,0.15)] border border-secondaryCream relative overflow-hidden group hover:-translate-y-1 transition-transform duration-300">
-                <div
-                    class="absolute top-0 right-0 w-24 h-24 bg-primaryBrown opacity-10 rounded-full -mr-10 -mt-10 group-hover:scale-150 transition-transform duration-500">
-                </div>
-                <div class="flex justify-between items-start relative z-10">
-                    <div>
-                        <p class="text-xs text-mutedBrown mb-1 font-bold" data-ar="قيمة الطلبات" data-en="Total Amount">قيمة
-                            الطلبات</p>
-                        <h3 class="text-2xl font-bold text-darkText">{{ number_format($statistics['total_amount'], 0) }}
-                            <span class="text-sm font-normal">ج.م</span>
-                        </h3>
-                    </div>
-                    <div class="w-10 h-10 rounded-xl bg-primaryBg flex items-center justify-center text-primaryBrown">
-                        <i class="fa-solid fa-money-bill-wave"></i>
-                    </div>
-                </div>
-            </div>
-
-            <!-- الإجمالي المحصل -->
-            <div
-                class="bg-white rounded-2xl p-4 md:p-5 shadow-[0_4px_15px_rgba(202,188,176,0.15)] border border-secondaryCream relative overflow-hidden group hover:-translate-y-1 transition-transform duration-300">
-                <div
-                    class="absolute top-0 right-0 w-24 h-24 bg-green-500 opacity-10 rounded-full -mr-10 -mt-10 group-hover:scale-150 transition-transform duration-500">
-                </div>
-                <div class="flex justify-between items-start relative z-10">
-                    <div>
-                        <p class="text-xs text-mutedBrown mb-1 font-bold" data-ar="المبلغ المحصل"
-                            data-en="Collected Amount">المبلغ المحصل</p>
-                        <h3 class="text-2xl font-bold text-green-700">
-                            {{ number_format($statistics['total_collected_amount'], 0) }} <span
-                                class="text-sm font-normal">ج.م</span></h3>
-                    </div>
-                    <div class="w-10 h-10 rounded-xl bg-green-50 flex items-center justify-center text-green-600">
-                        <i class="fa-solid fa-hand-holding-dollar"></i>
-                    </div>
-                </div>
-            </div>
-
-            <!-- المرتجعات -->
-            <div
-                class="bg-white rounded-2xl p-4 md:p-5 shadow-[0_4px_15px_rgba(202,188,176,0.15)] border border-secondaryCream relative overflow-hidden group hover:-translate-y-1 transition-transform duration-300">
-                <div
-                    class="absolute top-0 right-0 w-24 h-24 bg-red-500 opacity-10 rounded-full -mr-10 -mt-10 group-hover:scale-150 transition-transform duration-500">
-                </div>
-                <div class="flex justify-between items-start relative z-10">
-                    <div>
-                        <p class="text-xs text-mutedBrown mb-1 font-bold" data-ar="قيمة المرتجعات" data-en="Return Amount">
-                            قيمة المرتجعات</p>
-                        <h3 class="text-2xl font-bold text-red-700">
-                            {{ number_format($statistics['total_return_amount'], 0) }} <span
-                                class="text-sm font-normal">ج.م</span></h3>
-                    </div>
-                    <div class="w-10 h-10 rounded-xl bg-red-50 flex items-center justify-center text-red-500">
-                        <i class="fa-solid fa-arrow-right-arrow-left"></i>
-                    </div>
-                </div>
-            </div>
-        </div>
+        @endif
 
         <!-- 2. الفلاتر والبحث (Filters & Search) -->
         <div
