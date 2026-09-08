@@ -8,6 +8,8 @@ use Exception;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use App\Integrations\Turbo\Models\Shipment;
+use App\Models\Area;
+use App\Models\Government;
 
 class FinishedGoodController extends Controller
 {
@@ -330,14 +332,51 @@ class FinishedGoodController extends Controller
             'number_of_items'       => 'nullable|numeric',
         ]);
 
+
+
+        $government = Government::where('name', $validated['government'])
+            ->first();
+
+        if (! $government) {
+            throw \Illuminate\Validation\ValidationException::withMessages([
+                'government' => 'المحافظة المحددة غير موجودة في قاعدة البيانات.',
+            ]);
+        }
+
+
+        $area = null;
+
+        if (! empty($validated['area'])) {
+
+            $area = Area::where('government_id', $government->id)
+                ->where('name', $validated['area'])
+                ->first();
+
+            if (! $area) {
+                throw \Illuminate\Validation\ValidationException::withMessages([
+                    'area' => 'المنطقة المحددة غير موجودة ضمن المحافظة المختارة.',
+                ]);
+            }
+        }
+
+
+        $governmentRealId = $government->real_id;
+
+        $areaRealId = $area?->real_id;
         $shipmentPayload = [
             'second_client' => 'Tagmedix',
 
-            'government' => $validated['government']
-                ?? $governorate,
+            /*
+    |--------------------------------------------------------------------------
+    | IMPORTANT
+    |--------------------------------------------------------------------------
+    | Send Turbo real IDs instead of local IDs / names
+    |--------------------------------------------------------------------------
+    */
 
-            'area' => $validated['area']
-                ?? null,
+            'government' => $governmentRealId,
+
+            'area' => $areaRealId,
 
             'address' => $validated['address']
                 ?? $fullAddress,
@@ -390,11 +429,15 @@ class FinishedGoodController extends Controller
                 ? (float) $validated['return_amount']
                 : 0,
 
-            'remote_shipment_id' => $validated['remote_shipment_id'] ?? null,
+            'remote_shipment_id' =>
+            $validated['remote_shipment_id'] ?? null,
 
-            'return_summary' => $validated['return_summary'] ?? null,
+            'return_summary' =>
+            $validated['return_summary'] ?? null,
 
-            'invoice_number' => $validated['invoice_number'] ?? $order->order_number,
+            'invoice_number' =>
+            $validated['invoice_number']
+                ?? $order->order_number,
 
             'can_open' => isset($validated['can_open'])
                 ? (int) $validated['can_open']
@@ -403,8 +446,11 @@ class FinishedGoodController extends Controller
             'number_of_items' => isset($validated['number_of_items'])
                 ? (int) $validated['number_of_items']
                 : $order->items()->count(),
-
         ];
+
+
+
+
 
         $startedAt = microtime(true);
 
@@ -552,9 +598,9 @@ class FinishedGoodController extends Controller
         |--------------------------------------------------------------------------
         */
 
-            // $order->update([
-            //     'status' => 'shipped',
-            // ]);
+            $order->update([
+                'status' => 'shipped',
+            ]);
 
             /*
         |--------------------------------------------------------------------------
@@ -611,11 +657,9 @@ class FinishedGoodController extends Controller
     |--------------------------------------------------------------------------
     */
 
-                'government' =>
-                $shipmentPayload['government'],
+                'government' => $government->name,
 
-                'area' =>
-                $shipmentPayload['area'],
+                'area' => $area?->name,
 
                 'address' =>
                 $shipmentPayload['address'],

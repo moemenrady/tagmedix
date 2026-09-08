@@ -4,13 +4,21 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 
+class Area extends Model
+{
+    protected $fillable = [
+        'government_id',
+        'name',
+        'real_id',
+    ];
 
-// app/Models/Area.php
-class Area extends Model {
-    public $incrementing = false;
-    protected $fillable = ['id', 'government_id', 'name'];
-    
-    public function government() {
+    protected $casts = [
+        'real_id' => 'integer',
+        'government_id' => 'integer',
+    ];
+
+    public function government()
+    {
         return $this->belongsTo(Government::class);
     }
 }

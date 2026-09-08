@@ -89,8 +89,6 @@ class TurboApiService
     public function addOrder(array $shipmentData): array
     {
 
-        // dd($shipmentData);
-        // 1. تنظيف العنوان وتحويل الأرقام العربية لأرقام إنجليزية
         $cleanAddress = $shipmentData['address'] ?? null;
         if ($cleanAddress) {
             $arabicNumbers = ['٠', '١', '٢', '٣', '٤', '٥', '٦', '٧', '٨', '٩'];
@@ -135,7 +133,6 @@ class TurboApiService
 
         $response = $this->client()->post('/external-api/add-order', $payload);
 
-        dd($shipmentData, $payload, $response->status(), $response->json(), $response->body());
 
         // شيلنا الـ dd() عشان يرجع الرد الطبيعي للسيستم ويكمل حفظ
         return $this->handleResponse($response);
