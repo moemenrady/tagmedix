@@ -70,10 +70,28 @@ class OrderService
 
     protected function validateRequest(Request $request): array
     {
+        // Clean phone numbers (remove spaces)
+        if ($request->has('phone_1')) {
+            $request->merge(['phone_1' => str_replace(' ', '', $request->input('phone_1'))]);
+        }
+        if ($request->has('phone_2')) {
+            $request->merge(['phone_2' => str_replace(' ', '', $request->input('phone_2'))]);
+        }
+
+        // Clean full_address (remove newlines and quotes)
+        $address = $request->input('address');
+        if (isset($address['full_address'])) {
+            $cleanAddress = str_replace(["\r\n", "\r", "\n", '"'], ' - ', $address['full_address']);
+            $cleanAddress = preg_replace('/\s+/', ' ', $cleanAddress);
+            $cleanAddress = preg_replace('/(\s*-\s*)+/', ' - ', $cleanAddress);
+            $address['full_address'] = trim($cleanAddress, ' -');
+            $request->merge(['address' => $address]);
+        }
+
         return $request->validate([
             'customer_name'         => 'required|string|max:255',
-            'phone_1'               => 'required|string|max:20',
-            'phone_2'               => 'nullable|string|max:20',
+            'phone_1'               => ['required', 'string', 'regex:/^01[0125][0-9]{8}$/'],
+            'phone_2'               => ['nullable', 'string', 'regex:/^01[0125][0-9]{8}$/'],
             'instagram_profile'     => 'nullable|string|max:255',
 
             'address.governorate'   => 'required|string|max:255',
@@ -97,6 +115,9 @@ class OrderService
             'items.*.quantity'      => 'required|integer|min:1',
             'items.*.price'         => 'required|numeric|min:0',
             'items.*.notes'         => 'nullable|string',
+        ], [
+            'phone_1.regex' => 'رقم الهاتف الأساسي يجب أن يكون رقم مصري صحيح (11 رقم يبدأ بـ 01).',
+            'phone_2.regex' => 'رقم الهاتف الإضافي يجب أن يكون رقم مصري صحيح (11 رقم يبدأ بـ 01).',
         ]);
     }
 

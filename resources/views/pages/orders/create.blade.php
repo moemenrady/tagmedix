@@ -640,6 +640,27 @@
                 searchResultsDropdown.classList.add('hidden');
             }
 
+            // --- Phone Inputs Auto-Cleaning ---
+            function cleanPhoneInput(e) {
+                const start = this.selectionStart;
+                const end = this.selectionEnd;
+                const originalLength = this.value.length;
+                
+                this.value = this.value.replace(/[^\d]/g, '');
+                
+                // Adjust cursor position if necessary
+                if (this.value.length < originalLength) {
+                    this.setSelectionRange(start - (originalLength - this.value.length), end - (originalLength - this.value.length));
+                } else {
+                    this.setSelectionRange(start, end);
+                }
+            }
+
+            phone1Input.addEventListener('input', cleanPhoneInput);
+            if (phone2Input) {
+                phone2Input.addEventListener('input', cleanPhoneInput);
+            }
+
             // --- Fetch & Render Customers ---
             const handleSearch = debounce(async (e) => {
                 const query = e.target.value.trim();

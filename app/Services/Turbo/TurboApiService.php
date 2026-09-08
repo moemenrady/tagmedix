@@ -2,17 +2,19 @@
 
 namespace App\Services\Turbo;
 
+use App\Integrations\Turbo\Models\Shipment;
 use Illuminate\Http\Client\PendingRequest;
 use Illuminate\Http\Client\Response;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
-use App\Integrations\Turbo\Models\Shipment;
 use RuntimeException;
 
 class TurboApiService
 {
     protected string $baseUrl;
+
     protected string|int|null $mainClientCode;
+
     protected ?string $authenticationKey;
 
     public function __construct()
@@ -65,7 +67,7 @@ class TurboApiService
 
             Log::error('Turbo API Error', [
                 'status' => $response->status(),
-                'body'   => $response->body(),
+                'body' => $response->body(),
             ]);
 
             throw new RuntimeException($errorMessage, $response->status() ?: 400);
@@ -86,36 +88,56 @@ class TurboApiService
      */
     public function addOrder(array $shipmentData): array
     {
+
+        // dd($shipmentData);
+        // 1. تنظيف العنوان وتحويل الأرقام العربية لأرقام إنجليزية
+        $cleanAddress = $shipmentData['address'] ?? null;
+        if ($cleanAddress) {
+            $arabicNumbers = ['٠', '١', '٢', '٣', '٤', '٥', '٦', '٧', '٨', '٩'];
+            $englishNumbers = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9'];
+            $cleanAddress = str_replace($arabicNumbers, $englishNumbers, $cleanAddress);
+
+            $cleanAddress = str_replace(["\r\n", "\r", "\n", '"', '\"'], ' - ', $cleanAddress);
+            $cleanAddress = preg_replace('/\s+/', ' ', $cleanAddress);
+            $cleanAddress = preg_replace('/(\s*-\s*)+/', ' - ', $cleanAddress);
+            $cleanAddress = trim($cleanAddress, ' -');
+        }
+
+        // 2. تنظيف أرقام التليفونات وضمان رجوع phone2 كـ null لو فاضي
+        $cleanPhone1 = ! empty($shipmentData['phone1']) ? preg_replace('/[^\d]/', '', $shipmentData['phone1']) : null;
+        $cleanPhone2 = ! empty($shipmentData['phone2']) ? preg_replace('/[^\d]/', '', $shipmentData['phone2']) : null;
+        $cleanApiPhone = ! empty($shipmentData['api_followup_phone']) ? preg_replace('/[^\d]/', '', $shipmentData['api_followup_phone']) : null;
+
         $payload = $this->authParams([
-            'second_client'          => $shipmentData['second_client'] ?? null,
-            'government'             => $shipmentData['government'] ?? null,
-            'area'                   => $shipmentData['area'] ?? null,
-            'address'                => $shipmentData['address'] ?? null,
-            'api_followup_phone'     => $shipmentData['api_followup_phone'] ?? null,
-            'amount_to_be_collected' => $shipmentData['amount_to_be_collected'] ?? 0,
-            // 'order_summary'          => $shipmentData['order_summary'] ?? null,
-            //   Not required for now, but can be added if needed
-            'order_summary'          => "",
-            'weight'                 => $shipmentData['weight'] ?? 1,
-            'notes'                  => $shipmentData['notes'] ?? null,
-            'delivery_type'          => $shipmentData['delivery_type'] ?? 0,
-            'remote_order_id'        => $shipmentData['remote_order_id'] ?? null,
-            'receiver'               => $shipmentData['receiver'] ?? null,
-            'phone1'                 => $shipmentData['phone1'] ?? null,
-            'phone2'                 => $shipmentData['phone2'] ?? null,
-            'is_order'               => $shipmentData['is_order'] ?? "0",
-            'is_fragile'             => $shipmentData['is_fragile'] ?? 0,
-            'return_amount'          => $shipmentData['return_amount'] ?? 0,
-            'remote_shipment_id'     => $shipmentData['remote_shipment_id'] ?? null,
-            'return_summary'         => $shipmentData['return_summary'] ?? null,
-            'invoice_number'         => $shipmentData['invoice_number'] ?? null,
-            'can_open'               => $shipmentData['can_open'] ?? 1,
-            'number_of_items'        => $shipmentData['number_of_items'] ?? 1,
+            'second_client' => $shipmentData['second_client'] ?? null,
+            'government' => $shipmentData['government'] ?? null,
+            'area' => $shipmentData['area'] ?? null,
+            'address' => $cleanAddress,
+            'api_followup_phone' => $cleanApiPhone,
+            'amount_to_be_collected' => (float) ($shipmentData['amount_to_be_collected'] ?? 0),
+            'order_summary' => 'منتجات',
+            'weight' => (float) ($shipmentData['weight'] ?? 1),
+            'notes' => $shipmentData['notes'] ?? null,
+            'delivery_type' => (int) ($shipmentData['delivery_type'] ?? 0),
+            'remote_order_id' => $shipmentData['remote_order_id'] ?? null,
+            'receiver' => $shipmentData['receiver'] ?? null,
+            'phone1' => $cleanPhone1,
+            'phone2' => $cleanPhone2,
+            'is_order' => (int) ($shipmentData['is_order'] ?? 0),
+            'is_fragile' => (int) ($shipmentData['is_fragile'] ?? 0),
+            'return_amount' => (float) ($shipmentData['return_amount'] ?? 0),
+            'remote_shipment_id' => $shipmentData['remote_shipment_id'] ?? null,
+            'return_summary' => $shipmentData['return_summary'] ?? null,
+            'invoice_number' => $shipmentData['invoice_number'] ?? null,
+            'can_open' => (int) ($shipmentData['can_open'] ?? 1),
+            'number_of_items' => (int) ($shipmentData['number_of_items'] ?? 1),
         ]);
-        // dd($payload);
 
         $response = $this->client()->post('/external-api/add-order', $payload);
 
+        dd($shipmentData, $payload, $response->status(), $response->json(), $response->body());
+
+        // شيلنا الـ dd() عشان يرجع الرد الطبيعي للسيستم ويكمل حفظ
         return $this->handleResponse($response);
     }
 
@@ -126,27 +148,27 @@ class TurboApiService
     public function editOrder(int|string $code, array $shipmentData): array
     {
         $payload = $this->authParams([
-            'code'                   => $code,
-            'second_client'          => $shipmentData['second_client'] ?? null,
-            'government'             => $shipmentData['government'] ?? null,
-            'area'                   => $shipmentData['area'] ?? null,
-            'address'                => $shipmentData['address'] ?? null,
-            'api_followup_phone'     => $shipmentData['api_followup_phone'] ?? null,
+            'code' => $code,
+            'second_client' => $shipmentData['second_client'] ?? null,
+            'government' => $shipmentData['government'] ?? null,
+            'area' => $shipmentData['area'] ?? null,
+            'address' => $shipmentData['address'] ?? null,
+            'api_followup_phone' => $shipmentData['api_followup_phone'] ?? null,
             'amount_to_be_collected' => $shipmentData['amount_to_be_collected'] ?? 0,
-            'order_summary'          => $shipmentData['order_summary'] ?? null,
-            'weight'                 => $shipmentData['weight'] ?? 1,
-            'notes'                  => $shipmentData['notes'] ?? null,
-            'delivery_type'          => $shipmentData['delivery_type'] ?? 0,
-            'remote_order_id'        => $shipmentData['remote_order_id'] ?? null,
-            'receiver'               => $shipmentData['receiver'] ?? null,
-            'phone1'                 => $shipmentData['phone1'] ?? null,
-            'phone2'                 => $shipmentData['phone2'] ?? null,
-            'is_order'               => $shipmentData['is_order'] ?? 1,
-            'is_fragile'             => $shipmentData['is_fragile'] ?? 0,
-            'return_amount'          => $shipmentData['return_amount'] ?? 0,
-            'return_summary'         => $shipmentData['return_summary'] ?? null,
-            'can_open'               => $shipmentData['can_open'] ?? 1,
-            'number_of_items'        => $shipmentData['number_of_items'] ?? 1,
+            'order_summary' => $shipmentData['order_summary'] ?? null,
+            'weight' => $shipmentData['weight'] ?? 1,
+            'notes' => $shipmentData['notes'] ?? null,
+            'delivery_type' => $shipmentData['delivery_type'] ?? 0,
+            'remote_order_id' => $shipmentData['remote_order_id'] ?? null,
+            'receiver' => $shipmentData['receiver'] ?? null,
+            'phone1' => $shipmentData['phone1'] ?? null,
+            'phone2' => $shipmentData['phone2'] ?? null,
+            'is_order' => $shipmentData['is_order'] ?? 1,
+            'is_fragile' => $shipmentData['is_fragile'] ?? 0,
+            'return_amount' => $shipmentData['return_amount'] ?? 0,
+            'return_summary' => $shipmentData['return_summary'] ?? null,
+            'can_open' => $shipmentData['can_open'] ?? 1,
+            'number_of_items' => $shipmentData['number_of_items'] ?? 1,
         ]);
 
         $response = $this->client()->post('/external-api/edit-order', $payload);
@@ -162,7 +184,7 @@ class TurboApiService
     {
         $payload = [
             'authentication_key' => $this->authenticationKey,
-            'id'                 => $id,
+            'id' => $id,
         ];
 
         $response = $this->client()->post('/external-api/canceled', $payload);
@@ -178,7 +200,7 @@ class TurboApiService
     {
         $payload = $this->authParams([
             'from' => $from,
-            'to'   => $to,
+            'to' => $to,
         ]);
 
         $response = $this->client()->post('/external-api/get-status', $payload);
@@ -206,7 +228,7 @@ class TurboApiService
             ->orWhere('id', $remoteOrderId)
             ->first();
 
-        if (!$shipment) {
+        if (! $shipment) {
             return ['success' => false, 'message' => 'Shipment not found.'];
         }
 

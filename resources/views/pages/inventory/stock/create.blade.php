@@ -305,6 +305,39 @@
         </form>
     </div>
 
+    <!-- نافذة إضافة لون -->
+    <div id="addColorModal" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl max-w-md w-full border border-gray-200 shadow-2xl overflow-hidden flex flex-col animate-slide-up">
+            <div class="bg-[#8A704C] text-white p-4 flex justify-between items-center">
+                <h3 class="font-bold text-base flex items-center gap-2">
+                    <i class="fa-solid fa-palette"></i> إضافة لون جديد
+                </h3>
+                <button type="button" onclick="document.getElementById('addColorModal').classList.add('hidden')" class="text-white/80 hover:text-white transition-colors cursor-pointer">
+                    <i class="fa-solid fa-xmark fa-lg"></i>
+                </button>
+            </div>
+            
+            <form id="addColorForm" class="p-6 flex flex-col gap-4">
+                <div>
+                    <label class="block text-sm font-bold text-gray-700 mb-1">اسم اللون</label>
+                    <input type="text" name="name" id="new_color_name" required class="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#8A704C]">
+                </div>
+                <div>
+                    <label class="block text-sm font-bold text-gray-700 mb-1">المعرف (Identifier)</label>
+                    <input type="text" name="identifier" id="new_color_identifier" required class="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#8A704C]" placeholder="مثال: COLOR-RED">
+                </div>
+                <div class="mt-4 flex gap-3">
+                    <button type="button" id="saveColorBtn" class="flex-1 bg-[#8A704C] hover:bg-yellow-800 text-white font-bold py-3 rounded-xl transition-colors cursor-pointer">
+                        حفظ
+                    </button>
+                    <button type="button" onclick="document.getElementById('addColorModal').classList.add('hidden')" class="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-800 font-bold py-3 rounded-xl transition-colors cursor-pointer">
+                        إلغاء
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
     <!-- نافذة المراجعة (Review Modal) الذكية -->
     <div id="reviewModal" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
         <div class="bg-white rounded-2xl max-w-2xl w-full border border-gray-200 shadow-2xl overflow-hidden flex flex-col max-h-[90vh] animate-slide-up">
@@ -501,6 +534,61 @@
 
             // تشغيل التهيئة الأولية
             handleCategoryChange();
+
+            // حفظ اللون الجديد عبر AJAX
+            document.getElementById('saveColorBtn').addEventListener('click', async function() {
+                const btn = this;
+                const nameInput = document.getElementById('new_color_name');
+                const identifierInput = document.getElementById('new_color_identifier');
+                
+                if (!nameInput.value || !identifierInput.value) {
+                    alert('يرجى تعبئة جميع الحقول المطلوبة');
+                    return;
+                }
+
+                btn.disabled = true;
+                btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> جاري الحفظ...';
+
+                try {
+                    const response = await fetch('{{ route("colors.store") }}', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRF-TOKEN': document.querySelector('input[name="_token"]').value,
+                            'Accept': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            name: nameInput.value,
+                            identifier: identifierInput.value
+                        })
+                    });
+
+                    const data = await response.json();
+
+                    if (response.ok && data.success) {
+                        // إضافة اللون الجديد للقائمة واختياره
+                        const select = document.getElementById('main_color_id');
+                        const option = document.createElement('option');
+                        option.value = data.color.id;
+                        option.text = data.color.name;
+                        option.selected = true;
+                        select.appendChild(option);
+                        
+                        // إغلاق النافذة وتفريغ الحقول
+                        document.getElementById('addColorModal').classList.add('hidden');
+                        document.getElementById('addColorForm').reset();
+                    } else {
+                        // عرض خطأ
+                        alert(data.message || 'حدث خطأ أثناء حفظ اللون. قد يكون المعرف مستخدماً مسبقاً.');
+                    }
+                } catch (error) {
+                    console.error('Error saving color:', error);
+                    alert('حدث خطأ في الاتصال بالخادم.');
+                } finally {
+                    btn.disabled = false;
+                    btn.innerHTML = 'حفظ';
+                }
+            });
         });
     </script>
 @endsection

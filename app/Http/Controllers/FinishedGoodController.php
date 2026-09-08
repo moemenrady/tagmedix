@@ -552,9 +552,9 @@ class FinishedGoodController extends Controller
         |--------------------------------------------------------------------------
         */
 
-            $order->update([
-                'status' => 'shipped',
-            ]);
+            // $order->update([
+            //     'status' => 'shipped',
+            // ]);
 
             /*
         |--------------------------------------------------------------------------

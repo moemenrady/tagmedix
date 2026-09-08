@@ -1,0 +1,60 @@
+array:22 [▼ // app/Services/Turbo/TurboApiService.php:90
+  "second_client" => "Tagmedix"
+  "government" => "الجيزة"
+  "area" => "شارع الهرم"
+  "address" => "test add"
+  "api_followup_phone" => "01223237666"
+  "amount_to_be_collected" => 595.0
+  "order_summary" => "1x تصميم modern"
+  "weight" => 1.0
+  "notes" => null
+  "delivery_type" => "0"
+  "remote_order_id" => "ORD-00353"
+  "receiver" => "test ziad"
+  "phone1" => "01223237666"
+  "phone2" => "01234567890"
+  "is_order" => "0"
+  "is_fragile" => 0
+  "return_amount" => 95.0
+  "remote_shipment_id" => null
+  "return_summary" => null
+  "invoice_number" => "ORD-00353"
+  "can_open" => 1
+  "number_of_items" => 1] order 2 'the having problem is '
+  
+  
+  
+  
+  
+   array:22 [▼ // app/Services/Turbo/TurboApiService.php:90
+  "second_client" => "Tagmedix"
+  "government" => "الجيزة"
+  "area" => "شارع الهرم"
+  "address" => """
+    ١٦ شارع خالد امين بجوار معهد القاهره التعليمي-التعاون الهرم
+    Giza
+    EGC
+    Egypt
+    """
+  "api_followup_phone" => "012 11029987"
+  "amount_to_be_collected" => 845.0
+  "order_summary" => "1x Short sleeves basic top, 1x تصميم 13"
+  "weight" => 1.0
+  "notes" => null
+  "delivery_type" => "0"
+  "remote_order_id" => "ORD-00327"
+  "receiver" => "Monica Maher"
+  "phone1" => "012 11029987"
+  "phone2" => ""
+  "is_order" => "0"
+  "is_fragile" => 0
+  "return_amount" => 95.0
+  "remote_shipment_id" => null
+  "return_summary" => null
+  "invoice_number" => "ORD-00327"
+  "can_open" => 1
+  "number_of_items" => 2]
+
+
+
+  "address" => "١٦ شارع خالد امين بجوار معهد القاهره التعليمي-التعاون الهرم - Giza - EGC - Egypt"
