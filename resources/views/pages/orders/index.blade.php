@@ -72,7 +72,7 @@
                     <div>
                         <p class="text-gray-500 text-xs font-medium mb-1">قيد التجهيز</p>
                         <h3 class="text-2xl font-black text-gray-800">
-                            {{ \App\Models\Order::whereIn('status', ['confirmed', 'cutting', 'sewing', 'finishing', 'ready-to-ship'])->count() ?? 0 }}
+                            {{ \App\Models\Order::whereIn('status', ['new', 'cutting', 'sewing',  'ready-to-ship'])->count() ?? 0 }}
                         </h3>
                     </div>
                     <div class="w-12 h-12 rounded-2xl bg-blue-50 flex items-center justify-center text-blue-600">

@@ -2,6 +2,7 @@
 
 namespace App\Modules\Inventory\Services;
 
+use App\Modules\Inventory\Models\InventoryFinishedProduct;
 use App\Modules\Inventory\Models\InventoryItem;
 use App\Modules\Inventory\Models\InventoryItemVariant;
 use App\Modules\Inventory\Models\InventoryStock;
@@ -10,14 +11,19 @@ use Illuminate\Database\Eloquent\Collection;
 
 final class InventoryDashboardService
 {
-    public function getDashboardData(): array
-    {
-        return [
-            'stats' => $this->getStats(),
-            'items' => $this->getItems(),
-        ];
-    }
+public function getDashboardData(): array
+{
+    // جلب المنتجات الجاهزة مع علاقاتها كاملة
+    $finishedProducts = InventoryFinishedProduct::with([
+        'item', 'variant.color', 'pantType', 'type', 'style', 'color', 'size', 'sleeveType'
+    ])->where('is_active', true)->get();
 
+    return [
+        'stats' => $this->getStats(),
+        'items' => $this->getItems(), // المخزون العادي
+        'finished_products' => $finishedProducts, // المخزون الجاهز
+    ];
+}
     private function getStats(): array
     {
         return [

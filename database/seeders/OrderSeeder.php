@@ -14,6 +14,7 @@ use App\Models\Style;
 use App\Models\Type;
 use App\Models\User;
 use App\Integrations\Turbo\Models\Shipment;
+use App\Models\SleeveType;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Str;
 
@@ -79,6 +80,18 @@ class OrderSeeder extends Seeder
         foreach ($sizes as $sz) {
             Size::firstOrCreate(['identifier' => $sz['identifier']], $sz);
         }
+        // 6. Seed Sleeve Types if empty
 
+        $sleeveTypes = [
+            ['name' => 'نص', 'identifier' => 'SLEEVE-SHORT'],
+            ['name' => 'كم', 'identifier' => 'SLEEVE-LONG'],
+        ];
+
+        foreach ($sleeveTypes as $sleeveType) {
+            SleeveType::firstOrCreate(
+                ['identifier' => $sleeveType['identifier']],
+                $sleeveType
+            );
+        }
     }
 }

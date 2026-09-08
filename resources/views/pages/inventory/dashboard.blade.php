@@ -489,7 +489,192 @@
             </div>
 
         </div>
+        <!-- استدعاء Alpine.js -->
+        <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
 
+        <div class="max-w-7xl mx-auto space-y-6 p-4 sm:p-6 text-darkText font-sans" x-data="finishedProductsDashboard(@js($finished_products ?? []))">
+
+            <!-- رأس الصفحة والفلاتر -->
+            <div class="bg-white p-5 rounded-2xl border border-secondaryCream shadow-sm space-y-4">
+                <div class="flex flex-col md:flex-row justify-between items-center gap-4">
+                    <div>
+                        <h1 class="text-2xl font-bold flex items-center gap-2 text-primaryBrown">
+                            <i class="fa-solid fa-shirt"></i> المنتجات الجاهزة (Finished Products)
+                        </h1>
+                        <p class="text-xs sm:text-sm text-mutedBrown mt-1">
+                            استعراض الأرصدة الحالية للمنتجات النهائية وتفاصيل التكلفة لكل قطعة.
+                        </p>
+                    </div>
+
+                    <!-- البحث السريع -->
+                    <div class="relative w-full md:w-1/3">
+                        <i class="fa-solid fa-magnifying-glass absolute right-3.5 top-3 text-gray-400 text-sm"></i>
+                        <input x-model="searchQuery" type="text" placeholder="بحث بكود المنتج أو اسم الصنف..."
+                            class="w-full bg-gray-50 border border-gray-200 rounded-xl pr-9 pl-3 py-2 text-sm focus:outline-none focus:border-[#8A704C] transition-colors">
+                    </div>
+                </div>
+            </div>
+
+            <!-- شبكة الكروت (متجاوبة بالكامل) -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                <template x-for="product in filteredProducts" :key="product.id">
+                    <div @click="openModal(product)"
+                        class="bg-white rounded-2xl border border-gray-200 shadow-sm p-4 cursor-pointer hover:shadow-md hover:border-[#8A704C] transition-all relative">
+
+                        <div class="flex justify-between items-start mb-3">
+                            <span
+                                class="bg-blue-50 text-blue-700 px-2 py-1 rounded-md text-[10px] font-bold border border-blue-100"
+                                x-text="product.product_code || 'بدون كود'"></span>
+                            <span class="w-4 h-4 rounded-full border border-gray-200 shadow-sm"
+                                :style="`background-color: ${product.color?.hex_code || '#ccc'}`"
+                                :title="product.color?.name || 'لون غير محدد'"></span>
+                        </div>
+
+                        <h3 class="font-bold text-gray-800 text-sm mb-1 truncate"
+                            x-text="product.item?.name || 'صنف غير محدد'"></h3>
+                        <p class="text-xs text-gray-500 mb-3" x-text="product.type?.name || 'نوع غير محدد'"></p>
+
+                        <div class="flex justify-between items-center pt-3 border-t border-gray-100">
+                            <div class="text-center">
+                                <span class="block text-[10px] text-gray-400 font-bold mb-0.5">الكمية</span>
+                                <span class="font-black text-gray-800" x-text="product.quantity || 0"></span>
+                            </div>
+                            <div class="text-center">
+                                <span class="block text-[10px] text-gray-400 font-bold mb-0.5">التكلفة</span>
+                                <span class="font-bold text-emerald-600" x-text="(product.unit_cost || 0) + ' ج.م'"></span>
+                            </div>
+                        </div>
+                    </div>
+                </template>
+
+                <!-- حالة عدم وجود بيانات (Empty State) -->
+                <div x-show="filteredProducts.length === 0"
+                    class="col-span-full bg-white rounded-2xl border border-gray-200 text-center py-12 text-gray-400">
+                    <i class="fa-solid fa-box-open text-4xl mb-3 block text-gray-300"></i>
+                    <p class="font-bold text-gray-500">لا توجد منتجات جاهزة تطابق بحثك حالياً.</p>
+                </div>
+            </div>
+
+            <!-- مودال التفاصيل (Modal) -->
+            <div x-show="isModalOpen" x-transition.opacity
+                class="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 backdrop-blur-sm" x-cloak
+                style="display: none;">
+                <div @click.away="closeModal()" class="bg-white rounded-2xl w-full max-w-2xl overflow-hidden shadow-2xl"
+                    x-transition.scale>
+
+                    <!-- رأس المودال -->
+                    <div class="bg-[#8A704C] text-white p-4 flex justify-between items-center">
+                        <h3 class="font-bold text-base flex items-center gap-2">
+                            <i class="fa-solid fa-tags"></i> تفاصيل المنتج
+                            <span class="bg-white/20 px-2 py-0.5 rounded text-sm ml-2"
+                                x-text="selectedProduct?.product_code"></span>
+                        </h3>
+                        <button type="button" @click="closeModal()"
+                            class="text-white/80 hover:text-white transition-colors cursor-pointer">
+                            <i class="fa-solid fa-xmark text-lg"></i>
+                        </button>
+                    </div>
+
+                    <!-- محتوى المودال -->
+                    <div class="p-6" x-if="selectedProduct">
+                        <div class="flex items-center gap-3 mb-6 pb-4 border-b border-gray-100">
+                            <span class="w-8 h-8 rounded-full border-2 border-gray-200 shadow-sm flex-shrink-0"
+                                :style="`background-color: ${selectedProduct?.color?.hex_code || '#ccc'}`"></span>
+                            <div>
+                                <h4 class="font-bold text-lg text-gray-800"
+                                    x-text="selectedProduct?.item?.name || 'صنف غير محدد'"></h4>
+                                <p class="text-xs text-gray-500" x-text="selectedProduct?.color?.name || 'لون غير محدد'"></p>
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                            <div class="bg-gray-50 p-3 rounded-xl border border-gray-100 text-center">
+                                <span class="text-[10px] font-bold text-gray-400 block mb-1">النوع</span>
+                                <span class="font-bold text-sm text-gray-700"
+                                    x-text="selectedProduct?.type?.name || '-'"></span>
+                            </div>
+                            <div class="bg-gray-50 p-3 rounded-xl border border-gray-100 text-center">
+                                <span class="text-[10px] font-bold text-gray-400 block mb-1">المقاس</span>
+                                <span class="font-bold text-sm text-gray-700"
+                                    x-text="selectedProduct?.size?.name || '-'"></span>
+                            </div>
+                            <div class="bg-gray-50 p-3 rounded-xl border border-gray-100 text-center">
+                                <span class="text-[10px] font-bold text-gray-400 block mb-1">نوع البنطلون</span>
+                                <span class="font-bold text-sm text-gray-700"
+                                    x-text="selectedProduct?.pant_type?.name || '-'"></span>
+                            </div>
+                            <div class="bg-gray-50 p-3 rounded-xl border border-gray-100 text-center">
+                                <span class="text-[10px] font-bold text-gray-400 block mb-1">الستايل</span>
+                                <span class="font-bold text-sm text-gray-700"
+                                    x-text="selectedProduct?.style?.name || '-'"></span>
+                            </div>
+
+                            <div
+                                class="bg-emerald-50 p-4 rounded-xl border border-emerald-100 col-span-2 md:col-span-2 flex flex-col justify-center items-center">
+                                <span class="text-[11px] font-bold text-emerald-600 block mb-1">تكلفة الوحدة (Unit Cost)</span>
+                                <span class="font-black text-xl text-emerald-700"
+                                    x-text="(selectedProduct?.unit_cost || 0) + ' ج.م'"></span>
+                            </div>
+                            <div
+                                class="bg-blue-50 p-4 rounded-xl border border-blue-100 col-span-2 md:col-span-2 flex flex-col justify-center items-center">
+                                <span class="text-[11px] font-bold text-blue-600 block mb-1">إجمالي التكلفة (Total Cost)</span>
+                                <span class="font-black text-xl text-blue-700"
+                                    x-text="(selectedProduct?.total_cost || 0) + ' ج.م'"></span>
+                            </div>
+                        </div>
+
+                        <!-- أزرار الإجراءات داخل المودال -->
+                        <div class="mt-6 pt-4 border-t border-gray-100 flex justify-end gap-2">
+                            <button @click="closeModal()"
+                                class="px-4 py-2 bg-gray-100 text-gray-700 text-sm font-bold rounded-xl hover:bg-gray-200 transition-colors">
+                                إغلاق
+                            </button>
+                            <!-- يمكن تفعيل هذا الزر لاحقاً للانتقال لصفحة التعديل أو حركة المخزون -->
+                            <!--
+                            <a :href="`/inventory/finished-products/${selectedProduct?.id}/edit`" class="px-4 py-2 bg-[#8A704C] text-white text-sm font-bold rounded-xl hover:bg-[#735d3f] transition-colors">
+                                تعديل المنتج
+                            </a>
+                            -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <script>
+            document.addEventListener('alpine:init', () => {
+                Alpine.data('finishedProductsDashboard', (initialProducts) => ({
+                    products: initialProducts,
+                    searchQuery: '',
+                    isModalOpen: false,
+                    selectedProduct: null,
+
+                    get filteredProducts() {
+                        if (this.searchQuery.trim() === '') return this.products;
+
+                        const query = this.searchQuery.toLowerCase();
+                        return this.products.filter(p => {
+                            const codeMatch = p.product_code && p.product_code.toLowerCase()
+                                .includes(query);
+                            const nameMatch = p.item && p.item.name && p.item.name.toLowerCase()
+                                .includes(query);
+                            return codeMatch || nameMatch;
+                        });
+                    },
+                    openModal(product) {
+                        this.selectedProduct = product;
+                        this.isModalOpen = true;
+                        document.body.style.overflow = 'hidden'; // لمنع التمرير في الخلفية
+                    },
+                    closeModal() {
+                        this.isModalOpen = false;
+                        document.body.style.overflow = 'auto'; // استعادة التمرير
+                        setTimeout(() => this.selectedProduct = null,
+                        300); // تنظيف الداتا بعد انتهاء الأنيميشن
+                    }
+                }));
+            });
+        </script>
         <!-- Vanilla JS Implementation -->
         <script>
             document.addEventListener('DOMContentLoaded', function() {

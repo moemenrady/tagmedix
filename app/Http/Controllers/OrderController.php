@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Integrations\Turbo\Services\TurboService;
 use App\Models\Color;
+use App\Models\Government;
 use App\Models\Order;
 use App\Models\OrderItem;
 use App\Models\PantType;
@@ -25,44 +26,44 @@ class OrderController extends Controller
         $this->orderService = $orderService;
     }
 
-   public function show($id)
-{
-    $order = Order::with([
-        'customer',
-        'address',
+    public function show($id)
+    {
+        $order = Order::with([
+            'customer',
+            'address',
 
-        'items.type',
-        'items.style',
-        'items.color',
-        'items.size',
-        'items.pantType',
-        'items.sleeveType',
+            'items.type',
+            'items.style',
+            'items.color',
+            'items.size',
+            'items.pantType',
+            'items.sleeveType',
 
-        'payments.creator',
-    ])
-        ->withSum('payments', 'amount')
-        ->findOrFail($id);
+            'payments.creator',
+        ])
+            ->withSum('payments', 'amount')
+            ->findOrFail($id);
 
-    $colors = Color::all();
-    $sizes = Size::all();
-    $styles = Style::all();
-    $types = Type::all();
-    $pantTypes = PantType::all();
-    $sleeveTypes = SleeveType::all();
+        $colors = Color::all();
+        $sizes = Size::all();
+        $styles = Style::all();
+        $types = Type::all();
+        $pantTypes = PantType::all();
+        $sleeveTypes = SleeveType::all();
 
-    return view(
-        'pages.orders.show',
-        compact(
-            'order',
-            'colors',
-            'sizes',
-            'styles',
-            'types',
-            'pantTypes',
-            'sleeveTypes'
-        )
-    );
-}
+        return view(
+            'pages.orders.show',
+            compact(
+                'order',
+                'colors',
+                'sizes',
+                'styles',
+                'types',
+                'pantTypes',
+                'sleeveTypes'
+            )
+        );
+    }
 
     public function index(Request $request)
     {
@@ -195,16 +196,25 @@ class OrderController extends Controller
         $pantTypes = PantType::all();
         $sleeveType = SleeveType::all();
 
-        $governments = [];
+        $finishedProducts = \Illuminate\Support\Facades\DB::table('inventory_finished_products')
+            ->join('inventory_items', 'inventory_finished_products.inventory_item_id', '=', 'inventory_items.id')
+            ->where('inventory_finished_products.is_active', true)
+            ->select(
+                'inventory_finished_products.id',
+                'inventory_finished_products.product_code',
+                'inventory_items.name as product_name',
+                'inventory_finished_products.pant_type_id',
+                'inventory_finished_products.type_id',
+                'inventory_finished_products.style_id',
+                'inventory_finished_products.color_id',
+                'inventory_finished_products.size_id',
+                'inventory_finished_products.sleeve_type_id',
+                'inventory_finished_products.quantity as available_qty'
+            )->get();
 
-        try {
-            $response = $turboService->getGovernments();
-            // استخراج البيانات من feed أو data أو المفتاح الرئيسي
-            $governments = $response['feed'] ?? $response['data'] ?? (is_array($response) ? $response : []);
-        } catch (\Throwable $e) {
-            \Log::error('Turbo API Error: ' . $e->getMessage());
-        }
+        $governments = Government::select('id', 'name')->get();
 
+     
         return view('pages.orders.create', compact(
             'colors',
             'sizes',
@@ -212,22 +222,21 @@ class OrderController extends Controller
             'types',
             'pantTypes',
             'governments',
-            'sleeveType'
+            'sleeveType',
+            'finishedProducts',
         ));
     }
-
-    public function getAreasByGovernment($governmentId, TurboService $turboService)
+    public function getAreasByGovernment($governmentId) // تم إزالة حقن TurboService
     {
         try {
-            $response = $turboService->getAreas($governmentId);
-
-            // استخراج المناطق من feed مباشرة
-            $areas = $response['feed'] ?? $response['data'] ?? [];
+            // سحب المناطق المرتبطة بالمحافظة من داتابيز سيرفرك
+            $areas = \App\Models\Area::where('government_id', $governmentId)
+                ->select('id', 'name')
+                ->get();
 
             return response()->json($areas);
         } catch (\Throwable $e) {
-            \Log::error('Turbo Areas API Error: ' . $e->getMessage());
-
+            \Log::error('Local Areas Fetch Error: ' . $e->getMessage());
             return response()->json(['error' => 'Failed to fetch areas'], 500);
         }
     }
@@ -235,42 +244,17 @@ class OrderController extends Controller
     public function store(Request $request)
     {
         try {
-            // 1. التحرُّك والتحقق من البيانات الأساسية الأول
-            $validatedData = $request->validate([
-                'customer_name' => 'required|string|max:255',
-                'phone_1' => 'required|string|max:20',
-                'address.governorate' => 'required|string',
-                'address.area' => 'required|string',
-                'address.full_address' => 'required|string|max:500',
-                'items' => 'required|array|min:1',
-            ]);
-
-            $address = $request->input('address', []);
-            $isInternational = ($address['governorate'] ?? '') === 'شحن دولي';
-
-            // 2. تجهيز مصفوفة العنوان حسب نوع الشحن
-            $addressPayload = [
-                'country' => $isInternational ? 'دولى' : 'مصر',
-                'governorate' => $address['governorate'] ?? '',
-                'city' => $isInternational ? 'شحن دولي' : ($address['area'] ?? ''),
-                'full_address' => $address['full_address'] ?? '',
-            ];
-
-            // دمج البيانات المعدلة في الـ Request
-            $request->merge(['address' => $addressPayload]);
-
-            // 3. الحفظ في الداتابيز
             $order = $this->orderService->store($request);
 
             return redirect()
                 ->route('orders.index')
                 ->with('success', 'تم إنشاء الطلب بنجاح');
         } catch (ValidationException $e) {
-            throw $e; // بيرجعك للفورم مع الأخطاء
+            throw $e; // يعيد المستخدم للفورم مع إبقاء البيانات القديمة كاملة
         } catch (\Throwable $e) {
             return back()
                 ->withInput()
-                ->with('fail', 'حدث خطأ: ' . $e->getMessage());
+                ->with('fail', 'حدث خطأ أثناء الحفظ: ' . $e->getMessage());
         }
     }
 
@@ -288,7 +272,7 @@ class OrderController extends Controller
         ]);
     }
 
-   public function update(Request $request, $id)
+    public function update(Request $request, $id)
     {
         $order = Order::with(['items', 'payments', 'customer', 'address'])->findOrFail($id);
 
@@ -314,16 +298,13 @@ class OrderController extends Controller
             if ($request->has('status')) {
                 $order->update(['status' => $request->status]);
                 $message = 'تم تحديث حالة الطلب بنجاح';
-            } 
-            elseif ($request->has('customer_info')) {
+            } elseif ($request->has('customer_info')) {
                 $this->updateCustomerData($order, $request->customer_info);
                 $message = 'تم تحديث بيانات العميل بنجاح';
-            } 
-            elseif ($request->has('update_financials')) {
+            } elseif ($request->has('update_financials')) {
                 $this->updateOrderFinancials($order, $request->paid_amount);
                 $message = 'تم تحديث المدفوعات بنجاح';
-            } 
-            elseif ($request->has('sync_items')) {
+            } elseif ($request->has('sync_items')) {
                 $this->syncOrderItems($order, $request->sync_items);
                 $message = 'تم تحديث منتجات الطلب بنجاح';
             } else {
@@ -338,7 +319,6 @@ class OrderController extends Controller
                 'message' => $message,
                 'order' => $order->fresh(['items.type', 'items.style', 'items.color', 'items.size', 'customer', 'address']),
             ]);
-
         } catch (\Exception $e) {
             DB::rollBack();
             return response()->json(['success' => false, 'message' => $e->getMessage()], 500);
@@ -374,7 +354,7 @@ class OrderController extends Controller
     {
         // حذف الدفعات القديمة المرتبطة وتسجيل الدفعة الجديدة
         $order->payments()->delete();
-        
+
         if ($newPaidAmount > 0) {
             $order->payments()->create([
                 'type'         => 'order_advance',
@@ -416,7 +396,7 @@ class OrderController extends Controller
                 'total'          => $itemTotal,
                 'notes'          => $item['notes'] ?? null,
             ]);
-            
+
             $totalPrice += $itemTotal;
         }
 

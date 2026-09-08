@@ -12,129 +12,106 @@ use Throwable;
 class OrderService
 {
     public function __construct(
-        protected PaymentService $paymentService
+        protected PaymentService $paymentService,
+        protected CustomerService $customerService
     ) {}
 
     public function store(Request $request): Order
     {
         $validated = $this->validateRequest($request);
 
-        try {
-            return DB::transaction(function () use ($validated): Order {
-                $customer = $this->createCustomer($validated['customer']);
-                $order = $this->createOrder($validated, $customer);
-                $this->createOrderAddress($validated['address'], $customer, $order);
-                $calculatedTotal = $this->createOrderItems($order, $validated['items']);
-                $this->updateOrderTotal($order, $calculatedTotal);
-                $this->createPaymentIfNeeded($order, $validated['paid_amount'] ?? 0);
+        return DB::transaction(function () use ($validated): Order {
+            // 1. إنشاء/تحديث العميل في سجل العملاء العام
+            $customer = $this->customerService->upsertCustomer($validated);
 
-                return $order->load([
-                    'customer',
-                    'address',
-                    'items',
-                    'payments',
-                ]);
-            });
-        } catch (Throwable $exception) {
-            report($exception);
+            // 2. توليد رقم طلب آمن عبر القفل التسلسلي (Pessimistic Locking)
+            $orderNumber = $this->generateUniqueOrderNumber();
 
-            throw $exception;
-        }
+            // 3. إنشاء الطلب وتخزين الـ Snapshot الخاص بالعميل
+            $order = Order::create([
+                'customer_id'         => $customer->id,
+                'order_number'        => $orderNumber,
+                'customer_name'       => $validated['customer_name'],
+                'customer_phone_1'    => $validated['phone_1'],
+                'customer_phone_2'    => $validated['phone_2'] ?? null,
+                'customer_instagram'  => $validated['instagram_profile'] ?? null,
+                'source'              => $validated['source'],
+                'status'              => $validated['status'] ?? 'new',
+                'total_price'         => 0,
+                'shipping_due_amount' => $validated['shipping_due_amount'] ?? 0,
+                'return_due_amount'   => $validated['return_due_amount'] ?? 0,
+                'order_contents'      => $validated['order_contents'] ?? null,
+            ]);
+
+            // 4. إنشاء snapshot مستقل لعنوان هذا الطلب تحديداً
+            $this->createOrderAddressSnapshot($validated, $customer, $order);
+
+            // 5. إنشاء عناصر الطلب وحساب الإجمالي
+            $calculatedTotal = $this->createOrderItems($order, $validated['items']);
+
+            $order->update(['total_price' => $calculatedTotal]);
+
+            // 6. إضافة الدفعات إن وجدت
+            $paidAmount = $validated['paid_amount'] ?? 0;
+            $this->createPaymentIfNeeded($order, $paidAmount);
+
+            return $order->load(['customer', 'address', 'items', 'payments']);
+        });
+    }
+
+    protected function generateUniqueOrderNumber(): string
+    {
+        // استخدام lockForUpdate لمنع قراءة نفس الرقم أثناء الإنشاء المتزامن
+        $lastOrder = Order::query()->lockForUpdate()->orderBy('id', 'desc')->first();
+        $nextId = $lastOrder ? $lastOrder->id + 1 : 1;
+
+        return 'ORD-' . str_pad($nextId, 5, '0', STR_PAD_LEFT);
     }
 
     protected function validateRequest(Request $request): array
     {
-        if (!$request->has('customer') && $request->has('customer_name')) {
-            $request->merge([
-                'customer' => [
-                    'name' => $request->input('customer_name'),
-                    'phone_1' => $request->input('phone_1'),
-                    'phone_2' => $request->input('phone_2'),
-                    'instagram_profile' => $request->input('instagram_profile'),
-                ]
-            ]);
-        }
-
-        if (!$request->has('address') && ($request->has('governorate') || $request->has('full_address'))) {
-            $request->merge([
-                'address' => [
-                    'country' => $request->input('country', 'مصر'),
-                    'governorate' => $request->input('governorate'),
-                    'city' => $request->input('city', $request->input('governorate', 'القاهرة')),
-                    'full_address' => $request->input('full_address'),
-                ]
-            ]);
-        }
-
         return $request->validate([
-            'customer' => 'required|array',
-            'customer.name' => 'required|string|max:255',
-            'customer.phone_1' => 'required|string|max:20',
-            'customer.phone_2' => 'nullable|string|max:20',
-            'customer.instagram_profile' => 'nullable|string|max:255',
+            'customer_name'         => 'required|string|max:255',
+            'phone_1'               => 'required|string|max:20',
+            'phone_2'               => 'nullable|string|max:20',
+            'instagram_profile'     => 'nullable|string|max:255',
 
-            'address' => 'required|array',
-            'address.country' => 'required|string|max:255',
-            'address.governorate' => 'required|string|max:255',
-            'address.city' => 'required|string|max:255',
-            'address.full_address' => 'required|string',
+            'address.governorate'   => 'required|string|max:255',
+            'address.area'          => 'required|string|max:255',
+            'address.full_address'  => 'required|string|max:500',
 
-            'source' => 'required|in:new,from_stock,replacement',
-            'status' => 'nullable|in:new,confirmed',
-            'paid_amount' => 'nullable|numeric|min:0',
-            'shipping_due_amount' => 'nullable|numeric|min:0',
-            'return_due_amount' => 'nullable|numeric|min:0',
-            'order_contents' => 'nullable|string',
+            'source'                => 'required|in:new,from_stock,replacement',
+            'status'                => 'nullable|in:new,confirmed',
+            'paid_amount'           => 'nullable|numeric|min:0',
+            'shipping_due_amount'   => 'nullable|numeric|min:0',
+            'return_due_amount'     => 'nullable|numeric|min:0',
+            'order_contents'        => 'nullable|string',
 
-            'items' => 'required|array|min:1',
-            'items.*.style_id' => 'nullable|exists:styles,id',
-            'items.*.color_id' => 'nullable|exists:colors,id',
-            'items.*.size_id' => 'nullable|exists:sizes,id',
-            'items.*.type_id' => 'nullable|exists:types,id',
-            'items.*.pant_type_id' => 'nullable|exists:pant_types,id',
+            'items'                 => 'required|array|min:1',
+            'items.*.style_id'      => 'nullable|exists:styles,id',
+            'items.*.color_id'      => 'nullable|exists:colors,id',
+            'items.*.size_id'       => 'nullable|exists:sizes,id',
+            'items.*.type_id'       => 'nullable|exists:types,id',
+            'items.*.pant_type_id'  => 'nullable|exists:pant_types,id',
             'items.*.sleeve_type_id' => 'nullable|exists:sleeve_types,id',
-            'items.*.quantity' => 'required|integer|min:1',
-            'items.*.price' => 'required|numeric|min:0',
-            'items.*.notes' => 'nullable|string',
+            'items.*.quantity'      => 'required|integer|min:1',
+            'items.*.price'         => 'required|numeric|min:0',
+            'items.*.notes'         => 'nullable|string',
         ]);
     }
 
-    protected function createCustomer(array $customerData): Customer
+    protected function createOrderAddressSnapshot(array $data, Customer $customer, Order $order): CustomerOrderAddress
     {
-        return Customer::firstOrCreate(
-            [
-                'phone_1' => $customerData['phone_1'],
-                'name' => $customerData['name'],
-            ],
-            [
-                'phone_2' => $customerData['phone_2'] ?? null,
-                'instagram_profile' => $customerData['instagram_profile'] ?? null,
-            ]
-        );
-    }
+        $address = $data['address'];
+        $isInternational = ($address['governorate'] ?? '') === 'شحن دولي';
 
-    protected function createOrder(array $validatedData, Customer $customer): Order
-    {
-        return Order::create([
-            'customer_id' => $customer->id,
-            'source' => $validatedData['source'],
-            'status' => $validatedData['status'] ?? 'new',
-            'total_price' => 0,
-            'shipping_due_amount' => $validatedData['shipping_due_amount'] ?? 0,
-            'return_due_amount' => $validatedData['return_due_amount'] ?? 0,
-            'order_contents' => $validatedData['order_contents'] ?? null,
-        ]);
-    }
-
-    protected function createOrderAddress(array $addressData, Customer $customer, Order $order): CustomerOrderAddress
-    {
         return CustomerOrderAddress::create([
-            'customer_id' => $customer->id,
-            'order_id' => $order->id,
-            'country' => $addressData['country'],
-            'governorate' => $addressData['governorate'],
-            'city' => $addressData['city'],
-            'full_address' => $addressData['full_address'],
+            'customer_id'  => $customer->id,
+            'order_id'     => $order->id,
+            'country'      => $isInternational ? 'دولى' : 'مصر',
+            'governorate'  => $address['governorate'],
+            'city'         => $isInternational ? 'شحن دولي' : $address['area'],
+            'full_address' => $address['full_address'],
         ]);
     }
 
@@ -146,29 +123,22 @@ class OrderService
             $itemTotal = (float) $item['price'] * (int) $item['quantity'];
 
             $order->items()->create([
-                'style_id' => $item['style_id'] ?? null,
-                'color_id' => $item['color_id'] ?? null,
-                'size_id' => $item['size_id'] ?? null,
-                'type_id' => $item['type_id'] ?? null,
-                'pant_type_id' => $item['pant_type_id'] ?? null,
+                'style_id'       => $item['style_id'] ?? null,
+                'color_id'       => $item['color_id'] ?? null,
+                'size_id'        => $item['size_id'] ?? null,
+                'type_id'        => $item['type_id'] ?? null,
+                'pant_type_id'   => $item['pant_type_id'] ?? null,
                 'sleeve_type_id' => $item['sleeve_type_id'] ?? null,
-                'quantity' => $item['quantity'],
-                'price' => $item['price'],
-                'total' => $itemTotal,
-                'notes' => $item['notes'] ?? null,
+                'quantity'       => $item['quantity'],
+                'price'          => $item['price'],
+                'total'          => $itemTotal,
+                'notes'          => $item['notes'] ?? null,
             ]);
 
             $calculatedTotal += $itemTotal;
         }
 
         return round($calculatedTotal, 2);
-    }
-
-    protected function updateOrderTotal(Order $order, float $calculatedTotal): void
-    {
-        $order->update([
-            'total_price' => $calculatedTotal,
-        ]);
     }
 
     protected function createPaymentIfNeeded(Order $order, float $paidAmount): void

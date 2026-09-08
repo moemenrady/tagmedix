@@ -2,10 +2,13 @@
 
 namespace App\Modules\Inventory\DTOs;
 
+use App\Modules\Inventory\DTOs\FinishedProductData;
+
 final readonly class CreateInventoryStockData
 {
     /**
      * @param InventoryUnitData[] $units
+     * @param FinishedProductData[] $finishedProducts
      */
     public function __construct(
         public string $name,
@@ -20,6 +23,7 @@ final readonly class CreateInventoryStockData
         public ?string $notes = null,
 
         public array $units = [],
+        public array $finishedProducts = [],
 
         public ?int $createdBy = null,
     ) {}
@@ -29,7 +33,11 @@ final readonly class CreateInventoryStockData
         ?int $userId = null
     ): self {
         $units = [];
+        $finishedProducts = [];
 
+        foreach ($data['items'] ?? [] as $product) {
+            $finishedProducts[] = FinishedProductData::fromArray($product);
+        }
         foreach ($data['units'] ?? [] as $unit) {
             $units[] = InventoryUnitData::fromArray($unit);
         }
@@ -41,10 +49,14 @@ final readonly class CreateInventoryStockData
             minimumStock: (float) $data['minimum_stock'],
             stockTrackingType: $data['stock_tracking_type'],
 
-            unitType: $data['unit_type'] ?? null,
+            unitType: $data['category'] === 'finished_product'
+                ? 'piece'
+                : ($data['unit_type'] ?? null),
+
             quantity: isset($data['quantity'])
                 ? (float) $data['quantity']
                 : null,
+
             unitCost: isset($data['unit_cost'])
                 ? (float) $data['unit_cost']
                 : null,
@@ -54,11 +66,15 @@ final readonly class CreateInventoryStockData
                 : null,
 
             units: $units,
+            finishedProducts: $finishedProducts,
 
             createdBy: $userId,
         );
     }
-
+    public function isFinishedProduct(): bool
+    {
+        return $this->category === 'finished_product';
+    }
     public function isBulk(): bool
     {
         return $this->stockTrackingType === 'bulk';

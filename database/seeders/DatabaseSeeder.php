@@ -19,6 +19,7 @@ class DatabaseSeeder extends Seeder
             UserTableSeeder::class,
             OrderSeeder::class,
             EmployeeTestSeeder::class,
+            GovernmentSeeder::class
         ]);
     }
 }

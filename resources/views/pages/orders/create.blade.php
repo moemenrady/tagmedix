@@ -6,8 +6,8 @@
 @section('content')
     <style>
         /* ================================
-               Custom Select Dropdown & Scrollbar
-            ================================= */
+                       Custom Select Dropdown & Scrollbar
+                    ================================= */
         .custom-select-dropdown {
             max-height: 240px;
             overflow-y: auto;
@@ -78,7 +78,8 @@
         }
 
         #gov_dropdown,
-        #area_dropdown {
+        #area_dropdown,
+        #search_results_dropdown {
             animation: dropdownLocationIn .16s ease-out;
             transform-origin: top center;
         }
@@ -91,8 +92,8 @@
         }
 
         /* =================================
-               Responsive Styles
-            ================================= */
+                       Responsive Styles
+                    ================================= */
         @media (max-width: 767px) {
             .order-page-content {
                 padding-bottom: calc(120px + env(safe-area-inset-bottom)) !important;
@@ -166,6 +167,7 @@
                     <!-- Customer and Order Data Section -->
                     <div
                         class="order-item-card modern-card bg-white rounded-2xl p-5 sm:p-6 border border-gray-100 shadow-sm transition-all hover:shadow-md">
+
                         <div class="flex items-center gap-3 mb-6 border-b border-gray-50 pb-4">
                             <span
                                 class="w-10 h-10 rounded-xl bg-[#8A704C]/10 text-[#8A704C] flex items-center justify-center text-lg shadow-inner">
@@ -173,8 +175,8 @@
                             </span>
                             <div>
                                 <h3 class="text-base sm:text-lg font-bold text-gray-800">بيانات العميل والطلب</h3>
-                                <p class="text-xs text-gray-400 mt-0.5">أدخل المعلومات الأساسية للتواصل والشحن بحقول واضحة
-                                    ومريحة</p>
+                                <p class="text-xs text-gray-400 mt-0.5">أدخل رقم الهاتف ليتم البحث وتعبئة البيانات تلقائياً
+                                </p>
                             </div>
                         </div>
 
@@ -213,19 +215,47 @@
                             </div>
                         </div>
 
-                        <!-- Form Inputs -->
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+                        <!-- 🌟 Vanilla JS Customer Search Wrapper 🌟 -->
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-5" id="customer_search_wrapper">
+
+                            <!-- حقل رقم الهاتف الأساسي (بحث تفاعلي) -->
+                            <div class="md:col-span-2 relative mb-2">
+                                <label class="block text-xs font-bold text-[#8A704C] mb-2">
+                                    <i class="fa-solid fa-magnifying-glass mr-1"></i> رقم الهاتف الأساسي (بحث وتعبئة
+                                    تلقائية) <span class="text-red-500">*</span>
+                                </label>
+                                <div class="relative">
+                                    <input type="text" name="phone_1" id="phone_1_input" value="{{ old('phone_1') }}"
+                                        required autocomplete="off"
+                                        class="w-full h-[50px] px-4 py-3 bg-white border-2 border-[#8A704C]/30 rounded-xl focus:outline-none focus:ring-0 focus:border-[#8A704C] transition-all text-base font-bold text-gray-800 tracking-wider shadow-sm placeholder:text-gray-300 placeholder:font-normal placeholder:text-sm"
+                                        placeholder="أدخل رقم الهاتف للبحث عن عميل سابق...">
+
+                                    <!-- مؤشر التحميل -->
+                                    <div id="search_spinner" class="hidden absolute left-4 top-1/2 -translate-y-1/2">
+                                        <i class="fa-solid fa-circle-notch fa-spin text-[#8A704C]"></i>
+                                    </div>
+                                </div>
+
+                                <!-- نتائج البحث المنسدلة -->
+                                <div id="search_results_dropdown"
+                                    class="hidden absolute z-50 w-full bg-white border border-[#8A704C]/20 rounded-xl shadow-[0_10px_40px_-10px_rgba(0,0,0,0.1)] mt-2 max-h-72 overflow-y-auto divide-y divide-gray-50">
+                                    <!-- سيتم إضافة النتائج هنا بواسطة JavaScript -->
+                                </div>
+                            </div>
+
+                            <!-- باقي بيانات العميل -->
                             <div>
                                 <label class="block text-xs font-bold text-gray-600 mb-2">اسم العميل <span
                                         class="text-red-500">*</span></label>
-                                <input type="text" name="customer_name" value="{{ old('customer_name') }}" required
+                                <input type="text" name="customer_name" id="customer_name_input"
+                                    value="{{ old('customer_name') }}" required
                                     class="w-full h-[46px] px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#8A704C] focus:bg-white transition-all text-sm font-medium text-gray-800">
                             </div>
 
                             <div>
                                 <label class="block text-xs font-bold text-gray-600 mb-2">مصدر الطلب <span
                                         class="text-red-500">*</span></label>
-                                <select name="source" required
+                                <select name="source" id="orderSourceSelect" required
                                     class="w-full h-[46px] px-4 py-2 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#8A704C] focus:bg-white transition-all text-sm font-medium text-gray-800 cursor-pointer">
                                     <option value="new" {{ old('source') == 'new' ? 'selected' : '' }}>طلب جديد (تفصيل)
                                     </option>
@@ -237,16 +267,21 @@
                             </div>
 
                             <div>
-                                <label class="block text-xs font-bold text-gray-600 mb-2">رقم الهاتف الأساسي <span
-                                        class="text-red-500">*</span></label>
-                                <input type="text" name="phone_1" value="{{ old('phone_1') }}" required
+                                <label class="block text-xs font-bold text-gray-600 mb-2">رقم هاتف إضافي</label>
+                                <input type="text" name="phone_2" id="phone_2_input" value="{{ old('phone_2') }}"
                                     class="w-full h-[46px] px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#8A704C] focus:bg-white transition-all text-sm font-semibold text-gray-800 font-sans tracking-wide">
                             </div>
 
                             <div>
-                                <label class="block text-xs font-bold text-gray-600 mb-2">رقم هاتف إضافي</label>
-                                <input type="text" name="phone_2" value="{{ old('phone_2') }}"
-                                    class="w-full h-[46px] px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#8A704C] focus:bg-white transition-all text-sm font-semibold text-gray-800 font-sans tracking-wide">
+                                <label class="block text-xs font-bold text-gray-600 mb-2">رابط / حساب إنستغرام</label>
+                                <div class="relative flex items-center">
+                                    <span class="absolute right-4 text-pink-600 text-base"><i
+                                            class="fa-brands fa-instagram"></i></span>
+                                    <input type="text" name="instagram_profile" id="instagram_input"
+                                        value="{{ old('instagram_profile') }}" placeholder="@username"
+                                        class="w-full h-[46px] pr-11 pl-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#8A704C] focus:bg-white transition-all text-sm text-left font-mono"
+                                        dir="ltr">
+                                </div>
                             </div>
 
                             <!-- Governorate Custom Dropdown -->
@@ -310,26 +345,14 @@
                                 </div>
                             </div>
 
-                            <div>
-                                <label class="block text-xs font-bold text-gray-600 mb-2">رابط / حساب إنستغرام</label>
-                                <div class="relative flex items-center">
-                                    <span class="absolute right-4 text-pink-600 text-base"><i
-                                            class="fa-brands fa-instagram"></i></span>
-                                    <input type="text" name="instagram_profile"
-                                        value="{{ old('instagram_profile') }}" placeholder="@username"
-                                        class="w-full h-[46px] pr-11 pl-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#8A704C] focus:bg-white transition-all text-sm text-left font-mono"
-                                        dir="ltr">
-                                </div>
-                            </div>
-
                             <div class="md:col-span-2">
                                 <label class="block text-xs font-bold text-gray-600 mb-2">العنوان بالتفصيل <span
                                         class="text-red-500">*</span></label>
-                                <textarea name="address[full_address]" rows="2" required
+                                <textarea name="address[full_address]" id="full_address_input" rows="2" required
                                     placeholder="اسم الشارع، رقم العقار، الدور، علامة مميزة..."
                                     class="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#8A704C] focus:bg-white transition-all text-sm font-medium text-gray-800 resize-none min-h-[70px]">{{ old('address.full_address') }}</textarea>
                             </div>
-                        </div>
+                        </div> <!-- End Vanilla JS Wrapper -->
                     </div>
 
                     <!-- Products Section -->
@@ -446,7 +469,33 @@
                 </button>
             </div>
 
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+            <!-- قسم البحث عن المنتج -->
+            <div
+                class="stock-search-container hidden mb-6 p-5 bg-[#8A704C]/5 border border-[#8A704C]/20 rounded-2xl relative">
+                <div class="absolute top-0 right-0 w-1.5 h-full bg-[#8A704C] rounded-r-2xl"></div>
+                <label class="block text-sm font-bold text-[#8A704C] mb-2">
+                    <i class="fa-solid fa-magnifying-glass mr-1"></i> ابحث عن المنتج الجاهز في المخزن
+                </label>
+                <select name="items[{index}][inventory_finished_product_id]"
+                    class="stock-select w-full h-[46px] px-4 bg-white border border-[#8A704C]/30 rounded-xl focus:ring-2 focus:ring-[#8A704C] text-sm font-medium text-gray-800">
+                    <option value="">-- اختر أو ابحث عن المنتج (الاسم أو الكود) --</option>
+                    @foreach ($finishedProducts as $product)
+                        <option value="{{ $product->id }}" data-pant="{{ $product->pant_type_id }}"
+                            data-type="{{ $product->type_id }}" data-style="{{ $product->style_id }}"
+                            data-color="{{ $product->color_id }}" data-size="{{ $product->size_id }}"
+                            data-sleeve="{{ $product->sleeve_type_id }}">
+                            {{ $product->product_name }} - كود: {{ $product->product_code }} (الكمية المتاحة:
+                            {{ (float) $product->available_qty }})
+                        </option>
+                    @endforeach
+                </select>
+                <p class="text-[11px] text-gray-500 mt-2">عند اختيار المنتج سيتم ملء التفاصيل تلقائياً وتفريغ خانات
+                    الماديات والكمية لتعبئتها.</p>
+            </div>
+
+            <!-- تفاصيل المنتج -->
+            <div
+                class="design-details-container grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5 mb-5 transition-all duration-300">
                 <div>
                     <label class="block text-xs font-bold text-gray-600 mb-2">نوع البنطلون <span
                             class="text-red-500">*</span></label>
@@ -506,18 +555,21 @@
                         @endforeach
                     </select>
                 </div>
+            </div>
+
+            <!-- الحسابات والملاحظات -->
+            <div class="grid grid-cols-1 gap-5">
                 <div class="md:col-span-2 lg:col-span-3">
                     <label class="block text-xs font-bold text-gray-600 mb-3">الحسابات (الكمية - السعر - الإجمالي)</label>
                     <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 items-end">
                         <div>
                             <label class="block text-[11px] font-bold text-gray-500 mb-2">الكمية</label>
-                            <input type="number" name="items[{index}][quantity]" value="1" min="1" required
+                            <input type="number" name="items[{index}][quantity]" required
                                 class="item-qty w-full h-[52px] px-4 bg-gray-50 border border-gray-200 rounded-xl text-center text-lg font-bold font-mono focus:outline-none focus:ring-2 focus:ring-[#8A704C]">
                         </div>
                         <div>
                             <label class="block text-[11px] font-bold text-gray-500 mb-2">سعر القطعة</label>
-                            <input type="number" step="0.01" name="items[{index}][price]" value="0"
-                                min="0" required
+                            <input type="number" step="0.01" name="items[{index}][price]" required
                                 class="item-price w-full h-[52px] px-4 bg-gray-50 border border-gray-200 rounded-xl text-center text-lg font-bold font-mono focus:outline-none focus:ring-2 focus:ring-[#8A704C]"
                                 dir="ltr">
                         </div>
@@ -545,11 +597,133 @@
 @push('scripts')
     <script>
         document.addEventListener('DOMContentLoaded', function() {
-            // --- DOM Elements ---
+            // --- Elements for Customer Search (Vanilla JS) ---
+            const phone1Input = document.getElementById('phone_1_input');
+            const searchSpinner = document.getElementById('search_spinner');
+            const searchResultsDropdown = document.getElementById('search_results_dropdown');
+            const customerNameInput = document.getElementById('customer_name_input');
+            const phone2Input = document.getElementById('phone_2_input');
+            const instagramInput = document.getElementById('instagram_input');
+            const fullAddressInput = document.getElementById('full_address_input');
+
+            // --- Debounce Function ---
+            function debounce(func, delay) {
+                let timeoutId;
+                return function(...args) {
+                    if (timeoutId) clearTimeout(timeoutId);
+                    timeoutId = setTimeout(() => {
+                        func.apply(this, args);
+                    }, delay);
+                };
+            }
+
+            // --- Select Customer Function ---
+            function selectCustomer(customer) {
+                customerNameInput.value = customer.name || '';
+                phone1Input.value = customer.phone_1 || '';
+                phone2Input.value = customer.phone_2 || '';
+                instagramInput.value = customer.instagram_profile || '';
+
+                // تعبئة أحدث عنوان للعميل
+                const addresses = customer.order_addresses || customer.orderAddresses || [];
+                if (addresses.length > 0) {
+                    const lastAddress = addresses[0];
+                    fullAddressInput.value = lastAddress.full_address || '';
+
+                    const areaVal = lastAddress.area || lastAddress.city || '';
+                    if (window.setAddressDropdowns) {
+                        window.setAddressDropdowns(lastAddress.governorate, areaVal);
+                    }
+                }
+
+                // Hide dropdown
+                searchResultsDropdown.classList.add('hidden');
+            }
+
+            // --- Fetch & Render Customers ---
+            const handleSearch = debounce(async (e) => {
+                const query = e.target.value.trim();
+
+                if (query.length < 3) {
+                    searchResultsDropdown.classList.add('hidden');
+                    searchResultsDropdown.innerHTML = '';
+                    return;
+                }
+
+                searchSpinner.classList.remove('hidden');
+
+                try {
+                    const response = await fetch(
+                    `/customers/search?phone=${encodeURIComponent(query)}`);
+                    if (!response.ok) throw new Error('Network response was not ok');
+
+                    const result = await response.json();
+
+                    if (result.success && result.data && result.data.length > 0) {
+                        searchResultsDropdown.innerHTML = ''; // Clear old results
+
+                        result.data.forEach(customer => {
+                            // Create Dropdown Item
+                            const itemDiv = document.createElement('div');
+                            itemDiv.className =
+                                "p-3.5 hover:bg-[#8A704C]/5 cursor-pointer transition-colors group flex items-center gap-3";
+
+                            const phone2Html = customer.phone_2 ?
+                                `<span class="bg-gray-100 px-2 py-0.5 rounded text-gray-600 font-mono">${customer.phone_2}</span>` :
+                                '';
+
+                            itemDiv.innerHTML = `
+                                <div class="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center text-gray-400 group-hover:bg-[#8A704C]/10 group-hover:text-[#8A704C] transition-colors shrink-0">
+                                    <i class="fa-solid fa-user"></i>
+                                </div>
+                                <div class="flex-1 min-w-0">
+                                    <div class="font-bold text-gray-800 text-sm truncate">${customer.name}</div>
+                                    <div class="text-xs text-gray-500 mt-1 flex items-center gap-2">
+                                        <span class="bg-gray-100 px-2 py-0.5 rounded text-gray-600 font-mono">${customer.phone_1}</span>
+                                        ${phone2Html}
+                                    </div>
+                                </div>
+                                <div class="shrink-0 text-xs text-[#8A704C] font-bold opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1">
+                                    اختيار <i class="fa-solid fa-arrow-left text-[10px]"></i>
+                                </div>
+                            `;
+
+                            // Add Click Listener
+                            itemDiv.addEventListener('click', () => selectCustomer(customer));
+                            searchResultsDropdown.appendChild(itemDiv);
+                        });
+
+                        searchResultsDropdown.classList.remove('hidden');
+                    } else {
+                        searchResultsDropdown.classList.add('hidden');
+                    }
+                } catch (error) {
+                    console.error("Error fetching customers:", error);
+                } finally {
+                    searchSpinner.classList.add('hidden');
+                }
+            }, 300);
+
+            // Listen to Phone 1 input
+            phone1Input.addEventListener('input', handleSearch);
+
+            // Hide dropdown when clicking outside
+            document.addEventListener('click', function(e) {
+                if (!phone1Input.contains(e.target) && !searchResultsDropdown.contains(e.target)) {
+                    searchResultsDropdown.classList.add('hidden');
+                }
+            });
+
+
+            // ==========================================
+            // --- DOM Elements (Order Management) ---
+            // ==========================================
             const container = document.getElementById('itemsContainer');
             const template = document.getElementById('itemTemplate').innerHTML;
             const addItemBtn = document.getElementById('addItemBtn');
             const floatingAddItemBtn = document.getElementById('floatingAddItemBtn');
+
+            const sourceSelect = document.getElementById('orderSourceSelect');
 
             const totalPriceDisplay = document.getElementById('totalPriceDisplay');
             const totalPriceHidden = document.getElementById('total_price_hidden');
@@ -578,6 +752,56 @@
 
             let itemIndex = 0;
             let isAreaEnabled = false;
+
+            // ✨ تحديث القوائم المنسدلة للمحافظة والحي تلقائياً ✨
+            window.setAddressDropdowns = function(govName, areaName) {
+                if (!govName) return;
+
+                let govId = null;
+                govOptionsList.querySelectorAll('.gov-option').forEach(opt => {
+                    const spanText = opt.querySelector('span').innerText.trim();
+                    if (spanText === govName) {
+                        govId = opt.getAttribute('data-value');
+                        opt.querySelector('i').classList.remove('hidden');
+                    } else {
+                        opt.querySelector('i').classList.add('hidden');
+                    }
+                });
+
+                if (govId) {
+                    govHiddenInput.value = govName;
+                    govSelectedText.innerText = govName;
+                    govSelectedText.classList.replace('text-gray-400', 'text-gray-800');
+
+                    loadAreasForGovernorate(govId, areaName);
+                }
+            };
+
+            // --- إظهار/إخفاء سيكشن البحث في المخزن ---
+            function toggleStockSearchVisibility() {
+                const isFromStock = sourceSelect.value === 'from_stock';
+                document.querySelectorAll('.order-item-card').forEach(card => {
+                    const searchContainer = card.querySelector('.stock-search-container');
+                    const designContainer = card.querySelector('.design-details-container');
+
+                    if (searchContainer && designContainer) {
+                        if (isFromStock) {
+                            searchContainer.classList.remove('hidden');
+                            designContainer.classList.add('pointer-events-none', 'opacity-60', 'bg-gray-50',
+                                'rounded-xl', 'p-3');
+                        } else {
+                            searchContainer.classList.add('hidden');
+                            designContainer.classList.remove('pointer-events-none', 'opacity-60',
+                                'bg-gray-50', 'rounded-xl', 'p-3');
+
+                            const stockSelect = searchContainer.querySelector('.stock-select');
+                            if (stockSelect) stockSelect.value = '';
+                        }
+                    }
+                });
+            }
+
+            sourceSelect.addEventListener('change', toggleStockSearchVisibility);
 
             // --- Dropdowns Logic ---
             document.addEventListener('click', function(e) {
@@ -711,7 +935,7 @@
                 areaArrow.classList.remove('rotate-180');
             });
 
-            // --- Dynamic Items Logic (Optimized using Event Delegation) ---
+            // --- Dynamic Items Logic ---
             function calculateRowTotal(row) {
                 const qtyInput = row.querySelector('.item-qty');
                 const priceInput = row.querySelector('.item-price');
@@ -741,11 +965,43 @@
                 remainingAmountHidden.value = remainingAmount.toFixed(2);
             }
 
-            // Event Delegation for dynamically added fields (Performance Boost)
             container.addEventListener('input', function(e) {
                 if (e.target.classList.contains('item-qty') || e.target.classList.contains('item-price')) {
                     calculateRowTotal(e.target.closest('.order-item-card'));
                     calculateFullOrderSummary();
+                }
+            });
+
+            container.addEventListener('change', function(e) {
+                if (e.target.classList.contains('stock-select')) {
+                    const selectedOption = e.target.options[e.target.selectedIndex];
+                    const row = e.target.closest('.order-item-card');
+
+                    if (selectedOption && selectedOption.value) {
+                        const fields = {
+                            'pant_type_id': selectedOption.dataset.pant,
+                            'type_id': selectedOption.dataset.type,
+                            'style_id': selectedOption.dataset.style,
+                            'color_id': selectedOption.dataset.color,
+                            'size_id': selectedOption.dataset.size,
+                            'sleeve_type_id': selectedOption.dataset.sleeve
+                        };
+
+                        for (const [field, val] of Object.entries(fields)) {
+                            const input = row.querySelector(`[name*="[${field}]"]`);
+                            if (input) {
+                                input.value = val || '';
+                            }
+                        }
+
+                        const qtyInput = row.querySelector('.item-qty');
+                        const priceInput = row.querySelector('.item-price');
+                        if (qtyInput) qtyInput.value = '';
+                        if (priceInput) priceInput.value = '';
+
+                        calculateRowTotal(row);
+                        calculateFullOrderSummary();
+                    }
                 }
             });
 
@@ -763,8 +1019,16 @@
                 container.insertAdjacentHTML('beforeend', template.replace(/{index}/g, itemIndex));
                 const newRow = container.lastElementChild;
 
+                const isFromStock = sourceSelect.value === 'from_stock';
+                if (isFromStock) {
+                    newRow.querySelector('.stock-search-container').classList.remove('hidden');
+                    newRow.querySelector('.design-details-container').classList.add('pointer-events-none',
+                        'opacity-60', 'bg-gray-50', 'rounded-xl', 'p-3');
+                }
+
                 if (oldData) {
-                    const fields = ['pant_type_id', 'type_id', 'style_id', 'color_id', 'size_id', 'sleeve_type_id',
+                    const fields = ['inventory_finished_product_id', 'pant_type_id', 'type_id', 'style_id',
+                        'color_id', 'size_id', 'sleeve_type_id',
                         'quantity', 'price', 'notes'
                     ];
                     fields.forEach(field => {
@@ -831,22 +1095,12 @@
                 autoResizeReference();
             }
 
-            // --- Initial Data Load (Validation Failures) ---
+            // --- Initial Data Load ---
             const oldGov = @json(old('address.governorate', ''));
             const oldArea = @json(old('address.area', ''));
 
             if (oldGov) {
-                govSelectedText.innerText = oldGov;
-                govSelectedText.classList.replace('text-gray-400', 'text-gray-800');
-
-                let govId = null;
-                govOptionsList.querySelectorAll('.gov-option').forEach(opt => {
-                    if (opt.querySelector('span').innerText.trim() === oldGov) {
-                        govId = opt.getAttribute('data-value');
-                        opt.querySelector('i').classList.remove('hidden');
-                    }
-                });
-                if (govId) loadAreasForGovernorate(govId, oldArea);
+                window.setAddressDropdowns(oldGov, oldArea);
             }
 
             const oldItems = @json(old('items', []));
@@ -855,6 +1109,8 @@
             } else {
                 addNewItemRow(null, false);
             }
+
+            toggleStockSearchVisibility();
         });
     </script>
 @endpush

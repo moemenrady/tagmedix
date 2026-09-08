@@ -1,5 +1,6 @@
 <?php
 
+// routes/web.php
 use App\Http\Controllers\ProductionWorkflowController;
 use Illuminate\Support\Facades\Route;
 

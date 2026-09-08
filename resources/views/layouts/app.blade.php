@@ -433,25 +433,34 @@
 
             </div>
             @if (auth()->user() && auth()->user()->role == 'admin')
+                <!-- باقي الروابط كما هي في الكود الأصلي -->
+                <a href="{{ route('inventory.dashboard') }}"
+                    class="nav-link flex items-center gap-3 px-4 py-3 rounded-xl text-mutedBrown {{ request()->routeIs('inventory.*') ? 'active-tab' : '' }}">
+                    <i class="fa-solid fa-boxes-stacked w-5"></i>
+                    <span data-ar="المخزون" data-en="Inventory">المخزون</span>
+                </a>
 
-            <!-- باقي الروابط كما هي في الكود الأصلي -->
-            <a href="{{ route('inventory.dashboard') }}"
-                class="nav-link flex items-center gap-3 px-4 py-3 rounded-xl text-mutedBrown {{ request()->routeIs('inventory.*') ? 'active-tab' : '' }}">
-                <i class="fa-solid fa-boxes-stacked w-5"></i>
-                <span data-ar="المخزون" data-en="Inventory">المخزون</span>
-            </a>
-            
-            <a href="{{ route('inventory-transactions.index') }}"
-                class="nav-link flex items-center gap-3 px-4 py-2 mt-1 ml-4 rtl:ml-0 rtl:mr-4 rounded-lg text-sm {{ request()->routeIs('inventory.transactions.*') ? 'text-primaryBrown font-bold' : 'text-mutedBrown/80' }}">
-                <i class="fa-solid fa-arrow-right-arrow-left w-4"></i>
-                <span data-ar="حركات المخزون" data-en="Inventory Transactions">حركات المخزون</span>
-            </a>
+                <a href="{{ route('inventory-transactions.index') }}"
+                    class="nav-link flex items-center gap-3 px-4 py-2 mt-1 ml-4 rtl:ml-0 rtl:mr-4 rounded-lg text-sm {{ request()->routeIs('inventory.transactions.*') ? 'text-primaryBrown font-bold' : 'text-mutedBrown/80' }}">
+                    <i class="fa-solid fa-arrow-right-arrow-left w-4"></i>
+                    <span data-ar="حركات المخزون" data-en="Inventory Transactions">حركات المخزون</span>
+                </a>
+                <a href="{{ route('customers.index') }}"
+                    class="nav-link flex items-center gap-3 px-4 py-3 rounded-xl text-mutedBrown {{ request()->routeIs('customers.*') ? 'active-tab' : '' }}">
+
+                    <i class="fa-solid fa-users w-5"></i>
+
+                    <span data-ar="العملاء" data-en="Customers">
+                        العملاء
+                    </span>
+                </a>
             @endif
             <a href="{{ route('orders.index') }}"
                 class="nav-link flex items-center gap-3 px-4 py-3 rounded-xl text-mutedBrown {{ request()->routeIs('orders.*') ? 'active-tab' : '' }}">
                 <i class="fa-solid fa-clipboard-list w-5"></i>
                 <span data-ar="الطلبات" data-en="Orders">الطلبات</span>
             </a>
+
             <a href="{{ route('turbo.index') }}"
                 class="nav-link flex items-center gap-3 px-4 py-3 rounded-xl text-mutedBrown {{ request()->routeIs('turbo.*') ? 'active-tab' : '' }}">
                 <i class="fa-solid fa-truck-fast w-5 text-roseAccent"></i>
