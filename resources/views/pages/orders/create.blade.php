@@ -371,10 +371,6 @@
                                         بالكامل</p>
                                 </div>
                             </div>
-                            <button type="button" id="addItemBtn"
-                                class="modern-card bg-emerald-600 hover:bg-emerald-700 text-white font-semibold py-2.5 px-4 rounded-xl text-sm transition-all flex items-center justify-center gap-2 shadow-sm transform hover:-translate-y-0.5">
-                                <i class="fa-solid fa-circle-plus text-base"></i> إضافة منتج للطلب
-                            </button>
                         </div>
                         <div id="itemsContainer" class="space-y-5"></div>
                     </div>
@@ -564,7 +560,7 @@
                     <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 items-end">
                         <div>
                             <label class="block text-[11px] font-bold text-gray-500 mb-2">الكمية</label>
-                            <input type="number" name="items[{index}][quantity]" required
+                            <input type="number" name="items[{index}][quantity]" required value="1"
                                 class="item-qty w-full h-[52px] px-4 bg-gray-50 border border-gray-200 rounded-xl text-center text-lg font-bold font-mono focus:outline-none focus:ring-2 focus:ring-[#8A704C]">
                         </div>
                         <div>
@@ -589,6 +585,13 @@
                         placeholder="أدخل أي ملاحظات للتفصيل أو التعديل هنا..."
                         class="w-full h-[46px] px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#8A704C] transition-all text-sm font-medium text-gray-800">
                 </div>
+            </div>
+
+            <!-- زر إضافة منتج جديد (تحت الملاحظات) -->
+            <div class="mt-5 pt-4 border-t border-gray-50 flex justify-end">
+                <button type="button" class="add-item-btn-inline modern-card bg-emerald-600 hover:bg-emerald-700 text-white font-semibold py-2.5 px-5 rounded-xl text-sm transition-all flex items-center justify-center gap-2 shadow-sm transform hover:-translate-y-0.5 cursor-pointer">
+                    <i class="fa-solid fa-circle-plus text-base pointer-events-none"></i> إضافة منتج آخر
+                </button>
             </div>
         </div>
     </template>
@@ -1017,7 +1020,7 @@
 
                         const qtyInput = row.querySelector('.item-qty');
                         const priceInput = row.querySelector('.item-price');
-                        if (qtyInput) qtyInput.value = '';
+                        if (qtyInput) qtyInput.value = '1';
                         if (priceInput) priceInput.value = '';
 
                         calculateRowTotal(row);
@@ -1031,6 +1034,13 @@
                 if (removeBtn) {
                     removeBtn.closest('.order-item-card').remove();
                     calculateFullOrderSummary();
+                    return;
+                }
+
+                const addItemInlineBtn = e.target.closest('.add-item-btn-inline');
+                if (addItemInlineBtn) {
+                    addNewItemRow(null, true);
+                    return;
                 }
             });
 
@@ -1081,7 +1091,7 @@
                 }
             }
 
-            addItemBtn.addEventListener('click', () => addNewItemRow(null, true));
+            // Initial add item button is handled via the container delegation now (except if it's outside, but we removed it)
             if (floatingAddItemBtn) {
                 floatingAddItemBtn.addEventListener('click', () => addNewItemRow(null, true));
             }
