@@ -27,7 +27,7 @@
         }
     </style>
 
-    <div dir="rtl" class="space-y-6 pb-12 font-sans" x-data="finishedGoodsApp()">
+    <div dir="rtl" class="-mt-4 md:-mt-6 space-y-4 pb-8 font-sans" x-data="finishedGoodsApp()">
 
         {{-- Dynamic Response Alerts & Error Cards System --}}
         <div class="space-y-3">
@@ -178,69 +178,62 @@
         </div>
 
         {{-- Mobile View: Responsive Orders Cards (شاشة الموبايل) --}}
-        <div class="grid grid-cols-1 gap-4 md:hidden">
+        <div class="grid grid-cols-1 gap-2 md:hidden">
             @forelse ($orders as $order)
-                <div class="bg-white p-4 rounded-2xl border border-gray-100 shadow-sm space-y-3 relative">
-                    <div class="flex items-center justify-between border-b border-gray-100 pb-2.5">
-                        <div class="flex items-center gap-2">
-                            <span class="w-2.5 h-2.5 rounded-full bg-amber-500"></span>
-                            <span class="font-bold text-gray-900 text-sm">{{ $order->order_number }}</span>
+                <div class="bg-white p-3 rounded-xl border border-gray-100 shadow-sm flex flex-col gap-2">
+                    
+                    {{-- رأس الكارت --}}
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center gap-1 font-black text-gray-900 text-sm">
+                            <span class="text-gray-400">#</span>{{ $order->order_number }}
                         </div>
-                        <span
-                            class="inline-flex items-center gap-1 px-2.5 py-0.5 bg-amber-50 text-amber-700 border border-amber-200 text-[11px] font-semibold rounded-full">
-                            <i class="fa-solid fa-circle text-[6px] text-amber-500 animate-pulse"></i>
-                            منتج تام
+                        <span class="inline-flex items-center gap-1 px-2 py-0.5 bg-amber-50 text-amber-700 border border-amber-200 text-[10px] font-bold rounded-md">
+                            <i class="fa-solid fa-circle text-[5px] text-amber-500 animate-pulse"></i> منتج تام
                         </span>
                     </div>
 
-                    <div class="space-y-2 text-xs">
-                        <div class="flex justify-between items-start">
-                            <span class="text-gray-400 shrink-0">العميل:</span>
-                            <span
-                                class="font-bold text-gray-800 text-left">{{ $order->customer?->name ?? $order->customer_name }}</span>
-                        </div>
-                        <div class="flex justify-between items-center">
-                            <span class="text-gray-400">الهاتف:</span>
-                            <span
-                                class="text-gray-700 dir-ltr font-medium">{{ $order->customer?->phone_1 ?? $order->phone_1 }}</span>
-                        </div>
-                        <div class="flex justify-between items-start">
-                            <span class="text-gray-400 shrink-0">العنوان:</span>
-                            <div class="text-left max-w-[200px]">
-                                <span
-                                    class="inline-block px-1.5 py-0.5 bg-gray-100 text-gray-700 text-[10px] rounded font-medium mb-0.5">
-                                    {{ $order->address?->governorate ?? $order->governorate }}
-                                </span>
-                                <p class="text-gray-500 truncate text-[11px]">
-                                    {{ $order->address?->full_address ?? $order->full_address }}</p>
+                    {{-- العميل والعنوان --}}
+                    <div class="flex items-center justify-between">
+                        <div class="flex flex-col">
+                            <h4 class="font-bold text-sm text-gray-800">{{ $order->customer?->name ?? $order->customer_name }}</h4>
+                            <div class="flex items-center gap-2 mt-0.5">
+                                <span class="text-[11px] text-gray-500 font-mono" dir="ltr">{{ $order->customer?->phone_1 ?? $order->phone_1 }}</span>
+                                <span class="text-[10px] text-gray-400 bg-gray-50 px-1.5 py-0.5 rounded"><i class="fa-solid fa-location-dot"></i> {{ $order->address?->governorate ?? $order->governorate ?? 'غير محدد' }}</span>
                             </div>
                         </div>
-                        <div class="flex justify-between items-center pt-1 border-t border-gray-50">
-                            <span class="text-gray-400">إجمالي الطلب:</span>
-                            <span class="font-bold text-gray-900">{{ number_format($order->total_price, 0) }} ج.م</span>
-                        </div>
-                        <div class="flex justify-between items-center">
-                            <span class="text-gray-400">المتبقي للتحصيل:</span>
-                            <span class="font-bold text-amber-700">{{ number_format($order->getRemainingAmount(), 0) }}
-                                ج.م</span>
-                        </div>
+                        @php $phone = $order->customer?->phone_1 ?? $order->phone_1; @endphp
+                        @if ($phone)
+                            <div class="flex items-center gap-1.5 shrink-0">
+                                <a href="tel:{{ $phone }}" class="w-7 h-7 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center text-xs active:scale-90 transition">
+                                    <i class="fa-solid fa-phone"></i>
+                                </a>
+                                <a href="https://wa.me/{{ preg_replace('/[^0-9]/', '', $phone) }}" target="_blank" class="w-7 h-7 rounded-full bg-green-50 text-green-600 flex items-center justify-center text-[13px] active:scale-90 transition">
+                                    <i class="fa-brands fa-whatsapp"></i>
+                                </a>
+                            </div>
+                        @endif
                     </div>
 
-                    <div class="grid grid-cols-2 gap-2 pt-2 border-t border-gray-100">
-                        <button type="button" @click="openDetailsModal({{ json_encode($order) }})"
-                            class="w-full py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs font-semibold rounded-xl transition flex items-center justify-center gap-1.5">
-                            <i class="fa-solid fa-eye text-gray-500"></i>
-                            <span>عرض التفاصيل</span>
-                        </button>
-                        <button type="button" @click="openShipModal({{ json_encode($order) }})"
-                            class="w-full py-2 bg-gradient-to-r from-amber-600 to-amber-700 text-white text-xs font-bold rounded-xl transition flex items-center justify-center gap-1.5 shadow-xs">
-                            <i class="fa-solid fa-truck-fast"></i>
-                            <span>شحن الطلب</span>
-                        </button>
+                    {{-- المالية والإجراءات --}}
+                    <div class="flex items-center justify-between pt-2 border-t border-gray-100">
+                        <div>
+                            <span class="text-sm font-black text-gray-900">{{ number_format($order->total_price, 0) }} <span class="text-[10px] text-gray-500">ج.م</span></span>
+                            @if ($order->getRemainingAmount() > 0)
+                                <span class="text-[10px] text-amber-700 font-bold mr-1">متبقي: {{ number_format($order->getRemainingAmount(), 0) }}</span>
+                            @endif
+                        </div>
+                        <div class="flex gap-1.5">
+                            <button type="button" @click="openDetailsModal({{ json_encode($order) }})" class="px-2.5 py-1.5 bg-gray-100 rounded-md text-gray-700 active:bg-gray-200 transition text-[10px] font-bold flex items-center gap-1">
+                                <i class="fa-solid fa-eye"></i> التفاصيل
+                            </button>
+                            <button type="button" @click="openShipModal({{ json_encode($order) }})" class="px-2.5 py-1.5 bg-gradient-to-r from-amber-600 to-amber-700 text-white rounded-md active:opacity-80 transition text-[10px] font-bold flex items-center gap-1">
+                                <i class="fa-solid fa-truck-fast"></i> شحن
+                            </button>
+                        </div>
                     </div>
                 </div>
             @empty
-                <div class="bg-white p-8 rounded-2xl border border-gray-100 text-center text-gray-400">
+                <div class="bg-white p-8 rounded-xl border border-gray-100 text-center text-gray-400">
                     <i class="fa-solid fa-box-open text-3xl mb-2 text-gray-300"></i>
                     <p class="text-sm font-semibold text-gray-600">لا توجد طلبات تامة جاهزة للشحن حالياً</p>
                 </div>
