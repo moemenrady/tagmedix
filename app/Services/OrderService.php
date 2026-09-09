@@ -24,8 +24,8 @@ class OrderService
             // 1. إنشاء/تحديث العميل في سجل العملاء العام
             $customer = $this->customerService->upsertCustomer($validated);
 
-            // 2. توليد رقم طلب آمن عبر القفل التسلسلي (Pessimistic Locking)
-            $orderNumber = $this->generateUniqueOrderNumber();
+            // 2. وضع رقم طلب مؤقت
+            $orderNumber = 'TEMP-' . uniqid();
 
             // 3. إنشاء الطلب وتخزين الـ Snapshot الخاص بالعميل
             $order = Order::create([
@@ -49,7 +49,10 @@ class OrderService
             // 5. إنشاء عناصر الطلب وحساب الإجمالي
             $calculatedTotal = $this->createOrderItems($order, $validated['items']);
 
-            $order->update(['total_price' => $calculatedTotal]);
+            $order->update([
+                'total_price'  => $calculatedTotal,
+                'order_number' => 'ORD-' . str_pad($order->id, 5, '0', STR_PAD_LEFT),
+            ]);
 
             // 6. إضافة الدفعات إن وجدت
             $paidAmount = $validated['paid_amount'] ?? 0;
@@ -59,14 +62,6 @@ class OrderService
         });
     }
 
-    protected function generateUniqueOrderNumber(): string
-    {
-        // استخدام lockForUpdate لمنع قراءة نفس الرقم أثناء الإنشاء المتزامن
-        $lastOrder = Order::query()->lockForUpdate()->orderBy('id', 'desc')->first();
-        $nextId = $lastOrder ? $lastOrder->id + 1 : 1;
-
-        return 'ORD-' . str_pad($nextId, 5, '0', STR_PAD_LEFT);
-    }
 
     protected function validateRequest(Request $request): array
     {

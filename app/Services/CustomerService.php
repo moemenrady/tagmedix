@@ -31,13 +31,21 @@ class CustomerService
      */
     public function upsertCustomer(array $data): Customer
     {
-        return Customer::updateOrCreate(
-            ['phone_1' => $data['phone_1']],
-            [
-                'name'              => $data['customer_name'],
-                'phone_2'           => $data['phone_2'] ?? null,
-                'instagram_profile' => $data['instagram_profile'] ?? null,
-            ]
-        );
+        $customer = Customer::where('phone_1', $data['phone_1'])->first();
+
+        if ($customer) {
+            $customer->update([
+                'phone_2'           => $data['phone_2'] ?? $customer->phone_2,
+                'instagram_profile' => $data['instagram_profile'] ?? $customer->instagram_profile,
+            ]);
+            return $customer;
+        }
+
+        return Customer::create([
+            'phone_1'           => $data['phone_1'],
+            'name'              => $data['customer_name'],
+            'phone_2'           => $data['phone_2'] ?? null,
+            'instagram_profile' => $data['instagram_profile'] ?? null,
+        ]);
     }
 }
