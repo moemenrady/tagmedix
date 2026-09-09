@@ -168,7 +168,7 @@
                                 </td>
                                 <td class="px-4 py-2">
                                     <div class="flex flex-col">
-                                        <span class="font-bold text-gray-800 text-sm">{{ $order->customer?->name ?? $order->customer_name }}</span>
+                                        <a href="{{ route('customers.index', ['q' => $order->customer?->phone_1 ?? $order->phone_1 ?? $order->customer?->name ?? $order->customer_name]) }}" class="font-bold text-gray-800 text-sm hover:text-blue-600 hover:underline transition-colors" title="بحث عن العميل">{{ $order->customer?->name ?? $order->customer_name }}</a>
                                         <span class="text-[11px] text-gray-500 font-mono" dir="ltr">{{ $order->customer?->phone_1 ?? $order->phone_1 }}</span>
                                     </div>
                                 </td>
@@ -284,7 +284,7 @@
                         {{-- العميل والعنوان --}}
                         <div class="flex items-center justify-between">
                             <div class="flex flex-col">
-                                <h4 class="font-bold text-sm text-gray-800">{{ $order->customer?->name ?? $order->customer_name }}</h4>
+                                <a href="{{ route('customers.index', ['q' => $phone ?? $order->customer?->name ?? $order->customer_name]) }}" class="font-bold text-sm text-gray-800 hover:text-blue-600 hover:underline transition-colors" title="بحث عن العميل">{{ $order->customer?->name ?? $order->customer_name }}</a>
                                 <div class="flex items-center gap-2 mt-0.5">
                                     <span class="text-[11px] text-gray-500 font-mono" dir="ltr">{{ $phone }}</span>
                                     <span class="text-[10px] text-gray-400 bg-gray-50 px-1.5 py-0.5 rounded"><i class="fa-solid fa-location-dot"></i> {{ $order->address?->governorate ?? 'غير محدد' }}</span>

@@ -195,7 +195,7 @@
                     {{-- العميل والعنوان --}}
                     <div class="flex items-center justify-between">
                         <div class="flex flex-col">
-                            <h4 class="font-bold text-sm text-gray-800">{{ $order->customer?->name ?? $order->customer_name }}</h4>
+                            <a href="{{ route('customers.index', ['q' => $order->customer?->phone_1 ?? $order->phone_1 ?? $order->customer?->name ?? $order->customer_name]) }}" class="font-bold text-sm text-gray-800 hover:text-amber-600 hover:underline transition-colors" title="بحث عن العميل">{{ $order->customer?->name ?? $order->customer_name }}</a>
                             <div class="flex items-center gap-2 mt-0.5">
                                 <span class="text-[11px] text-gray-500 font-mono" dir="ltr">{{ $order->customer?->phone_1 ?? $order->phone_1 }}</span>
                                 <span class="text-[10px] text-gray-400 bg-gray-50 px-1.5 py-0.5 rounded"><i class="fa-solid fa-location-dot"></i> {{ $order->address?->governorate ?? $order->governorate ?? 'غير محدد' }}</span>
@@ -271,8 +271,9 @@
 
                                 {{-- Customer Info --}}
                                 <td class="py-4 px-6">
-                                    <div class="font-semibold text-gray-800">
-                                        {{ $order->customer?->name ?? $order->customer_name }}</div>
+                                    <a href="{{ route('customers.index', ['q' => $order->customer?->phone_1 ?? $order->phone_1 ?? $order->customer?->name ?? $order->customer_name]) }}" class="font-semibold text-gray-800 hover:text-amber-600 hover:underline transition-colors block" title="بحث عن العميل">
+                                        {{ $order->customer?->name ?? $order->customer_name }}
+                                    </a>
                                     <div class="text-xs text-gray-500 flex items-center gap-2 mt-0.5">
                                         <span><i
                                                 class="fa-solid fa-phone text-gray-400 ml-1"></i>{{ $order->customer?->phone_1 ?? $order->phone_1 }}</span>
