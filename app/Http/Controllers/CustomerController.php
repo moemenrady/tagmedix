@@ -15,11 +15,24 @@ class CustomerController extends Controller
     public function show(Customer $customer)
     {
         $customer->load([
-            'orders',
-            'orderAddresses',
+            'orders' => function ($q) {
+                $q->with(['address', 'items.style', 'items.type', 'payments', 'shipments'])->latest();
+            },
+            'orderAddresses' => function ($q) {
+                $q->latest();
+            },
         ]);
 
-        return view('pages.customers.show', compact('customer'));
+        $stats = [
+            'total_orders' => $customer->orders->count(),
+            'total_spent' => $customer->orders->sum('total_price'),
+            'total_paid' => $customer->orders->sum(fn($o) => $o->getTotalPaid()),
+            'total_remaining' => $customer->orders->sum(fn($o) => $o->getRemainingAmount()),
+            'shipped_orders' => $customer->orders->where('status', 'shipped')->count(),
+            'delivered_orders' => $customer->orders->where('status', 'delivered')->count(),
+        ];
+
+        return view('pages.customers.show', compact('customer', 'stats'));
     }
     public function index(Request $request)
     {

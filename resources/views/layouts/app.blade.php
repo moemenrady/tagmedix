@@ -586,6 +586,7 @@
             class="absolute bottom-0 left-0 w-[400px] h-[400px] bg-softPink opacity-20 rounded-full blur-[120px] -z-10 pointer-events-none">
         </div>
 
+        @unless(View::hasSection('hide_header'))
         <div id="headerWrapper"
             class="sticky top-0 z-30 transition-transform duration-500 ease-in-out w-full shrink-0">
             <header
@@ -628,10 +629,9 @@
                 <i class="fa-solid fa-chevron-up transition-transform duration-300" id="headerArrowIcon"></i>
             </button>
         </div>
+        @endunless
 
-        <div class="flex-1 overflow-y-auto p-4 md:p-6 space-y-6 page-transition relative z-10 flex flex-col">
-            <div id="mainScrollArea"
-                class="flex-1 overflow-y-auto p-4 md:p-6 space-y-6 page-transition relative z-10 flex flex-col"></div>
+        <div id="mainScrollArea" class="flex-1 overflow-y-auto p-4 md:p-6 space-y-6 page-transition relative z-10 flex flex-col">
             <div class="flex-1">
                 @yield('content')
             </div>

@@ -8,6 +8,7 @@ use Exception;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use App\Integrations\Turbo\Models\Shipment;
+use App\Integrations\Turbo\Models\ShipmentStatusHistory;
 use App\Models\Area;
 use App\Models\Government;
 
@@ -70,6 +71,43 @@ class FinishedGoodController extends Controller
         if ($request->filled('q')) {
 
             $q = trim($request->q);
+
+            // If searched code is not in local DB, attempt live lookup from Turbo API
+            if (! Shipment::where('turbo_id', $q)->orWhere('tracking_number', $q)->orWhere('remote_order_id', $q)->exists()) {
+                if (is_numeric($q) || str_starts_with($q, 'TRK-') || str_starts_with($q, 'ORD-')) {
+                    try {
+                        $searchRes = $this->turboApiService->searchOrder($q);
+                        $foundItems = $searchRes['result'] ?? $searchRes['data'] ?? [];
+                        if (is_array($foundItems) && ! empty($foundItems[0])) {
+                            $item = $foundItems[0];
+                            $code = (string) ($item['code'] ?? $q);
+                            $remoteOrd = (string) ($item['invoice_number'] ?? $item['remote_order_id'] ?? '');
+
+                            $order = $remoteOrd ? Order::where('order_number', $remoteOrd)->first() : null;
+
+                            $newShipment = Shipment::create([
+                                'order_id' => $order?->id,
+                                'turbo_id' => $code,
+                                'remote_order_id' => $remoteOrd ?: ('TURBO-' . $code),
+                                'tracking_number' => $code,
+                                'receiver' => $order?->customer_name ?: 'عميل Turbo',
+                                'phone' => $order?->customer_phone_1 ?: '',
+                                'government' => $item['expected_branch'] ?? $item['branch'] ?? '',
+                                'area' => $item['branch'] ?? '',
+                                'amount' => $order?->total_price ?? (float) ($item['order_price'] ?? 0),
+                                'status' => $item['status'] ?? 'pending',
+                                'status_text' => $item['status'] ?? 'قيد المتابعة',
+                                'last_synced_at' => now(),
+                                'response' => $item,
+                            ]);
+
+                            $this->turboApiService->applyShipmentUpdate($newShipment, $item, 'api_search_import');
+                        }
+                    } catch (\Throwable $e) {
+                        Log::info("Turbo live search lookup exception for {$q}: " . $e->getMessage());
+                    }
+                }
+            }
 
             $query->where(function ($query) use ($q) {
 
@@ -195,6 +233,35 @@ class FinishedGoodController extends Controller
 
             'average_weight' => (clone $statisticsQuery)->avg('weight'),
 
+            'in_transit_count' => (clone $statisticsQuery)
+                ->where(function ($q) {
+                    $q->whereIn('status', ['in_transit', 'shipped', '2', 'جاري التوصيل', 'مع المندوب'])
+                      ->orWhere('status', 'like', '%جاري%')
+                      ->orWhere('status', 'like', '%transit%');
+                })->count(),
+
+            'delivered_count' => (clone $statisticsQuery)
+                ->where(function ($q) {
+                    $q->whereIn('status', ['delivered', 'completed', '3', 'تم التسليم', 'مكتمل'])
+                      ->orWhere('status', 'like', '%تسليم%')
+                      ->orWhere('status', 'like', '%delivered%');
+                })->count(),
+
+            'delayed_count' => (clone $statisticsQuery)
+                ->where(function ($q) {
+                    $q->where('response', 'like', '%delay%')
+                      ->orWhere('notes', 'like', '%تأجيل%')
+                      ->orWhere('notes', 'like', '%تأخير%');
+                })->count(),
+
+            'returned_count' => (clone $statisticsQuery)
+                ->where(function ($q) {
+                    $q->whereIn('status', ['returned', 'canceled', 'cancelled', '4', 'مرتجع', 'ملغي', 'محذوفة', 'محذوف', 'deleted'])
+                      ->orWhere('status', 'like', '%مرتجع%')
+                      ->orWhere('status', 'like', '%ملغي%')
+                      ->orWhere('status', 'like', '%محذوف%');
+                })->count(),
+
             'orders' => (clone $statisticsQuery)
                 ->where('is_order', true)
                 ->count(),
@@ -211,6 +278,7 @@ class FinishedGoodController extends Controller
     */
 
         $shipments = $query
+            ->with(['statusHistories' => fn($h) => $h->latest()])
             ->latest('id')
             ->paginate(30)
             ->withQueryString();
@@ -253,6 +321,175 @@ class FinishedGoodController extends Controller
             )
         );
     }
+
+    /**
+     * Bulk Sync shipments from Turbo API
+     */
+    public function syncTurboShipments(Request $request)
+    {
+        $request->validate([
+            'from' => 'nullable|date',
+            'to' => 'nullable|date|after_or_equal:from',
+        ]);
+
+        $from = $request->input('from') ?: date('Y-m-d', strtotime('-30 days'));
+        $to = $request->input('to') ?: date('Y-m-d', strtotime('+1 day'));
+
+        try {
+            $result = $this->turboApiService->syncShipmentsFromApi($from, $to);
+
+            return response()->json([
+                'success' => true,
+                'message' => "تمت المزامنة بنجاح! تم فحص {$result['total_fetched']} وتحديث {$result['updated_count']} شحنة في النظام.",
+                'data' => $result,
+            ]);
+        } catch (\Throwable $e) {
+            Log::error('Bulk Sync Turbo Shipments Error: ' . $e->getMessage());
+
+            return response()->json([
+                'success' => false,
+                'message' => 'فشل الاتصال بـ Turbo: ' . $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    /**
+     * Single Shipment on-demand sync
+     */
+    public function syncSingleShipment(Request $request, $id)
+    {
+        $shipment = Shipment::with(['order', 'statusHistories'])->findOrFail($id);
+
+        try {
+            $synced = $this->turboApiService->syncSingleShipment($shipment);
+            $shipment->refresh();
+            $shipment->load(['order', 'statusHistories' => fn($h) => $h->latest()]);
+
+            return response()->json([
+                'success' => true,
+                'synced' => $synced,
+                'message' => $synced ? 'تم تحديث بيانات الشحنة من Turbo بنجاح' : 'تم التحقق من Turbo، لا توجد تحديثات جديدة للشحنة حالياً',
+                'shipment' => $shipment,
+            ]);
+        } catch (\Throwable $e) {
+            Log::error("Single Shipment Sync Error for {$id}: " . $e->getMessage());
+
+            return response()->json([
+                'success' => false,
+                'message' => 'فشل تحديث الشحنة من Turbo: ' . $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    /**
+     * Dev-only debug endpoint to view raw Turbo API response
+     */
+    public function debugTurboShipment(Request $request, $id)
+    {
+        abort_unless(config('app.debug'), 403, 'Debug mode is disabled.');
+
+        $shipment = Shipment::with(['order', 'statusHistories'])->findOrFail($id);
+        $searchKey = $shipment->tracking_number ?: ($shipment->turbo_id ?: ($shipment->remote_order_id ?: $shipment->id));
+
+        $liveTurboResponse = null;
+        try {
+            $liveTurboResponse = $this->turboApiService->searchOrder($searchKey);
+        } catch (\Throwable $e) {
+            $liveTurboResponse = [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+            ];
+        }
+
+        if ($request->wantsJson()) {
+            return response()->json([
+                'shipment_id' => $shipment->id,
+                'search_key_used' => $searchKey,
+                'live_turbo_response' => $liveTurboResponse,
+                'stored_shipment_response' => $shipment->response,
+                'shipment' => $shipment,
+            ]);
+        }
+
+        dd([
+            '💡 Dev Mode' => 'Direct Turbo API Live Inspection',
+            'Shipment ID' => $shipment->id,
+            'Search Key Sent to Turbo' => $searchKey,
+            'Live Turbo API Response (/external-api/search-order)' => $liveTurboResponse,
+            'Stored in Database (shipments.response)' => $shipment->response,
+            'Shipment Status' => $shipment->status,
+            'Shipment Status Text' => $shipment->status_text,
+            'Order' => $shipment->order ? $shipment->order->toArray() : null,
+        ]);
+    }
+
+    /**
+     * Cancel or mark shipment as deleted/canceled
+     */
+    public function cancelShipment(Request $request, $id)
+    {
+        $shipment = Shipment::with(['order', 'statusHistories'])->findOrFail($id);
+        $oldStatus = (string) $shipment->status;
+
+        // Try informing Turbo API
+        $turboMessage = null;
+        try {
+            $turboId = $shipment->turbo_id ?: $shipment->tracking_number;
+            if ($turboId) {
+                $cancelRes = $this->turboApiService->cancelOrder($turboId);
+                $turboMessage = $cancelRes['message'] ?? 'تم إرسال الإلغاء لـ Turbo';
+            }
+        } catch (\Throwable $e) {
+            // If already deleted on Turbo or 404, we record that gracefully
+            Log::info("Shipment {$id} cancellation note from Turbo: " . $e->getMessage());
+            $turboMessage = $e->getMessage();
+        }
+
+        $now = now();
+        $existingResponse = is_array($shipment->response) ? $shipment->response : [];
+        $existingResponse['cancellation_note'] = $turboMessage ?: 'تم الإلغاء من النظام';
+
+        $shipment->forceFill([
+            'status' => 'محذوفة',
+            'status_text' => 'محذوفة',
+            'returned_at' => $shipment->returned_at ?: $now,
+            'last_synced_at' => $now,
+            'response' => $existingResponse,
+        ])->save();
+
+        if ($oldStatus !== 'محذوفة') {
+            ShipmentStatusHistory::create([
+                'shipment_id' => $shipment->id,
+                'old_status' => $oldStatus,
+                'new_status' => 'محذوفة',
+                'response' => [
+                    'action' => 'canceled_by_user',
+                    'turbo_note' => $turboMessage,
+                ],
+                'created_at' => $now,
+            ]);
+        }
+
+        // Sync with primary order
+        $order = $shipment->order ?: ($shipment->order_id ? Order::find($shipment->order_id) : null);
+        if (! $order && ! empty($shipment->remote_order_id)) {
+            $order = Order::where('order_number', $shipment->remote_order_id)->first();
+        }
+
+        if ($order && $order->status !== 'canceled') {
+            $order->update(['status' => 'canceled']);
+        }
+
+        $shipment->refresh();
+        $shipment->load(['order', 'statusHistories' => fn($h) => $h->latest()]);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'تم إلغاء الشحنة ووسمها كمحذوفة بنجاح وتحديث الطلب المرتبط',
+            'shipment' => $shipment,
+        ]);
+    }
+
     public function show($id)
     {
         $order = Order::with(['customer', 'address', 'items.style', 'items.type', 'items.color', 'items.size', 'items.pantType', 'payments.creator'])

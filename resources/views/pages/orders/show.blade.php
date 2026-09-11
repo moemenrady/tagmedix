@@ -110,7 +110,7 @@
                         <div>
                             <div class="flex flex-wrap items-center gap-2">
                                 <h3 class="font-black text-gray-900 text-base">تمت إضافة الطلب للشحنات (شركة Turbo)</h3>
-                                <span class="px-2.5 py-0.5 rounded-full text-[11px] font-black bg-emerald-100 text-emerald-800 border border-emerald-200 flex items-center gap-1">
+                                <span id="order_turbo_status_badge" class="px-2.5 py-0.5 rounded-full text-[11px] font-black bg-emerald-100 text-emerald-800 border border-emerald-200 flex items-center gap-1">
                                     <i class="fa-solid fa-circle-check text-xs"></i> {{ $latestShipment?->status_text ?? 'تم شحن الطلب' }}
                                 </span>
                             </div>
@@ -143,6 +143,12 @@
                                     <span class="font-black font-mono text-rose-700 text-sm">{{ number_format($latestShipment->return_amount, 2) }} ج.م</span>
                                 </div>
                             @endif
+                            <button type="button" onclick="syncOrderShipment({{ $latestShipment->id }}, this)"
+                                class="px-3.5 py-2.5 bg-purple-50 hover:bg-purple-100 text-[#31006f] text-xs font-bold rounded-xl border border-purple-200 transition shadow-2xs flex items-center gap-2 cursor-pointer"
+                                title="تحديث فوري من Turbo">
+                                <i class="fa-solid fa-rotate text-xs"></i>
+                                <span>تحديث من Turbo</span>
+                            </button>
                             <a href="{{ route('shipments.index', ['q' => $latestShipment->turbo_id ?: $order->order_number]) }}"
                                 class="px-4 py-2.5 bg-gray-900 hover:bg-black text-white text-xs font-bold rounded-xl transition shadow-sm flex items-center gap-2">
                                 <i class="fa-solid fa-arrow-up-right-from-square"></i>
@@ -1195,5 +1201,43 @@
                 }
             }));
         });
+
+        window.syncOrderShipment = async function(shipmentId, btn) {
+            const originalHtml = btn.innerHTML;
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin text-xs"></i> <span>جاري التحديث...</span>';
+
+            try {
+                const res = await fetch(`/shipments/${shipmentId}/sync`, {
+                    method: 'POST',
+                    headers: {
+                        'Accept': 'application/json',
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': '{{ csrf_token() }}'
+                    }
+                });
+                const data = await res.json();
+                if (data.success) {
+                    const badge = document.getElementById('order_turbo_status_badge');
+                    if (badge && data.shipment) {
+                        badge.innerHTML = `<i class="fa-solid fa-circle-check text-xs"></i> ${data.shipment.status_text || data.shipment.status || 'تم التحديث'}`;
+                    }
+                    btn.innerHTML = '<i class="fa-solid fa-check text-emerald-600 text-xs"></i> <span class="text-emerald-700">تم التحديث</span>';
+                    setTimeout(() => {
+                        btn.innerHTML = originalHtml;
+                        btn.disabled = false;
+                    }, 2000);
+                } else {
+                    alert(data.message || 'فشلت المزامنة');
+                    btn.innerHTML = originalHtml;
+                    btn.disabled = false;
+                }
+            } catch (err) {
+                console.error(err);
+                alert('حدث خطأ أثناء الاتصال بالخادم');
+                btn.innerHTML = originalHtml;
+                btn.disabled = false;
+            }
+        };
     </script>
 @endpush

@@ -3,6 +3,8 @@
 namespace App\Services\Turbo;
 
 use App\Integrations\Turbo\Models\Shipment;
+use App\Integrations\Turbo\Models\ShipmentStatusHistory;
+use App\Models\Order;
 use Illuminate\Http\Client\PendingRequest;
 use Illuminate\Http\Client\Response;
 use Illuminate\Support\Facades\Http;
@@ -303,7 +305,234 @@ class TurboApiService
 
         $response = $this->client()->post('/external-api/get-status', $payload);
 
+        // When Turbo has no updated shipments in the range, it returns 404 with "Shipment not found"
+        if ($response->status() === 404 && str_contains(strtolower($response->body()), 'not found')) {
+            return ['success' => true, 'data' => []];
+        }
+
         return $this->handleResponse($response);
+    }
+
+    /**
+     * Search specific order directly by tracking number, order ID, or code on Turbo
+     * POST /external-api/search-order
+     */
+    public function searchOrder(string|int $searchKey): array
+    {
+        $payload = $this->authParams([
+            'search_key' => (string) $searchKey,
+        ]);
+
+        $response = $this->client()->post('/external-api/search-order', $payload);
+
+        if ($response->status() === 404 && str_contains(strtolower($response->body()), 'not found')) {
+            return ['success' => true, 'result' => []];
+        }
+
+        Log::info("Turbo searchOrder for '{$searchKey}':", [
+            'status' => $response->status(),
+            'data' => $response->json(),
+        ]);
+
+        return $this->handleResponse($response);
+    }
+
+    /**
+     * Unified central method to apply shipment updates from Turbo (API sync, Single sync, or Webhook)
+     */
+    public function applyShipmentUpdate(Shipment $shipment, array $payload, string $source = 'sync'): void
+    {
+        $oldStatus = (string) $shipment->status;
+        $statusText = (string) ($payload['status_text'] ?? $payload['status'] ?? $shipment->status_text ?? $oldStatus);
+        $newStatus = (string) ($payload['status'] ?? $payload['status_code'] ?? $statusText);
+
+        // Protection against Turbo API returning stale status 1 (قيد الإنتظار) for deleted/canceled shipments
+        $isLocallyDeleted = in_array(strtolower($oldStatus), ['محذوفة', 'محذوف', 'canceled', 'cancelled', 'ملغي', '4']);
+        $isIncomingWaiting = in_array(strtolower($newStatus), ['1', 'قيد الإنتظار', 'pending', 'waiting']);
+        if ($isLocallyDeleted && $isIncomingWaiting) {
+            $newStatus = $oldStatus;
+            $statusText = $shipment->status_text ?: 'محذوفة';
+        }
+
+        $existingResponse = is_array($shipment->response) ? $shipment->response : [];
+        $mergedResponse = array_merge($existingResponse, $payload, [
+            'captain_name' => $payload['captain_name'] ?? $payload['captain'] ?? ($existingResponse['captain_name'] ?? $existingResponse['captain'] ?? null),
+            'captain_number1' => $payload['captain_number1'] ?? $payload['captain_phone'] ?? ($existingResponse['captain_number1'] ?? $existingResponse['captain_phone'] ?? null),
+            'delay_reason' => $payload['delay_reason'] ?? ($existingResponse['delay_reason'] ?? null),
+            'return_reason' => $payload['return_reason'] ?? ($existingResponse['return_reason'] ?? null),
+            'branch' => $payload['branch'] ?? $payload['branch_name'] ?? ($existingResponse['branch'] ?? $existingResponse['branch_name'] ?? null),
+            'expected_branch' => $payload['expected_branch'] ?? ($existingResponse['expected_branch'] ?? null),
+            'last_sync_source' => $source,
+        ]);
+
+        // Financials
+        $collectedAmount = isset($payload['received_amount']) 
+            ? (float) $payload['received_amount'] 
+            : (isset($payload['collected_amount']) ? (float) $payload['collected_amount'] : (float) $shipment->collected_amount);
+
+        $orderAmount = isset($payload['order_price']) 
+            ? (float) $payload['order_price'] 
+            : (isset($payload['amount']) ? (float) $payload['amount'] : (float) $shipment->amount);
+
+        // Timestamps based on lifecycle
+        $now = now();
+        $deliveredAt = $shipment->delivered_at;
+        $returnedAt = $shipment->returned_at;
+        $shippedAt = $shipment->shipped_at;
+
+        $statusLower = strtolower($newStatus . ' ' . $statusText);
+        if (in_array(strtolower($newStatus), ['delivered', 'completed', '3']) || str_contains($statusLower, 'تسليم') || str_contains($statusLower, 'delivered')) {
+            $deliveredAt = $deliveredAt ?: $now;
+        }
+
+        if (in_array(strtolower($newStatus), ['returned', 'canceled', 'cancelled', '4', 'deleted']) || str_contains($statusLower, 'مرتجع') || str_contains($statusLower, 'ملغي') || str_contains($statusLower, 'محذوف') || str_contains($statusLower, 'deleted') || str_contains($statusLower, 'returned')) {
+            $returnedAt = $returnedAt ?: $now;
+        }
+
+        if (in_array(strtolower($newStatus), ['in_transit', 'shipped', '2']) || str_contains($statusLower, 'جاري') || str_contains($statusLower, 'transit')) {
+            $shippedAt = $shippedAt ?: $now;
+        }
+
+        // Status history audit trail
+        if ($oldStatus !== $newStatus) {
+            ShipmentStatusHistory::create([
+                'shipment_id' => $shipment->id,
+                'old_status' => $oldStatus,
+                'new_status' => $newStatus,
+                'response' => $payload,
+                'created_at' => $now,
+            ]);
+        }
+
+        // Sync with primary Order model
+        $order = $shipment->order ?: ($shipment->order_id ? Order::find($shipment->order_id) : null);
+        if (! $order && ! empty($shipment->remote_order_id)) {
+            $order = Order::where('order_number', $shipment->remote_order_id)->first();
+        }
+
+        if ($order) {
+            if ($deliveredAt && $order->status !== 'delivered') {
+                $order->update(['status' => 'delivered']);
+            } elseif ($returnedAt && $order->status !== 'canceled') {
+                $order->update(['status' => 'canceled']);
+            } elseif ($shippedAt && ! in_array($order->status, ['shipped', 'delivered', 'canceled'])) {
+                $order->update(['status' => 'shipped']);
+            }
+        }
+
+        // Persist shipment updates
+        $shipment->forceFill([
+            'status' => $newStatus,
+            'status_text' => $statusText,
+            'amount' => $orderAmount,
+            'collected_amount' => $collectedAmount,
+            'notes' => $payload['delay_reason'] ?? $payload['return_reason'] ?? $shipment->notes,
+            'delivered_at' => $deliveredAt,
+            'returned_at' => $returnedAt,
+            'shipped_at' => $shippedAt,
+            'last_synced_at' => $now,
+            'response' => $mergedResponse,
+        ])->save();
+    }
+
+    /**
+     * Sync single shipment on-demand directly from Turbo API
+     */
+    public function syncSingleShipment(Shipment $shipment): bool
+    {
+        $searchCodes = array_filter([
+            (string) $shipment->tracking_number,
+            (string) $shipment->turbo_id,
+            (string) $shipment->remote_order_id,
+            (string) $shipment->id,
+        ]);
+
+        // 1. First priority: Direct lookup via /external-api/search-order
+        foreach ($searchCodes as $code) {
+            try {
+                $searchResult = $this->searchOrder($code);
+                $items = $searchResult['result'] ?? $searchResult['data'] ?? [];
+                if (is_array($items) && ! empty($items[0])) {
+                    $this->applyShipmentUpdate($shipment, $items[0], 'single_sync');
+                    return true;
+                }
+            } catch (\Throwable $e) {
+                // Ignore search exceptions and try fallback
+            }
+        }
+
+        // 2. Fallback: Lookup in date range status updates
+        $from = $shipment->created_at ? $shipment->created_at->format('Y-m-d') : date('Y-m-d', strtotime('-30 days'));
+        $to = date('Y-m-d', strtotime('+1 day'));
+
+        try {
+            $response = $this->getStatus($from, $to);
+            $items = $response['data'] ?? $response['result']['data'] ?? $response['result'] ?? [];
+
+            if (is_array($items)) {
+                foreach ($items as $item) {
+                    if (! is_array($item)) {
+                        continue;
+                    }
+                    $itemCode = (string) ($item['code'] ?? $item['tracking_number'] ?? $item['remote_order_id'] ?? $item['id'] ?? '');
+                    if ($itemCode && in_array($itemCode, $searchCodes, true)) {
+                        $this->applyShipmentUpdate($shipment, $item, 'single_sync');
+                        return true;
+                    }
+                }
+            }
+        } catch (\Throwable $e) {
+            Log::warning("Single sync fallback getStatus error for {$shipment->id}: " . $e->getMessage());
+        }
+
+        // Touch last_synced_at even if no update found
+        $shipment->forceFill(['last_synced_at' => now()])->save();
+        return false;
+    }
+
+    /**
+     * Batch sync all shipments within a date range from Turbo API into DB
+     */
+    public function syncShipmentsFromApi(string $from, string $to): array
+    {
+        $response = $this->getStatus($from, $to);
+        $items = $response['data'] ?? $response['result']['data'] ?? $response['result'] ?? $response ?? [];
+
+        if (! is_array($items)) {
+            $items = [];
+        }
+
+        $updatedCount = 0;
+        $matchedShipments = [];
+
+        foreach ($items as $item) {
+            if (! is_array($item)) {
+                continue;
+            }
+
+            $code = (string) ($item['code'] ?? $item['tracking_number'] ?? $item['remote_order_id'] ?? $item['id'] ?? '');
+            if (! $code) {
+                continue;
+            }
+
+            $shipment = Shipment::where('tracking_number', $code)
+                ->orWhere('turbo_id', $code)
+                ->orWhere('remote_order_id', $code)
+                ->first();
+
+            if ($shipment) {
+                $this->applyShipmentUpdate($shipment, $item, 'batch_sync');
+                $updatedCount++;
+                $matchedShipments[] = $shipment->id;
+            }
+        }
+
+        return [
+            'success' => true,
+            'total_fetched' => count($items),
+            'updated_count' => $updatedCount,
+            'matched_shipments' => $matchedShipments,
+        ];
     }
 
     /**
@@ -313,7 +542,7 @@ class TurboApiService
     {
         Log::info('Turbo Webhook Payload in Service', $payload);
 
-        $remoteOrderId = (string) ($payload['remote_order_id'] ?? $payload['order_number'] ?? $payload['order_id'] ?? $payload['id'] ?? '');
+        $remoteOrderId = (string) ($payload['remote_order_id'] ?? $payload['order_number'] ?? $payload['order_id'] ?? $payload['id'] ?? $payload['code'] ?? '');
 
         if ($remoteOrderId === '') {
             return ['success' => false, 'message' => 'Missing remote order id or order number.'];
@@ -330,24 +559,7 @@ class TurboApiService
             return ['success' => false, 'message' => 'Shipment not found.'];
         }
 
-        $statusText = (string) ($payload['status_text'] ?? $payload['status'] ?? $shipment->status);
-        $newStatus = (string) ($payload['status'] ?? $statusText);
-
-        $existingResponse = is_array($shipment->response) ? $shipment->response : [];
-        $mergedResponse = array_merge($existingResponse, $payload, [
-            'captain_name' => $payload['captain_name'] ?? ($existingResponse['captain_name'] ?? null),
-            'captain_number1' => $payload['captain_number1'] ?? ($existingResponse['captain_number1'] ?? null),
-            'delay_reason' => $payload['delay_reason'] ?? ($existingResponse['delay_reason'] ?? null),
-            'return_reason' => $payload['return_reason'] ?? ($existingResponse['return_reason'] ?? null),
-        ]);
-
-        $shipment->forceFill([
-            'status' => $newStatus,
-            'status_text' => $statusText,
-            'amount' => isset($payload['order_price']) ? (float) $payload['order_price'] : $shipment->amount,
-            'notes' => $payload['delay_reason'] ?? $payload['return_reason'] ?? $shipment->notes,
-            'response' => $mergedResponse,
-        ])->save();
+        $this->applyShipmentUpdate($shipment, $payload, 'webhook');
 
         return ['success' => true, 'message' => 'Webhook processed successfully'];
     }
