@@ -3,7 +3,6 @@
 namespace App\Modules\Inventory\Services;
 
 use App\Modules\Inventory\DTOs\CreateInventoryStockData;
-use App\Modules\Inventory\Models\InventoryFinishedProduct;
 use App\Modules\Inventory\Models\InventoryItem;
 use App\Modules\Inventory\Models\InventoryItemVariant;
 use App\Modules\Inventory\Models\InventoryStock;
@@ -15,37 +14,52 @@ use Illuminate\Validation\ValidationException;
 
 class InventoryStockInService
 {
+    private function resolveItem(
+    CreateInventoryStockData $data
+): InventoryItem {
+    if ($data->existingItemId) {
+
+        $item = InventoryItem::query()
+            ->where('id', $data->existingItemId)
+            ->where('is_active', true)
+            ->first();
+
+        if (!$item) {
+            throw ValidationException::withMessages([
+                'existing_item_id' => 'الصنف المحدد غير موجود أو غير نشط.',
+            ]);
+        }
+
+        /*
+        |--------------------------------------------------------------------------
+        | تأكد أن الصنف المختار من نفس الفئة
+        |--------------------------------------------------------------------------
+        */
+
+        if ($item->category !== $data->category) {
+            throw ValidationException::withMessages([
+                'existing_item_id' => 'الصنف المحدد ينتمي إلى فئة مختلفة عن الفئة المختارة.',
+            ]);
+        }
+
+        return $item;
+    }
+
+    return $this->createItem($data);
+}
     public function execute(CreateInventoryStockData $data): InventoryItem
     {
         return DB::transaction(function () use ($data) {
             $this->validateBusinessRules($data);
 
-            $item = $this->createItem($data);
+            $item = $this->resolveItem($data);
             $variant = $this->createVariant($item, $data);
 
-            if ($data->isFinishedProduct()) {
-
-                $this->stockInFinishedProducts(
-                    $item,
-                    $variant,
-                    $data
-                );
-            } elseif ($data->isBulk()) {
-
-                $this->stockInBulk(
-                    $item,
-                    $variant,
-                    $data
-                );
+            if ($data->isBulk()) {
+                $this->stockInBulk($item, $variant, $data);
             } elseif ($data->isIndividual()) {
-
-                $this->stockInIndividual(
-                    $item,
-                    $variant,
-                    $data
-                );
+                $this->stockInIndividual($item, $variant, $data);
             } else {
-
                 throw ValidationException::withMessages([
                     'stock_tracking_type' => 'Unsupported stock tracking type.',
                 ]);
@@ -56,29 +70,7 @@ class InventoryStockInService
     }
 
     private function validateBusinessRules(CreateInventoryStockData $data): void
-    {if ($data->isFinishedProduct()) {
-
-    if (empty($data->finishedProducts)) {
-        throw ValidationException::withMessages([
-            'items' => 'يجب إضافة منتج جاهز واحد على الأقل.',
-        ]);
-    }
-
-    foreach ($data->finishedProducts as $product) {
-
-        if ($product->colorId !== $data->colorId) {
-            throw ValidationException::withMessages([
-                'items' => 'لون المنتج الجاهز يجب أن يطابق اللون الرئيسي.',
-            ]);
-        }
-
-        if ($product->quantity <= 0) {
-            throw ValidationException::withMessages([
-                'items' => 'كمية المنتج الجاهز يجب أن تكون أكبر من صفر.',
-            ]);
-        }
-    }
-}
+    {
         if ($data->isIndividual()) {
             foreach ($data->units as $unitData) {
                 $exists = InventoryUnit::withTrashed()
@@ -244,110 +236,4 @@ class InventoryStockInService
             'transaction_date' => now(),
         ]);
     }
-    private function stockInFinishedProducts(
-    InventoryItem $item,
-    InventoryItemVariant $variant,
-    CreateInventoryStockData $data
-): void {
-    foreach ($data->finishedProducts as $productData) {
-
-        /*
-        |--------------------------------------------------------------------------
-        | Create Finished Product
-        |--------------------------------------------------------------------------
-        */
-
-        $totalCost = $productData->totalCost();
-
-        $finishedProduct = InventoryFinishedProduct::create([
-            'inventory_item_id' => $item->id,
-            'inventory_item_variant_id' => $variant->id,
-
-            'product_code' => $this->generateFinishedProductCode(),
-
-            'pant_type_id' => $productData->pantTypeId,
-            'type_id' => $productData->typeId,
-            'style_id' => $productData->styleId,
-            'color_id' => $productData->colorId,
-            'size_id' => $productData->sizeId,
-            'sleeve_type_id' => $productData->sleeveTypeId,
-
-            'quantity' => $productData->quantity,
-            'unit_cost' => $productData->unitCost,
-            'total_cost' => $totalCost,
-
-            'notes' => $productData->notes,
-
-            'is_active' => true,
-        ]);
-
-
-        /*
-        |--------------------------------------------------------------------------
-        | Inventory Stock
-        |--------------------------------------------------------------------------
-        */
-
-        InventoryStock::create([
-            'inventory_item_id' => $item->id,
-            'inventory_item_variant_id' => $variant->id,
-
-            'quantity' => $productData->quantity,
-            'unit_type' => 'piece',
-
-            'unit_cost' => $productData->unitCost,
-            'total_cost' => $totalCost,
-        ]);
-
-
-        /*
-        |--------------------------------------------------------------------------
-        | Calculate Balance
-        |--------------------------------------------------------------------------
-        */
-
-        $balanceAfter = InventoryStock::query()
-            ->where('inventory_item_id', $item->id)
-            ->where('inventory_item_variant_id', $variant->id)
-            ->sum('quantity');
-
-
-        /*
-        |--------------------------------------------------------------------------
-        | Ledger Transaction
-        |--------------------------------------------------------------------------
-        */
-
-        $this->createTransaction(
-            item: $item,
-            variant: $variant,
-            unit: null,
-
-            quantity: $productData->quantity,
-
-            unitType: 'piece',
-
-            unitCost: $productData->unitCost,
-
-            totalCost: $totalCost,
-
-            notes: $productData->notes,
-
-            userId: $data->createdBy,
-
-            balanceAfter: (float) $balanceAfter
-        );
-    }
-}
-private function generateFinishedProductCode(): string
-{
-    do {
-        $code = 'FP-' . strtoupper(Str::random(8));
-    } while (
-        InventoryFinishedProduct::where('product_code', $code)
-            ->exists()
-    );
-
-    return $code;
-}
 }

@@ -24,7 +24,7 @@ final readonly class CreateInventoryStockData
 
         public array $units = [],
         public array $finishedProducts = [],
-
+        public ?int $existingItemId = null,
         public ?int $createdBy = null,
     ) {}
 
@@ -67,7 +67,9 @@ final readonly class CreateInventoryStockData
 
             units: $units,
             finishedProducts: $finishedProducts,
-
+            existingItemId: isset($data['existing_item_id'])
+                ? (int) $data['existing_item_id']
+                : null,
             createdBy: $userId,
         );
     }

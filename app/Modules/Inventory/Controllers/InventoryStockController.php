@@ -21,20 +21,43 @@ class InventoryStockController extends Controller
         private readonly InventoryStockInService $stockInService
     ) {}
 
-    public function create(): View
-    {
-        $colors = Color::all();
-        $sizes = Size::all();
-        $styles = Style::all();
-        $types = Type::all();
-        $pantTypes = PantType::all();
-        $sleeveType = SleeveType::all();
-        return view(
-            'pages.inventory.stock.create',
-            compact('colors', 'sizes', 'styles', 'types', 'pantTypes', 'sleeveType')
-        );
-    }
+public function create(): View
+{
+    // الأصناف الموجودة للـ Autocomplete
+    $existingItems = \App\Modules\Inventory\Models\InventoryItem::query()
+        ->select('id', 'name', 'category')
+        ->where('is_active', true)
+        ->orderBy('name')
+        ->get();
 
+    // تجهيز نسخة مخصصة للـ JavaScript
+    $existingItemsForJs = $existingItems->map(function ($item) {
+        return [
+            'id' => $item->id,
+            'name' => $item->name,
+            'category' => $item->category,
+        ];
+    })->values();
+
+    // البيانات الأساسية للقوائم المنسدلة
+    $colors = Color::all();
+    $sizes = Size::all();
+    $styles = Style::all();
+    $types = Type::all();
+    $pantTypes = PantType::all();
+    $sleeveType = SleeveType::all();
+
+    return view('pages.inventory.stock.create', compact(
+        'existingItems',
+        'existingItemsForJs',
+        'colors',
+        'sizes',
+        'styles',
+        'types',
+        'pantTypes',
+        'sleeveType'
+    ));
+}
     public function store(
         StoreInventoryStockRequest $request
     ): RedirectResponse {

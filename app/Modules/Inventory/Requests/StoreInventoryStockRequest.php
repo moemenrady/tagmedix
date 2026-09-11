@@ -27,7 +27,11 @@ class StoreInventoryStockRequest extends FormRequest
                 'string',
                 'max:255',
             ],
-
+            'existing_item_id' => [
+                'nullable',
+                'integer',
+                'exists:inventory_items,id',
+            ],
             'category' => [
                 'required',
                 Rule::in([
@@ -235,7 +239,7 @@ class StoreInventoryStockRequest extends FormRequest
             'color_id' => 'اللون',
             'minimum_stock' => 'الحد الأدنى للمخزون',
             'stock_tracking_type' => 'طريقة تتبع المخزون',
-
+            'existing_item_id' => 'الصنف الموجود',
             /*
             |--------------------------------------------------------------------------
             | Bulk
