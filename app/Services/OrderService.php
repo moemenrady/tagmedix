@@ -63,14 +63,42 @@ class OrderService
     }
 
 
+    public function cleanPhoneNumber(?string $phone): ?string
+    {
+        if ($phone === null) {
+            return null;
+        }
+
+        $phone = trim($phone);
+        if ($phone === '') {
+            return null;
+        }
+
+        // Convert Arabic-Indic numerals (٠-٩ and ۰-۹) to standard Latin digits (0-9)
+        $arabicDigits = ['٠', '١', '٢', '٣', '٤', '٥', '٦', '٧', '٨', '٩', '۰', '۱', '۲', '۳', '۴', '۵', '۶', '۷', '۸', '۹'];
+        $latinDigits  = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '0', '1', '2', '3', '4', '5', '6', '7', '8', '9'];
+        $phone = str_replace($arabicDigits, $latinDigits, $phone);
+
+        // Retain leading '+' if present
+        $hasPlus = str_starts_with($phone, '+');
+
+        // Extract digits only
+        $digits = preg_replace('/[^\d]/', '', $phone);
+        if (empty($digits)) {
+            return null;
+        }
+
+        return $hasPlus ? ('+' . $digits) : $digits;
+    }
+
     protected function validateRequest(Request $request): array
     {
-        // Clean phone numbers (remove spaces)
+        // Clean phone numbers
         if ($request->has('phone_1')) {
-            $request->merge(['phone_1' => str_replace(' ', '', $request->input('phone_1'))]);
+            $request->merge(['phone_1' => $this->cleanPhoneNumber($request->input('phone_1'))]);
         }
         if ($request->has('phone_2')) {
-            $request->merge(['phone_2' => str_replace(' ', '', $request->input('phone_2'))]);
+            $request->merge(['phone_2' => $this->cleanPhoneNumber($request->input('phone_2'))]);
         }
 
         // Clean full_address (remove newlines and quotes)
@@ -85,8 +113,8 @@ class OrderService
 
         return $request->validate([
             'customer_name'         => 'required|string|max:255',
-            'phone_1'               => ['required', 'string', 'regex:/^01[0125][0-9]{8}$/'],
-            'phone_2'               => ['nullable', 'string', 'regex:/^01[0125][0-9]{8}$/'],
+            'phone_1'               => ['required', 'string', 'regex:/^\+?[0-9]{7,20}$/'],
+            'phone_2'               => ['nullable', 'string', 'regex:/^\+?[0-9]{7,20}$/'],
             'instagram_profile'     => 'nullable|string|max:255',
 
             'address.governorate'   => 'required|string|max:255',
@@ -111,8 +139,8 @@ class OrderService
             'items.*.price'         => 'required|numeric|min:0',
             'items.*.notes'         => 'nullable|string',
         ], [
-            'phone_1.regex' => 'رقم الهاتف الأساسي يجب أن يكون رقم مصري صحيح (11 رقم يبدأ بـ 01).',
-            'phone_2.regex' => 'رقم الهاتف الإضافي يجب أن يكون رقم مصري صحيح (11 رقم يبدأ بـ 01).',
+            'phone_1.regex' => 'رقم الهاتف الأساسي غير صحيح. يجب أن يتكون من 7 إلى 20 رقماً مع إمكانية البدء بـ (+).',
+            'phone_2.regex' => 'رقم الهاتف الإضافي غير صحيح. يجب أن يتكون من 7 إلى 20 رقماً مع إمكانية البدء بـ (+).',
         ]);
     }
 

@@ -95,6 +95,65 @@
             </div>
         </div>
 
+        {{-- كارت بيانات الشحن لشركة Turbo --}}
+        @php
+            $latestShipment = $order->shipments ? $order->shipments->sortByDesc('id')->first() : null;
+        @endphp
+
+        @if ($latestShipment || $order->status === 'shipped')
+            <div class="bg-gradient-to-r from-amber-500/10 via-amber-500/5 to-white border border-amber-200 rounded-2xl p-5 shadow-sm">
+                <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+                    <div class="flex items-center gap-3.5">
+                        <div class="w-12 h-12 rounded-xl bg-gradient-to-tr from-amber-600 to-amber-700 text-white flex items-center justify-center text-xl shadow-md shrink-0">
+                            <i class="fa-solid fa-truck-fast"></i>
+                        </div>
+                        <div>
+                            <div class="flex flex-wrap items-center gap-2">
+                                <h3 class="font-black text-gray-900 text-base">تمت إضافة الطلب للشحنات (شركة Turbo)</h3>
+                                <span class="px-2.5 py-0.5 rounded-full text-[11px] font-black bg-emerald-100 text-emerald-800 border border-emerald-200 flex items-center gap-1">
+                                    <i class="fa-solid fa-circle-check text-xs"></i> {{ $latestShipment?->status_text ?? 'تم شحن الطلب' }}
+                                </span>
+                            </div>
+                            <p class="text-xs text-gray-500 mt-1 flex items-center gap-2">
+                                <i class="fa-regular fa-clock"></i>
+                                <span>تاريخ الشحن: {{ $latestShipment?->shipped_at ? \Carbon\Carbon::parse($latestShipment->shipped_at)->format('Y-m-d h:i A') : $order->updated_at->format('Y-m-d h:i A') }}</span>
+                            </p>
+                        </div>
+                    </div>
+
+                    @if ($latestShipment)
+                        <div class="flex flex-wrap items-center gap-3">
+                            <div class="bg-white px-3.5 py-2 rounded-xl border border-gray-200 text-xs shadow-xs">
+                                <span class="text-gray-400 block text-[10px] font-bold">كود الشحنة (Turbo ID)</span>
+                                <span class="font-black font-mono text-gray-900 text-sm">{{ $latestShipment->turbo_id ?: 'تم التسجيل' }}</span>
+                            </div>
+                            @if ($latestShipment->tracking_number)
+                                <div class="bg-white px-3.5 py-2 rounded-xl border border-gray-200 text-xs shadow-xs">
+                                    <span class="text-gray-400 block text-[10px] font-bold">باركود الشحنة</span>
+                                    <span class="font-black font-mono text-gray-700 text-sm">{{ $latestShipment->tracking_number }}</span>
+                                </div>
+                            @endif
+                            <div class="bg-white px-3.5 py-2 rounded-xl border border-amber-200 text-xs shadow-xs">
+                                <span class="text-amber-700 block text-[10px] font-bold">المطلوب تحصيله</span>
+                                <span class="font-black font-mono text-amber-900 text-sm">{{ number_format($latestShipment->amount, 2) }} ج.م</span>
+                            </div>
+                            @if ($latestShipment->return_amount)
+                                <div class="bg-white px-3.5 py-2 rounded-xl border border-rose-100 text-xs shadow-xs">
+                                    <span class="text-rose-600 block text-[10px] font-bold">سعر الارتجاع</span>
+                                    <span class="font-black font-mono text-rose-700 text-sm">{{ number_format($latestShipment->return_amount, 2) }} ج.م</span>
+                                </div>
+                            @endif
+                            <a href="{{ route('shipments.index', ['q' => $latestShipment->turbo_id ?: $order->order_number]) }}"
+                                class="px-4 py-2.5 bg-gray-900 hover:bg-black text-white text-xs font-bold rounded-xl transition shadow-sm flex items-center gap-2">
+                                <i class="fa-solid fa-arrow-up-right-from-square"></i>
+                                <span>عرض في الشحنات</span>
+                            </a>
+                        </div>
+                    @endif
+                </div>
+            </div>
+        @endif
+
         {{-- شبكة المعلومات --}}
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
 

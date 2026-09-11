@@ -195,6 +195,15 @@
                                             <i class="fa-solid fa-spinner fa-spin text-[10px] opacity-80" x-show="isUpdating"></i>
                                         </div>
                                     </div>
+                                    @php $shipment = $order->shipments ? $order->shipments->first() : null; @endphp
+                                    @if ($shipment)
+                                        <a href="{{ route('shipments.index', ['q' => $shipment->turbo_id ?: $order->order_number]) }}"
+                                            class="mt-1 inline-flex items-center gap-1 text-[10px] text-amber-800 bg-amber-50 hover:bg-amber-100 px-2 py-0.5 rounded border border-amber-200 font-bold transition-all shadow-2xs"
+                                            title="عرض في الشحنات">
+                                            <i class="fa-solid fa-truck-fast text-[9px] text-amber-600"></i>
+                                            <span>شحنة: {{ $shipment->turbo_id ?: 'Turbo' }}</span>
+                                        </a>
+                                    @endif
                                 </td>
                                 <td class="px-4 py-2 font-black text-gray-900">
                                     {{ number_format($order->total_price, 0) }} <span class="text-[10px] text-gray-400 font-normal">ج.م</span>
@@ -280,6 +289,17 @@
                                 </div>
                             </div>
                         </div>
+
+                        @php $mobileShipment = $order->shipments ? $order->shipments->first() : null; @endphp
+                        @if ($mobileShipment)
+                            <div class="flex items-center justify-between bg-amber-50/70 border border-amber-200/80 px-2.5 py-1 rounded-lg text-[10px]">
+                                <span class="text-amber-800 font-bold flex items-center gap-1.5">
+                                    <i class="fa-solid fa-truck-fast text-amber-600"></i>
+                                    <span>تمت الإضافة للشحنات ({{ $mobileShipment->turbo_id ?: 'Turbo' }})</span>
+                                </span>
+                                <a href="{{ route('shipments.index', ['q' => $mobileShipment->turbo_id ?: $order->order_number]) }}" class="text-blue-600 font-bold hover:underline">عرض</a>
+                            </div>
+                        @endif
 
                         {{-- العميل والعنوان --}}
                         <div class="flex items-center justify-between">

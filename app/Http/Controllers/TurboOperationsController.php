@@ -74,8 +74,8 @@ class TurboOperationsController extends Controller
                 return [
                     'id' => $ord->id,
                     'order_number' => $ord->order_number,
-                    'customer_name' => $ord->customer?->name ?? '',
-                    'phone_1' => $ord->customer?->phone_1 ?? '',
+                    'customer_name' => $ord->customer_name ?: ($ord->customer?->name ?? ''),
+                    'phone_1' => $ord->customer_phone_1 ?: ($ord->customer?->phone_1 ?? ''),
                     'governorate' => $ord->address?->governorate ?? '',
                     'full_address' => $ord->address?->full_address ?? '',
                     'total_price' => $ord->total_price,
@@ -113,11 +113,16 @@ class TurboOperationsController extends Controller
 
         $order = Order::with(['customer', 'address'])->findOrFail($validated['order_id']);
 
-        $custName = $order->customer?->name ?? '';
-        $phone1 = $order->customer?->phone_1 ?? '';
-        $phone2 = $order->customer?->phone_2 ?? '';
+        $custName = $order->customer_name ?: ($order->customer?->name ?? '');
+        $phone1 = $order->customer_phone_1 ?: ($order->customer?->phone_1 ?? '');
+        $phone2 = $order->customer_phone_2 ?: ($order->customer?->phone_2 ?? '');
         $gov = $order->address?->governorate ?? '';
         $addr = $order->address?->full_address ?? '';
+
+        // If it is an Egyptian number formatted as +201..., 201..., or 00201..., convert to 01... for Turbo
+        if (preg_match('/^(?:\+20|0020|20)(1[0125]\d{8})$/', $phone1, $m)) {
+            $phone1 = '0' . $m[1];
+        }
 
         // Check if shipment already exists for this order
         $existingShipment = Shipment::where('remote_order_id', $order->order_number)->first();

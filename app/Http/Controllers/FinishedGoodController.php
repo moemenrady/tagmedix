@@ -360,9 +360,9 @@ class FinishedGoodController extends Controller
         }
 
 
-        $governmentRealId = $government->real_id;
+        $governmentRealId = $government->real_id ?: $government->id;
 
-        $areaRealId = $area?->real_id;
+        $areaRealId = $area?->real_id ?: ($area?->id ?: $validated['area']);
         $shipmentPayload = [
             'second_client' => 'Tagmedix',
 
@@ -524,23 +524,22 @@ class FinishedGoodController extends Controller
 
             $turboResult = data_get($response, 'result', []);
 
-            /*
-|--------------------------------------------------------------------------
-| Turbo Data
-|--------------------------------------------------------------------------
-*/
-
-            $turboCode = data_get($turboResult, 'code');
+            $turboCode = data_get($turboResult, 'code') ?? data_get($response, 'code');
 
             $turboInvoiceNumber = data_get(
                 $turboResult,
                 'invoice_number'
-            );
+            ) ?? data_get($response, 'invoice_number');
 
             $turboBarcode = data_get(
                 $turboResult,
                 'bar_code'
-            );
+            ) ?? data_get($response, 'bar_code');
+
+            if (empty($turboCode) && empty($turboBarcode)) {
+                $errMsg = $response['error_msg'] ?? $response['message'] ?? 'فشل طلب الشحن من شركة Turbo ولم يتم استلام كود تتبع';
+                throw new \Exception($errMsg);
+            }
 
             $turboIsOrder = data_get(
                 $turboResult,
@@ -836,13 +835,25 @@ class FinishedGoodController extends Controller
                     'success' => true,
 
                     'message' =>
-                    'تم شحن الطلب بنجاح عبر شركة Turbo',
+                    'تم شحن الطلب بنجاح عبر شركة Turbo وتمت إضافته إلى الشحنات',
+
+                    'order_id' => $order->id,
+                    'order_number' => $order->order_number,
 
                     'shipment_id' => $shipment->id,
 
                     'turbo_id' => $turboCode,
 
                     'tracking_number' => $trackingNumber,
+
+                    'receiver' => $shipmentPayload['receiver'],
+                    'phone' => $shipmentPayload['phone1'],
+                    'government' => $government->name,
+                    'address' => $shipmentPayload['address'],
+                    'amount_to_be_collected' => $shipmentPayload['amount_to_be_collected'],
+                    'return_amount' => $shipmentPayload['return_amount'],
+                    'shipment_url' => route('shipments.index', ['q' => $turboCode ?: $order->order_number]),
+                    'order_url' => route('orders.show', $order->id),
 
                     'data' => $response,
                 ]);
