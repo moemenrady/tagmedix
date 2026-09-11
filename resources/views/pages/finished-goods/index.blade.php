@@ -519,13 +519,13 @@
         </div>
 
         {{-- MODAL 2: Ship Order Form Modal (Mobile Card Optimized) --}}
-        <div x-show="showShip" x-cloak
+        <div x-show="showShip" x-cloak @keydown.escape.window="if (showShip) closeShipModal()"
             class="fixed inset-0 z-50 overflow-y-auto flex items-center justify-center p-2 sm:p-4 bg-gray-900/60 backdrop-blur-xs"
             x-transition:enter="transition ease-out duration-200" x-transition:enter-start="opacity-0"
             x-transition:enter-end="opacity-100" x-transition:leave="transition ease-in duration-150"
             x-transition:leave-start="opacity-100" x-transition:leave-end="opacity-0">
 
-            <div @click.away="showShip = false"
+            <div @click.away="closeShipModal()"
                 class="bg-white rounded-2xl shadow-2xl border border-gray-100 w-full max-w-3xl overflow-hidden transform transition-all my-auto max-h-[94vh] flex flex-col">
 
                 {{-- Modal Header --}}
@@ -541,17 +541,33 @@
                             <p class="text-[11px] sm:text-xs text-amber-100">استكمال بيانات الشحنة للتحويل لشركة الشحن</p>
                         </div>
                     </div>
-                    <button @click="showShip = false" class="text-amber-100 hover:text-white p-1 rounded-lg transition">
+                    <button @click="closeShipModal()" class="text-amber-100 hover:text-white p-1 rounded-lg transition">
                         <i class="fa-solid fa-xmark text-xl"></i>
                     </button>
                 </div>
 
                 {{-- Form Content --}}
                 <form :action="'{{ url('finished-goods') }}/' + (activeOrder ? activeOrder.id : '') + '/ship'"
-                    method="POST" @submit="isSubmitting = true" class="flex flex-col flex-1 overflow-hidden">
+                    method="POST" @submit="submitShip($event)" class="flex flex-col flex-1 overflow-hidden">
                     @csrf
+                    <input type="hidden" name="order_id" :value="activeOrder ? activeOrder.id : ''">
 
                     <div class="p-4 sm:p-6 space-y-4 overflow-y-auto custom-scrollbar flex-1">
+
+                        {{-- خطأ الشحن التفاعلي داخل المودال --}}
+                        <div x-show="modalError" x-cloak
+                            class="bg-rose-50 border border-rose-200 p-3.5 rounded-xl flex items-start gap-3 text-rose-800 shadow-xs">
+                            <div class="w-8 h-8 rounded-lg bg-rose-100 flex items-center justify-center text-rose-600 shrink-0">
+                                <i class="fa-solid fa-circle-exclamation text-base"></i>
+                            </div>
+                            <div class="text-xs flex-1">
+                                <span class="font-bold block text-rose-900 mb-0.5">حدث خطأ من شركة الشحن Turbo:</span>
+                                <span class="leading-relaxed" x-text="modalError"></span>
+                            </div>
+                            <button type="button" @click="modalError = null" class="text-rose-400 hover:text-rose-600 p-1 transition">
+                                <i class="fa-solid fa-xmark text-sm"></i>
+                            </button>
+                        </div>
 
                         {{-- الراسل الفرعي --}}
                         <div
@@ -785,7 +801,7 @@
                     {{-- Modal Footer --}}
                     <div
                         class="px-5 py-3.5 bg-gray-50 border-t border-gray-100 flex items-center justify-between shrink-0">
-                        <button type="button" @click="showShip = false"
+                        <button type="button" @click="closeShipModal()"
                             class="px-4 py-2 bg-gray-200 hover:bg-gray-300 text-gray-700 text-xs font-semibold rounded-xl transition">
                             إلغاء
                         </button>
@@ -809,6 +825,91 @@
             </div>
         </div>
 
+        {{-- MODAL 3: Shipment Success Modal (Order Added to Shipments) --}}
+        <div x-show="showSuccessModal" x-cloak @keydown.escape.window="if (showSuccessModal) { showSuccessModal = false; window.location.reload(); }"
+            class="fixed inset-0 z-50 overflow-y-auto flex items-center justify-center p-3 sm:p-4 bg-gray-900/60 backdrop-blur-xs"
+            x-transition:enter="transition ease-out duration-200" x-transition:enter-start="opacity-0"
+            x-transition:enter-end="opacity-100" x-transition:leave="transition ease-in duration-150"
+            x-transition:leave-start="opacity-100" x-transition:leave-end="opacity-0">
+
+            <div class="bg-white rounded-2xl shadow-2xl border border-gray-100 w-full max-w-lg overflow-hidden transform transition-all my-auto flex flex-col">
+                {{-- Header --}}
+                <div class="p-5 bg-gradient-to-r from-emerald-600 to-teal-700 text-white flex items-center justify-between">
+                    <div class="flex items-center gap-3">
+                        <div class="w-12 h-12 rounded-xl bg-white/20 flex items-center justify-center text-white text-2xl shadow-inner">
+                            <i class="fa-solid fa-circle-check"></i>
+                        </div>
+                        <div>
+                            <h3 class="font-black text-lg">تم شحن الطلب بنجاح!</h3>
+                            <p class="text-xs text-emerald-100">تمت إضافة الطلب لشركة Turbo وجدول الشحنات</p>
+                        </div>
+                    </div>
+                    <button type="button" @click="showSuccessModal = false; window.location.reload();"
+                        class="text-emerald-100 hover:text-white p-1 rounded-lg transition">
+                        <i class="fa-solid fa-xmark text-xl"></i>
+                    </button>
+                </div>
+
+                {{-- Order & Shipment Information --}}
+                <div class="p-5 space-y-4 text-xs">
+                    <div class="bg-emerald-50/60 border border-emerald-200 rounded-xl p-3.5 flex items-center justify-between">
+                        <div>
+                            <span class="text-gray-500 block text-[11px] font-semibold mb-0.5">رقم الطلب</span>
+                            <span class="font-black text-sm text-gray-900 font-mono" x-text="'#' + (successData?.order_number || '')"></span>
+                        </div>
+                        <div class="text-left">
+                            <span class="text-gray-500 block text-[11px] font-semibold mb-0.5">كود الشحنة (Turbo ID)</span>
+                            <span class="font-black text-sm text-emerald-700 font-mono bg-white px-2.5 py-1 rounded-lg border border-emerald-200" x-text="successData?.turbo_id || 'تم التسجيل'"></span>
+                        </div>
+                    </div>
+
+                    {{-- تفاصيل المستلم والشحنة --}}
+                    <div class="grid grid-cols-2 gap-3 bg-gray-50 p-3.5 rounded-xl border border-gray-100">
+                        <div>
+                            <span class="text-gray-400 block text-[10px] font-semibold">المستلم</span>
+                            <span class="font-bold text-gray-800 text-xs truncate block mt-0.5" x-text="successData?.receiver"></span>
+                        </div>
+                        <div>
+                            <span class="text-gray-400 block text-[10px] font-semibold">رقم الهاتف</span>
+                            <span class="font-bold text-gray-700 text-xs font-mono block dir-ltr text-right mt-0.5" x-text="successData?.phone"></span>
+                        </div>
+                        <div class="col-span-2 pt-2.5 border-t border-gray-200/60">
+                            <span class="text-gray-400 block text-[10px] font-semibold">المحافظة والعنوان</span>
+                            <span class="font-semibold text-gray-700 text-xs block leading-relaxed mt-0.5" x-text="(successData?.government || '') + ' - ' + (successData?.address || '')"></span>
+                        </div>
+                        <div class="col-span-2 pt-2.5 border-t border-gray-200/60 flex items-center justify-between">
+                            <span class="font-bold text-gray-600">المطلوب تحصيله شامل الشحن:</span>
+                            <span class="font-black text-amber-700 text-sm font-mono"><span x-text="successData?.amount"></span> ج.م</span>
+                        </div>
+                        <template x-if="successData?.tracking_number">
+                            <div class="col-span-2 pt-2 border-t border-gray-200/60 flex items-center justify-between text-[11px]">
+                                <span class="text-gray-500">باركود التتبع:</span>
+                                <span class="font-mono font-bold text-gray-800" x-text="successData.tracking_number"></span>
+                            </div>
+                        </template>
+                    </div>
+                </div>
+
+                {{-- Footer Actions --}}
+                <div class="p-4 bg-gray-50 border-t border-gray-100 flex flex-col sm:flex-row items-center gap-2.5 justify-end">
+                    <a :href="successData?.shipment_url"
+                        class="w-full sm:w-auto px-4 py-2.5 bg-gradient-to-r from-amber-600 to-amber-700 hover:from-amber-700 hover:to-amber-800 text-white text-xs font-bold rounded-xl transition shadow-sm flex items-center justify-center gap-2">
+                        <i class="fa-solid fa-truck-fast"></i>
+                        <span>عرض في قائمة الشحنات</span>
+                    </a>
+                    <a :href="successData?.order_url"
+                        class="w-full sm:w-auto px-4 py-2.5 bg-blue-50 text-blue-700 hover:bg-blue-100 border border-blue-200 text-xs font-bold rounded-xl transition flex items-center justify-center gap-2">
+                        <i class="fa-solid fa-file-invoice"></i>
+                        <span>صفحة الطلب</span>
+                    </a>
+                    <button type="button" @click="showSuccessModal = false; window.location.reload();"
+                        class="w-full sm:w-auto px-4 py-2.5 bg-gray-200 hover:bg-gray-300 text-gray-700 text-xs font-bold rounded-xl transition">
+                        إغلاق ومتابعة
+                    </button>
+                </div>
+            </div>
+        </div>
+
     </div>
 
     <script>
@@ -818,7 +919,10 @@
             return {
                 showDetails: false,
                 showShip: false,
+                showSuccessModal: false,
+                successData: null,
                 isSubmitting: false,
+                modalError: null,
                 activeOrder: null,
                 shipForm: {
                     receiver: '',
@@ -850,15 +954,38 @@
                     this.showDetails = true;
                 },
 
+                closeShipModal() {
+                    this.showShip = false;
+                    this.modalError = null;
+                    this.isSubmitting = false;
+                },
+
                 openShipModal(order) {
+                    this.modalError = null;
+                    this.isSubmitting = false;
                     this.activeOrder = order;
                     const remaining = this.calculateRemaining(order);
                     const summary = order.items && order.items.length ? order.items.map(i =>
                         `${i.quantity}x ${i.style ? i.style.name : 'منتج'}`).join(', ') : 'ملابس';
 
+                    const normalizePhone = (num) => {
+                        if (!num) return '';
+                        let clean = num.toString().replace(/[^\d]/g, '');
+                        if (clean.length === 12 && clean.startsWith('201')) {
+                            return '0' + clean.substring(2);
+                        }
+                        if (clean.length === 14 && clean.startsWith('00201')) {
+                            return '0' + clean.substring(4);
+                        }
+                        if (clean.length === 10 && clean.startsWith('1')) {
+                            return '0' + clean;
+                        }
+                        return clean || num;
+                    };
+
                     const custName = order.customer ? order.customer.name : (order.customer_name || '');
-                    const p1 = order.customer ? order.customer.phone_1 : (order.phone_1 || '');
-                    const p2 = order.customer ? order.customer.phone_2 : (order.phone_2 || '');
+                    const p1 = normalizePhone(order.customer ? order.customer.phone_1 : (order.phone_1 || ''));
+                    const p2 = normalizePhone(order.customer ? order.customer.phone_2 : (order.phone_2 || ''));
                     const gov = order.address ? order.address.governorate : (order.governorate || '');
                     const area = order.address ? order.address.city : '';
                     const addr = order.address ? order.address.full_address : (order.full_address || '');
@@ -890,8 +1017,7 @@
                         is_order: '0',
                         return_summary: '',
                         can_open: 1,
-                        number_of_items: order.items ? order.items.reduce((sum, i) => sum + parseInt(i.quantity || 1),
-                            0) : 1,
+                        number_of_items: order.items ? order.items.reduce((sum, i) => sum + parseInt(i.quantity || 1), 0) : 1,
                         weight: 1,
                         is_fragile: 0,
                         order_summary: summary,
@@ -900,6 +1026,82 @@
                     };
 
                     this.showShip = true;
+                },
+
+                async submitShip(e) {
+                    e.preventDefault();
+                    if (!this.activeOrder) return;
+
+                    this.isSubmitting = true;
+                    this.modalError = null;
+
+                    try {
+                        const form = e.target;
+                        const formData = new FormData(form);
+                        const url = form.action;
+
+                        const response = await fetch(url, {
+                            method: 'POST',
+                            headers: {
+                                'X-Requested-With': 'XMLHttpRequest',
+                                'Accept': 'application/json',
+                            },
+                            body: formData
+                        });
+
+                        const data = await response.json().catch(() => null);
+
+                        if (response.ok && data && data.success) {
+                            // تم الشحن بنجاح -> إغلاق مودال الشحن وإظهار مودال التأكيد مع بيانات الطلب والشحنة
+                            this.showShip = false;
+                            this.isSubmitting = false;
+                            this.modalError = null;
+
+                            const orderNum = data.order_number || (this.activeOrder ? this.activeOrder.order_number : '');
+                            const orderId = data.order_id || (this.activeOrder ? this.activeOrder.id : '');
+                            const turboId = data.turbo_id || '';
+
+                            this.successData = {
+                                order_id: orderId,
+                                order_number: orderNum,
+                                turbo_id: turboId,
+                                tracking_number: data.tracking_number || '',
+                                receiver: data.receiver || this.shipForm.receiver,
+                                phone: data.phone || this.shipForm.phone1,
+                                government: data.government || this.shipForm.government,
+                                address: data.address || this.shipForm.address,
+                                amount: data.amount_to_be_collected !== undefined ? data.amount_to_be_collected : (parseFloat(this.shipForm.order_remaining || 0) + parseFloat(this.shipForm.shipment_price || 0)).toFixed(2),
+                                return_amount: data.return_amount || this.shipForm.return_amount,
+                                shipment_url: data.shipment_url || ('{{ route("shipments.index") }}?q=' + encodeURIComponent(turboId || orderNum)),
+                                order_url: data.order_url || ('{{ url("orders") }}/' + orderId)
+                            };
+
+                            this.showSuccessModal = true;
+                        } else {
+                            // فشل الإرسال -> إبقاء المودال والحسابات المالية كما هي وعرض الخطأ
+                            let errorMsg = 'فشل إرسال الشحنة لشركة Turbo';
+                            if (data) {
+                                if (data.errors && typeof data.errors === 'object') {
+                                    const errorList = Object.values(data.errors).flat();
+                                    if (errorList.length > 0) {
+                                        errorMsg = errorList.join(' | ');
+                                    } else if (data.message) {
+                                        errorMsg = data.message;
+                                    }
+                                } else if (data.message) {
+                                    errorMsg = data.message;
+                                }
+                            } else if (response && response.status) {
+                                errorMsg = 'حدث خطأ في الخادم أثناء معالجة الطلب (كود ' + response.status + ')';
+                            }
+                            this.modalError = errorMsg;
+                            this.isSubmitting = false;
+                        }
+                    } catch (err) {
+                        console.error('Ship error:', err);
+                        this.modalError = err.message || 'حدث خطأ غير متوقع أثناء الاتصال بشركة الشحن';
+                        this.isSubmitting = false;
+                    }
                 },
 
                 calculateRemaining(order) {

@@ -40,6 +40,7 @@ class OrderController extends Controller
             'items.sleeveType',
 
             'payments.creator',
+            'shipments',
         ])
             ->withSum('payments', 'amount')
             ->findOrFail($id);
@@ -70,11 +71,14 @@ class OrderController extends Controller
         $search = $request->search;
 
         $orders = Order::query()
-            ->with(['customer', 'address', 'items'])
+            ->with(['customer', 'address', 'items', 'shipments'])
             ->withSum('payments', 'amount')
             ->when($search, function ($query) use ($search) {
                 $query->where(function ($q) use ($search) {
                     $q->where('order_number', 'LIKE', "%{$search}%")
+                        ->orWhere('customer_name', 'LIKE', "%{$search}%")
+                        ->orWhere('customer_phone_1', 'LIKE', "%{$search}%")
+                        ->orWhere('customer_phone_2', 'LIKE', "%{$search}%")
                         ->orWhereHas('customer', function ($cq) use ($search) {
                             $cq->where('name', 'LIKE', "%{$search}%")
                                 ->orWhere('phone_1', 'LIKE', "%{$search}%")
@@ -330,14 +334,26 @@ class OrderController extends Controller
      */
     private function updateCustomerData(Order $order, array $info)
     {
+        $phone1 = isset($info['phone1']) ? $this->orderService->cleanPhoneNumber($info['phone1']) : ($order->customer?->phone_1 ?? $order->customer_phone_1);
+        $phone2 = isset($info['phone2']) ? $this->orderService->cleanPhoneNumber($info['phone2']) : ($order->customer?->phone_2 ?? $order->customer_phone_2);
+        $name = $info['name'] ?? ($order->customer?->name ?? $order->customer_name);
+        $insta = $info['insta'] ?? ($order->customer?->instagram_profile ?? $order->customer_instagram);
+
         if ($order->customer) {
             $order->customer->update([
-                'name'              => $info['name'] ?? $order->customer->name,
-                'phone_1'           => $info['phone1'] ?? $order->customer->phone_1,
-                'phone_2'           => $info['phone2'] ?? $order->customer->phone_2,
-                'instagram_profile' => $info['insta'] ?? $order->customer->instagram_profile,
+                'name'              => $name,
+                'phone_1'           => $phone1,
+                'phone_2'           => $phone2,
+                'instagram_profile' => $insta,
             ]);
         }
+
+        $order->update([
+            'customer_name'      => $name,
+            'customer_phone_1'   => $phone1,
+            'customer_phone_2'   => $phone2,
+            'customer_instagram' => $insta,
+        ]);
 
         if ($order->address) {
             $order->address->update([

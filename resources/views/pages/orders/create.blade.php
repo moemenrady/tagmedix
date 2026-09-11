@@ -226,12 +226,12 @@
                                 </label>
                                 <div class="relative">
                                     <input type="text" name="phone_1" id="phone_1_input" value="{{ old('phone_1') }}"
-                                        required autocomplete="off"
-                                        class="w-full h-[50px] px-4 py-3 bg-white border-2 border-[#8A704C]/30 rounded-xl focus:outline-none focus:ring-0 focus:border-[#8A704C] transition-all text-base font-bold text-gray-800 tracking-wider shadow-sm placeholder:text-gray-300 placeholder:font-normal placeholder:text-sm"
-                                        placeholder="أدخل رقم الهاتف للبحث عن عميل سابق...">
+                                        required autocomplete="off" dir="ltr"
+                                        class="w-full h-[50px] pl-4 pr-11 py-3 bg-white border-2 border-[#8A704C]/30 rounded-xl focus:outline-none focus:ring-0 focus:border-[#8A704C] transition-all text-base font-bold text-gray-800 tracking-wider shadow-sm placeholder:text-gray-300 placeholder:font-normal placeholder:text-sm text-left font-mono"
+                                        placeholder="+20... / 01... / أدخل رقم الهاتف...">
 
                                     <!-- مؤشر التحميل -->
-                                    <div id="search_spinner" class="hidden absolute left-4 top-1/2 -translate-y-1/2">
+                                    <div id="search_spinner" class="hidden absolute right-4 top-1/2 -translate-y-1/2">
                                         <i class="fa-solid fa-circle-notch fa-spin text-[#8A704C]"></i>
                                     </div>
                                 </div>
@@ -269,7 +269,9 @@
                             <div>
                                 <label class="block text-xs font-bold text-gray-600 mb-2">رقم هاتف إضافي</label>
                                 <input type="text" name="phone_2" id="phone_2_input" value="{{ old('phone_2') }}"
-                                    class="w-full h-[46px] px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#8A704C] focus:bg-white transition-all text-sm font-semibold text-gray-800 font-sans tracking-wide">
+                                    dir="ltr"
+                                    class="w-full h-[46px] px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#8A704C] focus:bg-white transition-all text-sm font-semibold text-gray-800 font-mono tracking-wide text-left"
+                                    placeholder="+20... / 01...">
                             </div>
 
                             <div>
@@ -649,11 +651,20 @@
                 const end = this.selectionEnd;
                 const originalLength = this.value.length;
                 
-                this.value = this.value.replace(/[^\d]/g, '');
+                // Convert Arabic-Indic numerals to Latin digits
+                let val = this.value.replace(/[٠-٩]/g, d => '٠١٢٣٤٥٦٧٨٩'.indexOf(d))
+                                    .replace(/[۰-۹]/g, d => '۰۱۲۳۴۵۶۷۸۹'.indexOf(d));
+                
+                // Allow leading '+' and digits only
+                const hasPlus = val.trimStart().startsWith('+');
+                const digits = val.replace(/\D/g, '');
+                
+                this.value = hasPlus ? ('+' + digits) : digits;
                 
                 // Adjust cursor position if necessary
                 if (this.value.length < originalLength) {
-                    this.setSelectionRange(start - (originalLength - this.value.length), end - (originalLength - this.value.length));
+                    const diff = originalLength - this.value.length;
+                    this.setSelectionRange(Math.max(0, start - diff), Math.max(0, end - diff));
                 } else {
                     this.setSelectionRange(start, end);
                 }
