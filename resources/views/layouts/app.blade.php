@@ -461,11 +461,6 @@
                 <span data-ar="الطلبات" data-en="Orders">الطلبات</span>
             </a>
 
-            <a href="{{ route('turbo.index') }}"
-                class="nav-link flex items-center gap-3 px-4 py-3 rounded-xl text-mutedBrown {{ request()->routeIs('turbo.*') ? 'active-tab' : '' }}">
-                <i class="fa-solid fa-truck-fast w-5 text-roseAccent"></i>
-                <span data-ar="مركز عمليات Turbo" data-en="Turbo Ops Center">مركز عمليات Turbo</span>
-            </a>
             <a href="{{ route('production.workflow.index') }}"
                 class="nav-link flex items-center justify-between px-4 py-3 rounded-xl text-mutedBrown {{ request()->routeIs('production.*') ? 'active-tab' : '' }}">
                 <div class="flex items-center gap-3">
