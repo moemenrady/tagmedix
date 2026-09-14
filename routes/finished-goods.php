@@ -25,6 +25,7 @@ Route::middleware(['auth'])->group(function () {
         [FinishedGoodController::class, 'cancelShipment']
     )->name('shipments.cancel');
     Route::get('finished-goods', [FinishedGoodController::class, 'index'])->name('finished-goods.index');
+    Route::post('finished-goods/bulk-ship', [FinishedGoodController::class, 'bulkShip'])->name('finished-goods.bulk-ship');
     Route::get('finished-goods/{order}', [FinishedGoodController::class, 'show'])->name('finished-goods.show');
     Route::post('finished-goods/{order}/ship', [FinishedGoodController::class, 'shipOrder'])->name('finished-goods.ship');
     Route::resource('finished-goods', FinishedGoodController::class)->except(['index', 'show']);

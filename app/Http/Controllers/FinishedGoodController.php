@@ -504,6 +504,233 @@ class FinishedGoodController extends Controller
         ]);
     }
 
+    /**
+     * Reusable logic to ship an order to Turbo
+     */
+    public function processOrderShipment(Order $order, array $attributes = []): array
+    {
+        $order->loadMissing(['customer', 'address', 'items.style', 'payments']);
+
+        $customerName = trim($attributes['receiver'] ?? ($order->customer?->name ?? $order->customer_name));
+        $phone1 = trim($attributes['phone1'] ?? ($order->customer?->phone_1 ?? $order->phone_1));
+        $phone2 = trim($attributes['phone2'] ?? ($order->customer?->phone_2 ?? $order->phone_2));
+        $governorate = trim($attributes['government'] ?? ($order->address?->governorate ?? $order->governorate));
+        $areaName = trim($attributes['area'] ?? ($order->address?->city ?? ''));
+        $fullAddress = trim($attributes['address'] ?? ($order->address?->full_address ?? $order->full_address));
+
+        if (empty($customerName)) {
+            throw new Exception("اسم المستلم غير متوفر للطلب #{$order->order_number}.");
+        }
+
+        if (empty($phone1)) {
+            throw new Exception("رقم هاتف المستلم غير متوفر للطلب #{$order->order_number}.");
+        }
+
+        if (empty($governorate)) {
+            throw new Exception("المحافظة غير محددة للطلب #{$order->order_number}.");
+        }
+
+        if (empty($fullAddress)) {
+            throw new Exception("العنوان غير متوفر للطلب #{$order->order_number}.");
+        }
+
+        // Match Government in DB
+        $government = Government::where('name', $governorate)->first();
+        if (!$government) {
+            $government = Government::where('name', 'LIKE', '%' . $governorate . '%')
+                ->orWhere('id', $governorate)
+                ->orWhere('real_id', $governorate)
+                ->first();
+        }
+
+        if (!$government) {
+            throw new Exception("المحافظة '{$governorate}' غير موجودة في قاعدة بيانات النظام.");
+        }
+
+        // Match Area in DB
+        $area = null;
+        if (!empty($areaName)) {
+            $area = Area::where('government_id', $government->id)
+                ->where('name', $areaName)
+                ->first();
+
+            if (!$area) {
+                $area = Area::where('government_id', $government->id)
+                    ->where('name', 'LIKE', '%' . $areaName . '%')
+                    ->first();
+            }
+        }
+
+        $governmentRealId = $government->real_id ?: $government->id;
+        $areaRealId = $area?->real_id ?: ($area?->id ?: null);
+
+        // Resolve return amount from attributes or DB
+        $returnAmount = null;
+        if (isset($attributes['return_amount']) && is_numeric($attributes['return_amount'])) {
+            $returnAmount = (float) $attributes['return_amount'];
+        } else {
+            $returnRecord = \App\Models\TurboReturnAmount::where('government_name', $government->name)
+                ->when($areaName, fn($q) => $q->where('area_name', $areaName))
+                ->first()
+                ?: \App\Models\TurboReturnAmount::where('government_name', $government->name)
+                    ->whereNull('area_name')
+                    ->first();
+
+            $returnAmount = $returnRecord ? (float) $returnRecord->return_amount : 0.0;
+        }
+
+        // Calculate amount to be collected
+        $remaining = (float) $order->getRemainingAmount();
+        $amountToBeCollected = isset($attributes['amount_to_be_collected']) && is_numeric($attributes['amount_to_be_collected'])
+            ? (float) $attributes['amount_to_be_collected']
+            : ($remaining + $returnAmount);
+
+        // Order summary
+        $orderSummary = $attributes['order_summary'] ?? null;
+        if (empty($orderSummary)) {
+            $itemsSummary = $order->items->map(function ($i) {
+                $style = $i->style?->name ?? 'منتج';
+                return "{$i->quantity}x {$style}";
+            })->join(', ');
+            $orderSummary = !empty($itemsSummary) ? $itemsSummary : 'ملابس';
+        }
+
+        $numberOfItems = isset($attributes['number_of_items']) && is_numeric($attributes['number_of_items'])
+            ? (int) $attributes['number_of_items']
+            : ($order->items ? $order->items->sum('quantity') ?: 1 : 1);
+
+        $shipmentPayload = [
+            'second_client' => 'Tagmedix',
+            'government' => $governmentRealId,
+            'area' => $areaRealId,
+            'address' => $fullAddress,
+            'api_followup_phone' => $attributes['api_followup_phone'] ?? $phone1,
+            'amount_to_be_collected' => $amountToBeCollected,
+            'order_summary' => $orderSummary,
+            'weight' => isset($attributes['weight']) ? (float) $attributes['weight'] : 1.0,
+            'notes' => $attributes['notes'] ?? null,
+            'delivery_type' => isset($attributes['delivery_type']) ? (int) $attributes['delivery_type'] : 0,
+            'remote_order_id' => $attributes['remote_order_id'] ?? $order->order_number,
+            'receiver' => $customerName,
+            'phone1' => $phone1,
+            'phone2' => $phone2,
+            'is_order' => (string) ($attributes['is_order'] ?? '0'),
+            'is_fragile' => (int) ($attributes['is_fragile'] ?? 0),
+            'return_amount' => $returnAmount,
+            'remote_shipment_id' => $attributes['remote_shipment_id'] ?? null,
+            'return_summary' => $attributes['return_summary'] ?? null,
+            'invoice_number' => $attributes['invoice_number'] ?? $order->order_number,
+            'can_open' => isset($attributes['can_open']) ? (int) $attributes['can_open'] : 1,
+            'number_of_items' => $numberOfItems,
+        ];
+
+        $startedAt = microtime(true);
+
+        $response = $this->turboApiService->addOrder($shipmentPayload);
+        $executionTime = microtime(true) - $startedAt;
+
+        $turboResult = data_get($response, 'result', []);
+        $turboCode = data_get($turboResult, 'code') ?? data_get($response, 'code');
+        $turboInvoiceNumber = data_get($turboResult, 'invoice_number') ?? data_get($response, 'invoice_number');
+        $turboBarcode = data_get($turboResult, 'bar_code') ?? data_get($response, 'bar_code');
+
+        if (empty($turboCode) && empty($turboBarcode)) {
+            $errMsg = $response['error_msg'] ?? $response['message'] ?? 'فشل طلب الشحن من شركة Turbo ولم يتم استلام كود تتبع';
+            throw new Exception($errMsg);
+        }
+
+        $remoteShipmentId = $attributes['remote_shipment_id'] ?? null;
+        $trackingNumber = $turboBarcode ?: $turboCode;
+        $oldOrderStatus = $order->status;
+
+        $order->update([
+            'status' => 'shipped',
+        ]);
+
+        $shipment = Shipment::create([
+            'order_id' => $order->id,
+            'turbo_id' => $turboCode,
+            'remote_order_id' => $shipmentPayload['remote_order_id'],
+            'remote_shipment_id' => $remoteShipmentId,
+            'tracking_number' => $trackingNumber,
+            'receiver' => $shipmentPayload['receiver'],
+            'phone' => $shipmentPayload['phone1'],
+            'phone2' => $shipmentPayload['phone2'],
+            'api_followup_phone' => $shipmentPayload['api_followup_phone'],
+            'government' => $government->name,
+            'area' => $area?->name,
+            'address' => $shipmentPayload['address'],
+            'amount' => $shipmentPayload['amount_to_be_collected'],
+            'collected_amount' => 0,
+            'weight' => $shipmentPayload['weight'],
+            'notes' => $shipmentPayload['notes'],
+            'order_summary' => $shipmentPayload['order_summary'],
+            'return_summary' => $shipmentPayload['return_summary'],
+            'return_amount' => $shipmentPayload['return_amount'],
+            'delivery_type' => (string) $shipmentPayload['delivery_type'],
+            'is_order' => (bool) $shipmentPayload['is_order'],
+            'is_fragile' => (bool) $shipmentPayload['is_fragile'],
+            'can_open' => (bool) $shipmentPayload['can_open'],
+            'number_of_items' => $shipmentPayload['number_of_items'],
+            'invoice_number' => $turboInvoiceNumber ?? $shipmentPayload['invoice_number'],
+            'status' => 'shipped',
+            'status_text' => 'تم إرسال الطلب لشركة Turbo بنجاح',
+            'internal_status' => 'shipped',
+            'shipped_at' => now(),
+            'last_synced_at' => now(),
+            'payload' => $shipmentPayload,
+            'response' => $response,
+        ]);
+
+        $shipment->statusHistories()->create([
+            'old_status' => null,
+            'new_status' => 'shipped',
+            'response' => [
+                'message' => 'Shipment created successfully',
+                'turbo_id' => $turboCode,
+                'tracking_number' => $trackingNumber,
+            ],
+        ]);
+
+        $shipment->logs()->create([
+            'endpoint' => 'addOrder',
+            'request' => $shipmentPayload,
+            'response' => $response,
+            'status_code' => 200,
+            'execution_time' => $executionTime,
+        ]);
+
+        Log::info('Order shipped successfully', [
+            'order_id' => $order->id,
+            'order_number' => $order->order_number,
+            'old_status' => $oldOrderStatus,
+            'new_status' => 'shipped',
+            'shipment_id' => $shipment->id,
+            'turbo_id' => $turboCode,
+            'tracking_number' => $trackingNumber,
+            'execution_time' => $executionTime,
+        ]);
+
+        return [
+            'success' => true,
+            'message' => 'تم شحن الطلب بنجاح عبر شركة Turbo وتمت إضافته إلى الشحنات',
+            'order_id' => $order->id,
+            'order_number' => $order->order_number,
+            'shipment_id' => $shipment->id,
+            'turbo_id' => $turboCode,
+            'tracking_number' => $trackingNumber,
+            'receiver' => $shipmentPayload['receiver'],
+            'phone' => $shipmentPayload['phone1'],
+            'government' => $government->name,
+            'address' => $shipmentPayload['address'],
+            'amount_to_be_collected' => $shipmentPayload['amount_to_be_collected'],
+            'return_amount' => $shipmentPayload['return_amount'],
+            'shipment_url' => route('shipments.index', ['q' => $turboCode ?: $order->order_number]),
+            'order_url' => route('orders.show', $order->id),
+            'data' => $response,
+        ];
+    }
+
     public function shipOrder(Request $request, $id)
     {
         $order = Order::with([
@@ -512,588 +739,35 @@ class FinishedGoodController extends Controller
             'items',
         ])->findOrFail($id);
 
-        $customerName = $order->customer?->name
-            ?? $order->customer_name
-            ?? '';
-
-        $phone1 = $order->customer?->phone_1
-            ?? $order->phone_1
-            ?? '';
-
-        $phone2 = $order->customer?->phone_2
-            ?? $order->phone_2
-            ?? '';
-
-        $governorate = $order->address?->governorate
-            ?? $order->governorate
-            ?? '';
-
-        $fullAddress = $order->address?->full_address
-            ?? $order->full_address
-            ?? '';
-
         $validated = $request->validate([
             'government'             => 'required|string',
             'area'                   => 'nullable|string',
             'address'                => 'required|string',
-
             'api_followup_phone'     => 'nullable|string',
-
             'amount_to_be_collected' => 'nullable|numeric',
             'order_summary'         => 'nullable|string',
-
             'weight'                => 'nullable|numeric',
             'notes'                 => 'nullable|string',
-
             'delivery_type'         => 'nullable',
-
             'remote_order_id'       => 'nullable|string',
-
             'receiver'              => 'required|string',
-
             'phone1'                => 'required|string',
             'phone2'                => 'nullable|string',
-
             'is_order'              => 'nullable',
             'is_fragile'            => 'nullable',
-
             'return_amount'         => 'required|numeric',
             'return_summary'        => 'nullable|string',
-
             'remote_shipment_id'    => 'nullable|string',
-
             'invoice_number'        => 'nullable|string',
-
             'can_open'              => 'nullable',
-
             'number_of_items'       => 'nullable|numeric',
         ]);
 
-
-
-        $government = Government::where('name', $validated['government'])
-            ->first();
-
-        if (! $government) {
-            throw \Illuminate\Validation\ValidationException::withMessages([
-                'government' => 'المحافظة المحددة غير موجودة في قاعدة البيانات.',
-            ]);
-        }
-
-
-        $area = null;
-
-        if (! empty($validated['area'])) {
-
-            $area = Area::where('government_id', $government->id)
-                ->where('name', $validated['area'])
-                ->first();
-
-            if (! $area) {
-                throw \Illuminate\Validation\ValidationException::withMessages([
-                    'area' => 'المنطقة المحددة غير موجودة ضمن المحافظة المختارة.',
-                ]);
-            }
-        }
-
-
-        $governmentRealId = $government->real_id ?: $government->id;
-
-        $areaRealId = $area?->real_id ?: ($area?->id ?: $validated['area']);
-        $shipmentPayload = [
-            'second_client' => 'Tagmedix',
-
-            /*
-    |--------------------------------------------------------------------------
-    | IMPORTANT
-    |--------------------------------------------------------------------------
-    | Send Turbo real IDs instead of local IDs / names
-    |--------------------------------------------------------------------------
-    */
-
-            'government' => $governmentRealId,
-
-            'area' => $areaRealId,
-
-            'address' => $validated['address']
-                ?? $fullAddress,
-
-            'api_followup_phone' => $validated['api_followup_phone']
-                ?? $phone1,
-
-            'amount_to_be_collected' => isset(
-                $validated['amount_to_be_collected']
-            )
-                ? (float) $validated['amount_to_be_collected']
-                : (float) $order->getRemainingAmount(),
-
-            'order_summary' => $validated['order_summary']
-                ?? null,
-
-            'weight' => isset($validated['weight'])
-                ? (float) $validated['weight']
-                : 1,
-
-            'notes' => $validated['notes']
-                ?? null,
-
-            'delivery_type' => $validated['delivery_type']
-                ?? 0,
-
-            'remote_order_id' => $validated['remote_order_id']
-                ?? $order->order_number,
-
-            'receiver' => $validated['receiver']
-                ?? $customerName,
-
-            'phone1' => $validated['phone1']
-                ?? $phone1,
-
-            'phone2' => $validated['phone2']
-                ?? $phone2,
-
-            'is_order' => (string) (
-                $validated['is_order'] ?? '0'
-            ),
-
-            'is_fragile' => (int) (
-                $validated['is_fragile'] ?? 0
-            ),
-
-            'return_amount' => isset(
-                $validated['return_amount']
-            )
-                ? (float) $validated['return_amount']
-                : 0,
-
-            'remote_shipment_id' =>
-            $validated['remote_shipment_id'] ?? null,
-
-            'return_summary' =>
-            $validated['return_summary'] ?? null,
-
-            'invoice_number' =>
-            $validated['invoice_number']
-                ?? $order->order_number,
-
-            'can_open' => isset($validated['can_open'])
-                ? (int) $validated['can_open']
-                : 1,
-
-            'number_of_items' => isset($validated['number_of_items'])
-                ? (int) $validated['number_of_items']
-                : $order->items()->count(),
-        ];
-
-
-
-
-
-        $startedAt = microtime(true);
-
         try {
-            // array:22 [▼ // app/Http/Controllers/FinishedGoodController.php:417
-            //   "second_client" => "Tagmedix"
-            //   "government" => "الإسكندرية"
-            //   "area" => "محمور المحمودية من اول الريادة الى شارع الشرطة"
-            //   "address" => "test address"
-            //   "api_followup_phone" => "01000000000"
-            //   "amount_to_be_collected" => 110.0
-            //   "order_summary" => "1x Sleeveless cropped top"
-            //   "weight" => 1.0
-            //   "notes" => null
-            //   "delivery_type" => "0"
-            //   "remote_order_id" => "ORD-00167"
-            //   "receiver" => "Test Client"
-            //   "phone1" => "01000000000"
-            //   "phone2" => ""
-            //   "is_order" => "0"
-            //   "is_fragile" => 0
-            //   "return_amount" => 110.0
-            //   "remote_shipment_id" => null
-            //   "return_summary" => null
-            //   "invoice_number" => "ORD-00167"
-            //   "can_open" => 1
-            //   "number_of_items" => 1
-            // ]
-            // array:24 [▼ // app/Services/Turbo/TurboApiService.php:113
-            //   "main_client_code" => "25847"
-            //   "authentication_key" => "39884f75bccb609497d058bbca569e14e0ca446cb16f69d96cff663449456819"
-            //   "second_client" => "Tagmedix"
-            //   "government" => "الإسكندرية"
-            //   "area" => "محمور المحمودية من اول الريادة الى شارع الشرطة"
-            //   "address" => "test address"
-            //   "api_followup_phone" => "01000000000"
-            //   "amount_to_be_collected" => 110.0
-            //   "order_summary" => "1x Sleeveless cropped top"
-            //   "weight" => 1.0
-            //   "notes" => null
-            //   "delivery_type" => "0"
-            //   "remote_order_id" => "ORD-00167"
-            //   "receiver" => "Test Client"
-            //   "phone1" => "01000000000"
-            //   "phone2" => ""
-            //   "is_order" => "0"
-            //   "is_fragile" => 0
-            //   "return_amount" => 110.0
-            //   "remote_shipment_id" => null
-            //   "return_summary" => null
-            //   "invoice_number" => "ORD-00167"
-            //   "can_open" => 1
-            //   "number_of_items" => 1
-            // ]
-            /*
-        |--------------------------------------------------------------------------
-        | Send shipment to Turbo
-        |--------------------------------------------------------------------------
-        */
-            $response = $this->turboApiService->addOrder(
-                $shipmentPayload
-            );
-
-            $executionTime = microtime(true) - $startedAt;
-
-            /*
-|--------------------------------------------------------------------------
-| Extract Turbo Response
-|--------------------------------------------------------------------------
-*/
-
-            $turboResult = data_get($response, 'result', []);
-
-            $turboCode = data_get($turboResult, 'code') ?? data_get($response, 'code');
-
-            $turboInvoiceNumber = data_get(
-                $turboResult,
-                'invoice_number'
-            ) ?? data_get($response, 'invoice_number');
-
-            $turboBarcode = data_get(
-                $turboResult,
-                'bar_code'
-            ) ?? data_get($response, 'bar_code');
-
-            if (empty($turboCode) && empty($turboBarcode)) {
-                $errMsg = $response['error_msg'] ?? $response['message'] ?? 'فشل طلب الشحن من شركة Turbo ولم يتم استلام كود تتبع';
-                throw new \Exception($errMsg);
-            }
-
-            $turboIsOrder = data_get(
-                $turboResult,
-                'is_order'
-            );
-
-            $expectedBranch = data_get(
-                $turboResult,
-                'expected_branch'
-            );
-
-            $overallDeliveryRate = data_get(
-                $turboResult,
-                'overall_delivery_rate'
-            );
-
-            $firstTimeSuccessRate = data_get(
-                $turboResult,
-                'first_time_success_rate'
-            );
-
-            /*
-|--------------------------------------------------------------------------
-| Remote Shipment ID
-|--------------------------------------------------------------------------
-|
-| Turbo في الـ response الحالي لا يرجع id مستقل للشحنة.
-| لذلك لا نفترض وجود remote_shipment_id.
-|
-*/
-
-            $remoteShipmentId =
-                $validated['remote_shipment_id']
-                ?? null;
-
-            /*
-|--------------------------------------------------------------------------
-| Tracking / Barcode
-|--------------------------------------------------------------------------
-*/
-
-            $trackingNumber = $turboBarcode;
-
-            /*
-        |--------------------------------------------------------------------------
-        | Save old status
-        |--------------------------------------------------------------------------
-        */
-
-            $oldOrderStatus = $order->status;
-
-            /*
-        |--------------------------------------------------------------------------
-        | Update order
-        |--------------------------------------------------------------------------
-        */
-
-            $order->update([
-                'status' => 'shipped',
-            ]);
-
-            /*
-        |--------------------------------------------------------------------------
-        | Create Shipment
-        |--------------------------------------------------------------------------
-        */
-
-            $shipment = Shipment::create([
-
-                /*
-    |--------------------------------------------------------------------------
-    | Relations
-    |--------------------------------------------------------------------------
-    */
-
-                'order_id' => $order->id,
-
-                /*
-    |--------------------------------------------------------------------------
-    | Turbo Identifiers
-    |--------------------------------------------------------------------------
-    */
-
-                // رقم الشحنة / الكود الذي أعادته Turbo
-                'turbo_id' => $turboCode,
-
-                // رقم الأوردر عندنا
-                'remote_order_id' => $shipmentPayload['remote_order_id'],
-
-                // Turbo لا يرجع remote shipment id حاليًا
-                'remote_shipment_id' => $remoteShipmentId,
-
-                // Turbo barcode
-                'tracking_number' => $trackingNumber,
-
-                /*
-    |--------------------------------------------------------------------------
-    | Customer Information
-    |--------------------------------------------------------------------------
-    */
-
-                'receiver' => $shipmentPayload['receiver'],
-
-                'phone' => $shipmentPayload['phone1'],
-
-                'phone2' => $shipmentPayload['phone2'],
-
-                'api_followup_phone' =>
-                $shipmentPayload['api_followup_phone'],
-
-                /*
-    |--------------------------------------------------------------------------
-    | Address
-    |--------------------------------------------------------------------------
-    */
-
-                'government' => $government->name,
-
-                'area' => $area?->name,
-
-                'address' =>
-                $shipmentPayload['address'],
-
-                /*
-    |--------------------------------------------------------------------------
-    | Order Financial Data
-    |--------------------------------------------------------------------------
-    */
-
-                'amount' =>
-                $shipmentPayload['amount_to_be_collected'],
-
-                'collected_amount' => 0,
-
-                /*
-    |--------------------------------------------------------------------------
-    | Order Information
-    |--------------------------------------------------------------------------
-    */
-
-                'weight' =>
-                $shipmentPayload['weight'],
-
-                'notes' =>
-                $shipmentPayload['notes'],
-
-                'order_summary' =>
-                $shipmentPayload['order_summary'],
-
-                'return_summary' =>
-                $shipmentPayload['return_summary'],
-
-                'return_amount' =>
-                $shipmentPayload['return_amount'],
-
-                /*
-    |--------------------------------------------------------------------------
-    | Shipment Options
-    |--------------------------------------------------------------------------
-    */
-
-                'delivery_type' =>
-                (string) $shipmentPayload['delivery_type'],
-
-                'is_order' =>
-                (bool) $shipmentPayload['is_order'],
-
-                'is_fragile' =>
-                (bool) $shipmentPayload['is_fragile'],
-
-                'can_open' =>
-                (bool) $shipmentPayload['can_open'],
-
-                'number_of_items' =>
-                $shipmentPayload['number_of_items'],
-
-                /*
-    |--------------------------------------------------------------------------
-    | Invoice
-    |--------------------------------------------------------------------------
-    |
-    | نأخذ رقم الفاتورة الذي رجع من Turbo لو موجود،
-    | وإلا نستخدم رقم الأوردر عندنا.
-    |
-    */
-
-                'invoice_number' =>
-                $turboInvoiceNumber
-                    ?? $shipmentPayload['invoice_number'],
-
-                /*
-    |--------------------------------------------------------------------------
-    | Status
-    |--------------------------------------------------------------------------
-    */
-
-                'status' => 'shipped',
-
-                'status_text' =>
-                'تم إرسال الطلب لشركة Turbo بنجاح',
-
-                'internal_status' => 'shipped',
-
-                /*
-    |--------------------------------------------------------------------------
-    | Dates
-    |--------------------------------------------------------------------------
-    */
-
-                'shipped_at' => now(),
-
-                'last_synced_at' => now(),
-
-                /*
-    |--------------------------------------------------------------------------
-    | Full Request Snapshot
-    |--------------------------------------------------------------------------
-    */
-
-                'payload' => $shipmentPayload,
-
-                /*
-    |--------------------------------------------------------------------------
-    | Full Turbo Response Snapshot
-    |--------------------------------------------------------------------------
-    */
-
-                'response' => $response,
-            ]);
-
-            /*
-        |--------------------------------------------------------------------------
-        | Shipment Status History
-        |--------------------------------------------------------------------------
-        */
-
-            $shipment->statusHistories()->create([
-                'old_status' => null,
-
-                'new_status' => 'shipped',
-
-                'response' => [
-                    'message' => 'Shipment created successfully',
-                    'turbo_id' => $turboCode,
-                    'tracking_number' => $trackingNumber,
-                ],
-            ]);
-
-            /*
-        |--------------------------------------------------------------------------
-        | API Log
-        |--------------------------------------------------------------------------
-        */
-
-            $shipment->logs()->create([
-                'endpoint' => 'addOrder',
-
-                'request' => $shipmentPayload,
-
-                'response' => $response,
-
-                'status_code' => 200,
-
-                'execution_time' => $executionTime,
-            ]);
-
-            /*
-        |--------------------------------------------------------------------------
-        | Log Order Status Change
-        |--------------------------------------------------------------------------
-        */
-
-            Log::info('Order shipped successfully', [
-                'order_id' => $order->id,
-                'order_number' => $order->order_number,
-                'old_status' => $oldOrderStatus,
-                'new_status' => 'shipped',
-                'shipment_id' => $shipment->id,
-                'turbo_id' => $turboCode,
-                'tracking_number' => $trackingNumber,
-                'execution_time' => $executionTime,
-            ]);
-
-            /*
-        |--------------------------------------------------------------------------
-        | Response
-        |--------------------------------------------------------------------------
-        */
+            $result = $this->processOrderShipment($order, $validated);
 
             if ($request->wantsJson() || $request->ajax()) {
-
-                return response()->json([
-                    'success' => true,
-
-                    'message' =>
-                    'تم شحن الطلب بنجاح عبر شركة Turbo وتمت إضافته إلى الشحنات',
-
-                    'order_id' => $order->id,
-                    'order_number' => $order->order_number,
-
-                    'shipment_id' => $shipment->id,
-
-                    'turbo_id' => $turboCode,
-
-                    'tracking_number' => $trackingNumber,
-
-                    'receiver' => $shipmentPayload['receiver'],
-                    'phone' => $shipmentPayload['phone1'],
-                    'government' => $government->name,
-                    'address' => $shipmentPayload['address'],
-                    'amount_to_be_collected' => $shipmentPayload['amount_to_be_collected'],
-                    'return_amount' => $shipmentPayload['return_amount'],
-                    'shipment_url' => route('shipments.index', ['q' => $turboCode ?: $order->order_number]),
-                    'order_url' => route('orders.show', $order->id),
-
-                    'data' => $response,
-                ]);
+                return response()->json($result);
             }
 
             return redirect()
@@ -1105,43 +779,19 @@ class FinishedGoodController extends Controller
                         ') بنجاح عبر شركة Turbo!'
                 );
         } catch (Exception $e) {
-
-            $executionTime = microtime(true) - $startedAt;
-
-            /*
-        |--------------------------------------------------------------------------
-        | If shipment was created, log exception there
-        |--------------------------------------------------------------------------
-        */
-
             Log::error(
                 'Shipment Error for order ' . $order->id,
                 [
                     'order_id' => $order->id,
                     'order_number' => $order->order_number,
-                    'payload' => $shipmentPayload,
-                    'execution_time' => $executionTime,
                     'exception' => $e->getMessage(),
                 ]
             );
 
-            /*
-        |--------------------------------------------------------------------------
-        | Response
-        |--------------------------------------------------------------------------
-        */
-
-            if (
-                $request->wantsJson()
-                || $request->ajax()
-            ) {
-
+            if ($request->wantsJson() || $request->ajax()) {
                 return response()->json([
                     'success' => false,
-
-                    'message' =>
-                    'فشل شحن الطلب: ' .
-                        $e->getMessage(),
+                    'message' => 'فشل شحن الطلب: ' . $e->getMessage(),
                 ], 422);
             }
 
@@ -1150,9 +800,108 @@ class FinishedGoodController extends Controller
                 ->withInput()
                 ->with(
                     'error',
-                    'فشل شحن الطلب: ' .
-                        $e->getMessage()
+                    'فشل شحن الطلب: ' . $e->getMessage()
                 );
         }
+    }
+
+    /**
+     * Bulk Ship multiple orders to Turbo
+     */
+    public function bulkShip(Request $request)
+    {
+        $orderIds = $request->input('order_ids', []);
+        $ordersOverrides = $request->input('orders', []);
+
+        if (empty($orderIds) && !empty($ordersOverrides)) {
+            $orderIds = array_column($ordersOverrides, 'order_id');
+        }
+
+        if (empty($orderIds) || !is_array($orderIds)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'يرجى تحديد طلب واحد على الأقل للشحن.',
+                'errors' => [
+                    'order_ids' => ['يرجى تحديد طلب واحد على الأقل للشحن.'],
+                ],
+            ], 422);
+        }
+
+        $commonSettings = $request->only([
+            'delivery_type',
+            'can_open',
+            'is_fragile',
+            'order_summary',
+            'weight',
+            'notes',
+        ]);
+
+        $orders = Order::with(['customer', 'address', 'items.style', 'payments'])
+            ->whereIn('id', $orderIds)
+            ->get()
+            ->keyBy('id');
+
+        $results = [];
+        $successCount = 0;
+        $failedCount = 0;
+
+        foreach ($orderIds as $orderId) {
+            $order = $orders->get($orderId);
+
+            if (!$order) {
+                $results[] = [
+                    'order_id' => $orderId,
+                    'order_number' => '#' . $orderId,
+                    'success' => false,
+                    'message' => 'الطلب غير موجود في النظام أو تم حذفه.',
+                ];
+                $failedCount++;
+                continue;
+            }
+
+            if ($order->status === 'shipped') {
+                $results[] = [
+                    'order_id' => $order->id,
+                    'order_number' => $order->order_number,
+                    'success' => false,
+                    'message' => 'تم شحن هذا الطلب مسبقاً.',
+                ];
+                $failedCount++;
+                continue;
+            }
+
+            $orderSpecificOverrides = $ordersOverrides[$orderId] ?? ($ordersOverrides[(string)$orderId] ?? []);
+            $attributes = array_merge($commonSettings, $orderSpecificOverrides);
+
+            try {
+                $shipResult = $this->processOrderShipment($order, $attributes);
+                $results[] = array_merge([
+                    'order_id' => $order->id,
+                    'order_number' => $order->order_number,
+                    'success' => true,
+                ], $shipResult);
+                $successCount++;
+            } catch (\Throwable $e) {
+                Log::error("Bulk Shipment error for order {$order->id}: " . $e->getMessage());
+                $results[] = [
+                    'order_id' => $order->id,
+                    'order_number' => $order->order_number,
+                    'success' => false,
+                    'message' => $e->getMessage(),
+                ];
+                $failedCount++;
+            }
+        }
+
+        return response()->json([
+            'success' => $successCount > 0,
+            'total' => count($orderIds),
+            'success_count' => $successCount,
+            'failed_count' => $failedCount,
+            'message' => $failedCount === 0
+                ? "تم بنجاح شحن جميع الطلبات المحددة ({$successCount} طلب) عبر شركة Turbo!"
+                : "تم شحن {$successCount} طلب بنجاح، وتعذر شحن {$failedCount} طلب.",
+            'results' => $results,
+        ]);
     }
 }
