@@ -38,6 +38,7 @@ class OrderService
                 'source'              => $validated['source'],
                 'status'              => $validated['status'] ?? 'new',
                 'total_price'         => 0,
+                'is_shipped_paid'     => !empty($validated['is_shipped_paid']),
                 'shipping_due_amount' => $validated['shipping_due_amount'] ?? 0,
                 'return_due_amount'   => $validated['return_due_amount'] ?? 0,
                 'order_contents'      => $validated['order_contents'] ?? null,
@@ -124,6 +125,7 @@ class OrderService
             'source'                => 'required|in:new,from_stock,replacement',
             'status'                => 'nullable|in:new,confirmed',
             'paid_amount'           => 'nullable|numeric|min:0',
+            'is_shipped_paid'       => 'nullable|boolean',
             'shipping_due_amount'   => 'nullable|numeric|min:0',
             'return_due_amount'     => 'nullable|numeric|min:0',
             'order_contents'        => 'nullable|string',
@@ -176,6 +178,7 @@ class OrderService
                 'quantity'       => $item['quantity'],
                 'price'          => $item['price'],
                 'total'          => $itemTotal,
+                'is_shipped_paid' => (bool) ($order->is_shipped_paid ?? false),
                 'notes'          => $item['notes'] ?? null,
             ]);
 

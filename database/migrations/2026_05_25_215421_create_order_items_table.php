@@ -41,6 +41,7 @@ return new class extends Migration {
             $table->integer('quantity')->default(1);
             $table->decimal('price', 10, 2)->default(0);
             $table->decimal('total', 10, 2)->default(0);
+            $table->boolean('is_shipped_paid')->default(false);
             $table->text('notes')->nullable();
             $table->timestamps();
         });

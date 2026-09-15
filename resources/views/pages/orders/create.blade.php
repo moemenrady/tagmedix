@@ -427,6 +427,26 @@
                                     value="0">
                             </div>
 
+                            <!-- الشحن مدفوع / هل العميل دفع مصاريف الشحن -->
+                            <div class="bg-gray-900/60 p-3.5 sm:p-4 rounded-xl border border-gray-800 hover:border-gray-700 transition-all">
+                                <label class="flex items-start gap-3 cursor-pointer select-none">
+                                    <input type="hidden" name="is_shipped_paid" value="0">
+                                    <input type="checkbox" name="is_shipped_paid" id="is_shipped_paid" value="1"
+                                        {{ old('is_shipped_paid') ? 'checked' : '' }}
+                                        class="w-5 h-5 mt-0.5 text-emerald-600 bg-gray-950 border-gray-700 rounded-md focus:ring-emerald-500/30 focus:ring-offset-0 cursor-pointer transition">
+                                    <div class="flex-1">
+                                        <div class="flex items-center gap-2">
+                                            <span class="text-sm font-bold text-white">تم دفع مصاريف الشحن مسبقاً</span>
+                                            <span class="text-[10px] bg-emerald-950/70 text-emerald-400 border border-emerald-800/40 px-2 py-0.5 rounded-full font-bold flex items-center gap-1">
+                                                <i class="fa-solid fa-truck-fast"></i>
+                                                شحن مدفوع
+                                            </span>
+                                        </div>
+                                        <p class="text-[11px] text-gray-400 mt-0.5 leading-relaxed">حدد هذا الخيار إذا قام العميل بسداد تكلفة الشحن مقدماً</p>
+                                    </div>
+                                </label>
+                            </div>
+
                             <div class="pt-2">
                                 <button type="submit"
                                     class="w-full bg-[#8A704C] hover:bg-[#725c3e] text-white font-bold py-3.5 px-6 rounded-xl shadow-lg hover:shadow-xl transition-all flex items-center justify-center gap-3 text-base sm:text-lg transform hover:-translate-y-0.5">

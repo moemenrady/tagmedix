@@ -308,6 +308,24 @@
                         :class="remainingAmount > 0 ? 'text-rose-700' : 'text-gray-900'"
                         x-text="formatMoney(remainingAmount) + ' ج.م'"></span>
                 </div>
+
+                {{-- حالة دفع مصاريف الشحن --}}
+                <div class="mt-3 flex items-center justify-between p-3 rounded-xl border {{ $order->is_shipped_paid ? 'bg-emerald-50/70 border-emerald-200' : 'bg-gray-50 border-gray-200' }}">
+                    <div class="flex items-center gap-2">
+                        <i class="fa-solid fa-truck-fast {{ $order->is_shipped_paid ? 'text-emerald-600' : 'text-gray-400' }}"></i>
+                        <span class="text-xs font-bold {{ $order->is_shipped_paid ? 'text-emerald-900' : 'text-gray-700' }}">سداد مصاريف الشحن:</span>
+                    </div>
+                    @if ($order->is_shipped_paid)
+                        <span class="inline-flex items-center gap-1 px-2.5 py-0.5 bg-emerald-100 text-emerald-800 text-xs font-bold rounded-lg border border-emerald-300">
+                            <i class="fa-solid fa-check text-[10px]"></i>
+                            تم دفع الشحن مسبقاً
+                        </span>
+                    @else
+                        <span class="inline-flex items-center gap-1 px-2.5 py-0.5 bg-gray-100 text-gray-600 text-xs font-medium rounded-lg border border-gray-200">
+                            يُحصل عند التسليم
+                        </span>
+                    @endif
+                </div>
             </div>
 
             {{-- 3. معلومات الطلب --}}

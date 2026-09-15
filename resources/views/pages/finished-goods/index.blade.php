@@ -674,7 +674,13 @@
                                     <div>
                                         <div class="flex items-center justify-between mb-1.5">
                                             <label class="block text-[11px] font-semibold text-gray-700">تكلفة الشحن <span class="text-rose-500">*</span></label>
-                                            <template x-if="shipForm.original_return_amount !== '' && shipForm.shipment_price == shipForm.original_return_amount">
+                                            <template x-if="shipForm.is_shipped_paid">
+                                                <span class="text-[9px] text-emerald-700 font-bold bg-emerald-50 border border-emerald-200 px-1.5 py-0.5 rounded flex items-center gap-1">
+                                                    <i class="fa-solid fa-check"></i>
+                                                    شحن مدفوع
+                                                </span>
+                                            </template>
+                                            <template x-if="!shipForm.is_shipped_paid && shipForm.original_return_amount !== '' && shipForm.shipment_price == shipForm.original_return_amount">
                                                 <span class="text-[9px] text-emerald-600 font-bold bg-emerald-50 px-1.5 py-0.5 rounded flex items-center gap-1">
                                                     <i class="fa-solid fa-check"></i>
                                                     تلقائي
@@ -684,9 +690,9 @@
                                         <div class="relative">
                                             <input type="number" step="0.01" x-model="shipForm.shipment_price" @input="shipForm.return_amount = shipForm.shipment_price" placeholder="تكلفة الشحن" required
                                                 class="w-full pl-20 pr-3 py-2 bg-white border border-gray-200 rounded-xl text-xs focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 font-bold shadow-sm transition-all text-gray-700"
-                                                :class="{'border-emerald-500 ring-1 ring-emerald-500': shipForm.original_return_amount !== '' && shipForm.shipment_price == shipForm.original_return_amount}">
+                                                :class="{'border-emerald-500 ring-1 ring-emerald-500 bg-emerald-50/20': shipForm.is_shipped_paid || (shipForm.original_return_amount !== '' && shipForm.shipment_price == shipForm.original_return_amount)}">
                                             <div class="absolute left-2 top-1/2 -translate-y-1/2 flex items-center gap-1.5">
-                                                <template x-if="shipForm.original_return_amount !== '' && shipForm.shipment_price != shipForm.original_return_amount">
+                                                <template x-if="!shipForm.is_shipped_paid && shipForm.original_return_amount !== '' && shipForm.shipment_price != shipForm.original_return_amount">
                                                     <button type="button" @click="shipForm.shipment_price = shipForm.original_return_amount; shipForm.return_amount = shipForm.original_return_amount" 
                                                         class="text-[9px] bg-gray-100 hover:bg-gray-200 text-gray-600 px-1.5 py-1 rounded font-bold transition flex items-center gap-1 shadow-sm"
                                                         title="العودة للسعر التلقائي">
@@ -697,6 +703,11 @@
                                                 <span class="text-[10px] text-gray-400 font-normal">ج.م</span>
                                             </div>
                                         </div>
+                                        <label class="flex items-center gap-1.5 cursor-pointer mt-1.5 select-none">
+                                            <input type="checkbox" x-model="shipForm.is_shipped_paid" @change="if(shipForm.is_shipped_paid){ shipForm.shipment_price = 0; } else { shipForm.shipment_price = (shipForm.original_return_amount !== '' ? shipForm.original_return_amount : 0); } shipForm.return_amount = shipForm.shipment_price;"
+                                                class="w-3.5 h-3.5 rounded text-emerald-600 border-gray-300 focus:ring-emerald-500 focus:ring-offset-0 cursor-pointer">
+                                            <span class="text-[10px] font-semibold text-gray-600 hover:text-gray-900">تم سداد الشحن مسبقاً (تكلفة الشحن = 0)</span>
+                                        </label>
                                     </div>
                                     
                                     {{-- Box 3: Total Amount --}}
@@ -708,6 +719,7 @@
                                         </div>
                                         {{-- Hidden input to send with form --}}
                                         <input type="hidden" name="amount_to_be_collected" :value="parseFloat(shipForm.order_remaining || 0) + parseFloat(shipForm.shipment_price || 0)">
+                                        <input type="hidden" name="is_shipped_paid" :value="shipForm.is_shipped_paid ? 1 : 0">
                                     </div>
 
                                     {{-- Box 4: Return Amount (Sent to API) --}}
@@ -1089,12 +1101,18 @@
                                                     </div>
                                                     <p class="text-[10px] text-gray-600 truncate max-w-[160px] leading-tight" x-text="item.address || 'العنوان غير محدد'"></p>
                                                 </td>
-                                                <td class="py-2 px-3 text-center font-bold text-gray-800 whitespace-nowrap">
+                                                <td class="py-2 px-3 text-center font-bold whitespace-nowrap">
                                                     <div class="flex items-center justify-center gap-1">
-                                                        <span class="font-black text-xs" x-text="item.shipment_price"></span>
+                                                        <span class="font-black text-xs" :class="item.is_shipped_paid ? 'text-emerald-600 font-black' : 'text-gray-800'" x-text="item.shipment_price"></span>
                                                         <span class="text-[9px] text-gray-400 font-normal">ج.م</span>
                                                     </div>
-                                                    <template x-if="item.original_return_amount !== null && item.original_return_amount !== '' && item.shipment_price == item.original_return_amount">
+                                                    <template x-if="item.is_shipped_paid">
+                                                        <span class="text-[8px] text-emerald-700 font-bold bg-emerald-50 border border-emerald-200 px-1 py-0.2 rounded inline-flex items-center gap-0.5">
+                                                            <i class="fa-solid fa-truck-fast text-[7px]"></i>
+                                                            مدفوع
+                                                        </span>
+                                                    </template>
+                                                    <template x-if="!item.is_shipped_paid && item.original_return_amount !== null && item.original_return_amount !== '' && item.shipment_price == item.original_return_amount">
                                                         <span class="text-[8px] text-emerald-700 font-bold bg-emerald-50 px-1 py-0.5 rounded inline-block">تلقائي</span>
                                                     </template>
                                                 </td>
@@ -1213,7 +1231,13 @@
                                                                     <div>
                                                                         <div class="flex items-center justify-between mb-0.5">
                                                                             <label class="block text-[9px] font-semibold text-gray-700">تكلفة الشحن <span class="text-rose-500">*</span></label>
-                                                                            <template x-if="item.original_return_amount !== null && item.original_return_amount !== '' && item.shipment_price == item.original_return_amount">
+                                                                            <template x-if="item.is_shipped_paid">
+                                                                                <span class="text-[8px] text-emerald-700 font-bold bg-emerald-50 border border-emerald-200 px-1.5 py-0.2 rounded inline-flex items-center gap-0.5">
+                                                                                    <i class="fa-solid fa-check text-[7px]"></i>
+                                                                                    شحن مدفوع
+                                                                                </span>
+                                                                            </template>
+                                                                            <template x-if="!item.is_shipped_paid && item.original_return_amount !== null && item.original_return_amount !== '' && item.shipment_price == item.original_return_amount">
                                                                                 <span class="text-[8px] text-emerald-600 font-bold bg-emerald-50 px-1 py-0.2 rounded">
                                                                                     تلقائي
                                                                                 </span>
@@ -1221,9 +1245,10 @@
                                                                         </div>
                                                                         <div class="relative">
                                                                             <input type="number" step="0.01" x-model="item.shipment_price" @input="onShipmentPriceChange(item)" required
-                                                                                class="w-full pl-14 pr-2 py-1.5 bg-white border border-gray-200 rounded-lg text-xs focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 font-bold shadow-xs text-gray-700">
+                                                                                class="w-full pl-14 pr-2 py-1.5 bg-white border border-gray-200 rounded-lg text-xs focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 font-bold shadow-xs text-gray-700"
+                                                                                :class="{'border-emerald-500/60 bg-emerald-50/20 text-emerald-700': item.is_shipped_paid}">
                                                                             <div class="absolute left-1.5 top-1/2 -translate-y-1/2 flex items-center gap-1">
-                                                                                <template x-if="item.original_return_amount !== null && item.original_return_amount !== '' && item.shipment_price != item.original_return_amount">
+                                                                                <template x-if="!item.is_shipped_paid && item.original_return_amount !== null && item.original_return_amount !== '' && item.shipment_price != item.original_return_amount">
                                                                                     <button type="button" @click="resetShipmentPrice(item)"
                                                                                         class="text-[8px] bg-gray-100 hover:bg-gray-200 text-gray-600 px-1 py-0.5 rounded font-bold transition"
                                                                                         title="العودة للسعر التلقائي">
@@ -1233,6 +1258,11 @@
                                                                                 <span class="text-[9px] text-gray-400">ج.م</span>
                                                                             </div>
                                                                         </div>
+                                                                        <label class="flex items-center gap-1.5 cursor-pointer mt-1 select-none">
+                                                                            <input type="checkbox" x-model="item.is_shipped_paid" @change="onToggleShippedPaid(item)"
+                                                                                class="w-3.5 h-3.5 rounded text-emerald-600 border-gray-300 focus:ring-emerald-500 focus:ring-offset-0 cursor-pointer">
+                                                                            <span class="text-[9px] font-semibold text-gray-600 hover:text-gray-800">تم سداد الشحن مسبقاً (تكلفة الشحن = 0)</span>
+                                                                        </label>
                                                                     </div>
 
                                                                     {{-- المطلوب تحصيله شامل الشحن --}}
@@ -1721,6 +1751,9 @@
                             matchedReturnAmount = parseFloat(govMatch.return_amount || 0);
                         }
 
+                        const isShippedPaid = Boolean(order.is_shipped_paid);
+                        const initialShipmentPrice = isShippedPaid ? 0 : matchedReturnAmount;
+
                         const summary = order.items && order.items.length
                             ? order.items.map(i => `${i.quantity}x ${i.style ? i.style.name : 'منتج'}`).join(', ')
                             : 'ملابس';
@@ -1740,10 +1773,11 @@
                             government: gov,
                             area: area,
                             address: addr,
+                            is_shipped_paid: isShippedPaid,
                             order_remaining: remaining,
-                            shipment_price: matchedReturnAmount,
+                            shipment_price: initialShipmentPrice,
                             original_return_amount: matchedReturnAmount,
-                            amount_to_be_collected: (parseFloat(remaining || 0) + parseFloat(matchedReturnAmount || 0)).toFixed(2),
+                            amount_to_be_collected: (parseFloat(remaining || 0) + parseFloat(initialShipmentPrice || 0)).toFixed(2),
                             return_amount: matchedReturnAmount,
                             is_order: '0',
                             return_summary: '',
@@ -1793,7 +1827,11 @@
                     }
                     if (matchedReturn !== null) {
                         item.original_return_amount = matchedReturn;
-                        item.shipment_price = matchedReturn;
+                        if (item.is_shipped_paid) {
+                            item.shipment_price = 0;
+                        } else {
+                            item.shipment_price = matchedReturn;
+                        }
                         item.return_amount = matchedReturn;
                     }
                     this.recalculateOrderTotal(item);
@@ -1804,7 +1842,23 @@
                     this.recalculateOrderTotal(item);
                 },
 
+                onToggleShippedPaid(item) {
+                    if (item.is_shipped_paid) {
+                        item.shipment_price = 0;
+                    } else {
+                        item.shipment_price = (item.original_return_amount !== null && item.original_return_amount !== '')
+                            ? item.original_return_amount
+                            : 0;
+                    }
+                    this.onShipmentPriceChange(item);
+                },
+
                 resetShipmentPrice(item) {
+                    if (item.is_shipped_paid) {
+                        item.shipment_price = 0;
+                        this.recalculateOrderTotal(item);
+                        return;
+                    }
                     if (item.original_return_amount !== null && item.original_return_amount !== '') {
                         item.shipment_price = item.original_return_amount;
                         item.return_amount = item.original_return_amount;
@@ -1891,6 +1945,7 @@
                             formData.append('amount_to_be_collected', item.amount_to_be_collected !== undefined ? item.amount_to_be_collected : (parseFloat(item.order_remaining || 0) + parseFloat(item.shipment_price || 0)));
                             formData.append('remote_order_id', item.remote_order_id || item.order_number);
                             formData.append('invoice_number', item.invoice_number || item.order_number);
+                            formData.append('is_shipped_paid', item.is_shipped_paid ? 1 : 0);
 
                             const url = `{{ url('finished-goods') }}/${item.order_id}/ship`;
                             const response = await fetch(url, {
@@ -1966,6 +2021,7 @@
                         formData.append('amount_to_be_collected', item.amount_to_be_collected !== undefined ? item.amount_to_be_collected : (parseFloat(item.order_remaining || 0) + parseFloat(item.shipment_price || 0)));
                         formData.append('remote_order_id', item.remote_order_id || item.order_number);
                         formData.append('invoice_number', item.invoice_number || item.order_number);
+                        formData.append('is_shipped_paid', item.is_shipped_paid ? 1 : 0);
 
                         const url = `{{ url('finished-goods') }}/${item.order_id}/ship`;
                         const response = await fetch(url, {
@@ -2051,6 +2107,9 @@
                         matchedReturnAmount = govMatch.return_amount;
                     }
 
+                    const isShippedPaid = Boolean(order.is_shipped_paid);
+                    const initialShipmentPrice = isShippedPaid ? 0 : matchedReturnAmount;
+
                     this.shipForm = {
                         receiver: custName,
                         api_followup_phone: '',
@@ -2059,9 +2118,10 @@
                         government: gov,
                         area: area,
                         address: addr,
+                        is_shipped_paid: isShippedPaid,
                         order_remaining: remaining,
-                        shipment_price: matchedReturnAmount,
-                        amount_to_be_collected: remaining,
+                        shipment_price: initialShipmentPrice,
+                        amount_to_be_collected: (parseFloat(remaining || 0) + parseFloat(initialShipmentPrice || 0)).toFixed(2),
                         return_amount: matchedReturnAmount,
                         original_return_amount: matchedReturnAmount,
                         delivery_type: 0,

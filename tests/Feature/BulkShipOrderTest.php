@@ -406,5 +406,50 @@ class BulkShipOrderTest extends TestCase
         ]);
         $this->assertEquals('shipped', $order->fresh()->status);
     }
+
+    public function test_ship_order_with_is_shipped_paid_updates_order()
+    {
+        $customer = Customer::create([
+            'name' => 'Paid Shipping Customer',
+            'phone_1' => '01011119999',
+        ]);
+
+        $order = Order::create([
+            'customer_id' => $customer->id,
+            'order_number' => 'ORD-PAID-001',
+            'total_price' => 500,
+            'status' => 'ready-to-ship',
+            'source' => 'new',
+            'is_shipped_paid' => false,
+        ]);
+
+        $mockTurbo = Mockery::mock(TurboApiService::class);
+        $mockTurbo->shouldReceive('addOrder')
+            ->once()
+            ->andReturn([
+                'success' => true,
+                'result' => [
+                    'code' => 'TURBO-PAID-001',
+                    'invoice_number' => 'INV-PAID-001',
+                ],
+            ]);
+        $this->app->instance(TurboApiService::class, $mockTurbo);
+
+        $response = $this->actingAs($this->user)
+            ->withHeaders(['Accept' => 'application/json'])
+            ->postJson(route('finished-goods.ship', $order->id), [
+                'receiver' => 'Paid Shipping Customer',
+                'phone1' => '01011119999',
+                'government' => 'القاهرة',
+                'area' => 'المعادي',
+                'address' => 'شارع المعادي',
+                'return_amount' => 60,
+                'amount_to_be_collected' => 500,
+                'is_shipped_paid' => 1,
+            ]);
+
+        $response->assertStatus(200);
+        $this->assertTrue((bool) $order->fresh()->is_shipped_paid);
+    }
 }
 

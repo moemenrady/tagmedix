@@ -17,11 +17,16 @@ class Order extends Model
         'customer_phone_2',
         'customer_instagram',
         'total_price',
+        'is_shipped_paid',
         'shipping_due_amount',
         'return_due_amount',
         'order_contents',
         'source',
         'status',
+    ];
+
+    protected $casts = [
+        'is_shipped_paid' => 'boolean',
     ];
 
     // إرجاع قيمة Snapshot إن وجدت، أو العودة لبيانات العميل الحالية

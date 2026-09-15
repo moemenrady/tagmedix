@@ -643,9 +643,13 @@ class FinishedGoodController extends Controller
         $trackingNumber = $turboBarcode ?: $turboCode;
         $oldOrderStatus = $order->status;
 
-        $order->update([
+        $orderUpdates = [
             'status' => 'shipped',
-        ]);
+        ];
+        if (isset($attributes['is_shipped_paid'])) {
+            $orderUpdates['is_shipped_paid'] = filter_var($attributes['is_shipped_paid'], FILTER_VALIDATE_BOOLEAN);
+        }
+        $order->update($orderUpdates);
 
         $shipment = Shipment::create([
             'order_id' => $order->id,
@@ -761,6 +765,7 @@ class FinishedGoodController extends Controller
             'invoice_number'        => 'nullable|string',
             'can_open'              => 'nullable',
             'number_of_items'       => 'nullable|numeric',
+            'is_shipped_paid'       => 'nullable',
         ]);
 
         try {

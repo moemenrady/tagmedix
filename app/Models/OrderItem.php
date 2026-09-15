@@ -19,7 +19,12 @@ class OrderItem extends Model
         'quantity',
         'price',
         'total',
+        'is_shipped_paid',
         'notes',
+    ];
+
+    protected $casts = [
+        'is_shipped_paid' => 'boolean',
     ];
 
     public function order()
