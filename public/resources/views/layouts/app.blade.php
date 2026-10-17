@@ -1,0 +1,592 @@
+<!DOCTYPE html>
+<html id="htmlRoot" lang="ar" dir="rtl">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tagmedix - @yield('title')</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <meta name="csrf-token" content="{{ csrf_token() }}">
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        cairo: ['Cairo', 'sans-serif']
+                    },
+                    colors: {
+                        primaryBg: '#EAE9DF',
+                        secondaryCream: '#DBD0C3',
+                        softBeige: '#CABCB0',
+                        primaryBrown: '#926857',
+                        darkText: '#2A2120',
+                        mutedBrown: '#503E39',
+                        roseAccent: '#C19077',
+                        softPink: '#EAAD99',
+                        white: '#FFFFFF'
+                    },
+                    animation: {
+                        'fade-in': 'fadeIn 0.4s ease-out forwards',
+                        'slide-up': 'slideUp 0.5s ease-out forwards',
+                    },
+                    keyframes: {
+                        fadeIn: {
+                            '0%': {
+                                opacity: '0'
+                            },
+                            '100%': {
+                                opacity: '1'
+                            }
+                        },
+                        slideUp: {
+                            '0%': {
+                                opacity: '0',
+                                transform: 'translateY(15px)'
+                            },
+                            '100%': {
+                                opacity: '1',
+                                transform: 'translateY(0)'
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body.ar {
+            font-family: 'Cairo', sans-serif;
+        }
+
+        body.en {
+            font-family: 'Inter', sans-serif;
+        }
+
+        /* Scrollbar Styling */
+        ::-webkit-scrollbar {
+            height: 6px;
+            width: 6px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: #EAE9DF;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #CABCB0;
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: #926857;
+        }
+
+        /* Page Transition Wrapper */
+        .page-transition {
+            animation: fadeIn 0.5s ease-out;
+        }
+
+        /* Active Tab Styling */
+        .active-tab {
+            background-color: #926857 !important;
+            color: #FFFFFF !important;
+            box-shadow: 0 4px 12px rgba(146, 104, 87, 0.25);
+            transform: translateY(-1px);
+        }
+
+        /* Smooth Dropdown */
+        .dropdown-enter {
+            opacity: 0;
+            transform: scale(0.95) translateY(10px);
+            pointer-events: none;
+        }
+
+        .dropdown-enter-active {
+            opacity: 1;
+            transform: scale(1) translateY(0);
+            transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+            pointer-events: auto;
+        }
+
+        /* Sidebar Logo Container */
+        .logo-container {
+            width: 100%;
+            height: 86px;
+            background: #FFFFFF;
+            border-radius: 18px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 10px 18px;
+            border: 1px solid #DBD0C3;
+            box-shadow: 0 4px 15px rgba(202, 188, 176, 0.3);
+            position: relative;
+            overflow: hidden;
+            transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.4s ease;
+        }
+
+        .logo-container::before {
+            content: "";
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 50%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(234, 173, 153, 0.15), transparent);
+            transform: skewX(-20deg);
+            transition: left 0.7s ease;
+        }
+
+        .logo-container:hover {
+            transform: translateY(-3px) scale(1.02);
+            box-shadow: 0 8px 25px rgba(193, 144, 119, 0.25);
+            border-color: #C19077;
+        }
+
+        .logo-container:hover::before {
+            left: 150%;
+        }
+
+        .logo-image {
+            width: 100%;
+            height: 68px;
+            object-fit: contain;
+            transition: transform 0.4s ease;
+        }
+
+        /* Links Hover Animation */
+        .nav-link {
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .nav-link:hover:not(.active-tab) {
+            background-color: #DBD0C3;
+            color: #2A2120;
+            transform: translateX(-4px);
+        }
+
+        html[dir="ltr"] .nav-link:hover:not(.active-tab) {
+            transform: translateX(4px);
+        }
+
+        /* Mobile Close Btn */
+        .mobile-close-btn {
+            width: 34px;
+            height: 34px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #926857;
+            transition: all 0.2s ease;
+        }
+
+        .mobile-close-btn:hover {
+            background: #EAAD99;
+            color: #FFFFFF;
+        }
+
+        @media (min-width: 768px) {
+            .logo-container {
+                height: 92px;
+                padding: 10px 20px;
+                border-radius: 20px;
+            }
+
+            .logo-image {
+                height: 74px;
+            }
+
+            .mobile-close-btn {
+                display: none;
+            }
+        }
+
+        @media (max-width: 767px) {
+            .logo-container {
+                height: 78px;
+                border-radius: 16px;
+                padding: 8px 14px;
+            }
+
+            .logo-image {
+                height: 62px;
+            }
+        }
+    </style>
+</head>
+
+<body class="bg-primaryBg text-darkText font-sans flex h-screen overflow-hidden">
+
+    <!-- Mobile Overlay -->
+    <div id="mobileOverlay"
+        class="fixed inset-0 bg-darkText/40 backdrop-blur-sm z-40 hidden md:hidden transition-opacity opacity-0 duration-300">
+    </div>
+
+    <!-- Sidebar (تم تعديل transition ليصبح transition-all duration-500 لدعم الإخفاء السلس) -->
+    <aside id="sidebar"
+        class="fixed inset-y-0 left-0 z-50 w-64 bg-white flex flex-col transform -translate-x-full md:relative md:translate-x-0 transition-all duration-500 ease-in-out h-full border-l border-secondaryCream shadow-xl md:shadow-[4px_0_24px_rgba(202,188,176,0.15)] shrink-0">
+
+        <!-- زر طي القائمة الجانبية (للديسكتوب) -->
+        <button id="desktopSidebarToggle"
+            class="hidden md:flex absolute top-1/2 -end-4 -translate-y-1/2 z-50 bg-white border border-secondaryCream rounded-full w-8 h-8 items-center justify-center text-primaryBrown shadow-md hover:bg-secondaryCream transition-all duration-300">
+            <span id="sidebarIconWrapper" class="transition-transform duration-300 flex">
+                <i class="fa-solid fa-chevron-left rtl:rotate-180"></i>
+            </span>
+        </button>
+
+        <!-- Sidebar Header (Logo) -->
+        <div class="p-5 flex items-center justify-between">
+            <div class="w-full">
+                <div class="logo-container">
+                    <img src="{{ asset('t.webp') }}" alt="TAGMEDIX" class="logo-image">
+                </div>
+            </div>
+            <button id="closeSidebarBtn" class="mobile-close-btn mr-2">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+        </div>
+
+        <!-- Navigation -->
+        <nav class="flex-1 overflow-y-auto px-4 space-y-1.5 text-sm font-medium pb-4">
+            
+            <a href="{{ route('finished-goods.index') }}" class="nav-link flex items-center gap-3 px-4 py-3 rounded-xl text-mutedBrown {{ request()->routeIs('finished-goods.*') ? 'active-tab' : '' }}">
+                <i class="fa-solid fa-box-open w-5 transition-transform group-hover:scale-110"></i>
+                <span data-ar="الطلبات التامة" data-en="Finished Goods">الطلبات التامة</span>
+            </a>
+            
+            <a href="{{ route('inventory.index') }}" class="nav-link flex items-center gap-3 px-4 py-3 rounded-xl text-mutedBrown {{ request()->routeIs('inventory.*') ? 'active-tab' : '' }}">
+                <i class="fa-solid fa-boxes-stacked w-5"></i>
+                <span data-ar="المخزون" data-en="Inventory">المخزون</span>
+            </a>
+            
+            <a href="{{ route('item-categories.index') }}" class="nav-link flex items-center gap-3 px-4 py-2 mt-1 ml-4 rtl:ml-0 rtl:mr-4 rounded-lg text-sm {{ request()->routeIs('item-categories.*') ? 'text-primaryBrown font-bold' : 'text-mutedBrown/80' }}">
+                <i class="fa-solid fa-tags w-4"></i>
+                <span data-ar="تصنيفات الأصناف" data-en="Item Categories">تصنيفات الأصناف</span>
+            </a>
+            
+            <a href="{{ route('inventory-transactions.index') }}" class="nav-link flex items-center gap-3 px-4 py-2 mt-1 ml-4 rtl:ml-0 rtl:mr-4 rounded-lg text-sm {{ request()->routeIs('inventory.transactions.*') ? 'text-primaryBrown font-bold' : 'text-mutedBrown/80' }}">
+                <i class="fa-solid fa-arrow-right-arrow-left w-4"></i>
+                <span data-ar="حركات المخزون" data-en="Inventory Transactions">حركات المخزون</span>
+            </a>
+            
+            <a href="{{ route('orders.index') }}" class="nav-link flex items-center gap-3 px-4 py-3 rounded-xl text-mutedBrown {{ request()->routeIs('orders.*') ? 'active-tab' : '' }}">
+                <i class="fa-solid fa-clipboard-list w-5"></i>
+                <span data-ar="الطلبات" data-en="Orders">الطلبات</span>
+            </a>
+            
+            <a href="{{ route('turbo.index') }}" class="nav-link flex items-center gap-3 px-4 py-3 rounded-xl text-mutedBrown {{ request()->routeIs('turbo.*') ? 'active-tab' : '' }}">
+                <i class="fa-solid fa-truck-fast w-5 text-roseAccent"></i>
+                <span data-ar="مركز عمليات Turbo" data-en="Turbo Ops Center">مركز عمليات Turbo</span>
+            </a>
+            
+            <a href="{{ route('production.workflow.index') }}" class="nav-link flex items-center justify-between px-4 py-3 rounded-xl text-mutedBrown {{ request()->routeIs('production.*') ? 'active-tab' : '' }}">
+                <div class="flex items-center gap-3">
+                    <i class="fa-solid fa-industry w-5"></i>
+                    <span data-ar="مسار عمل الطلبات" data-en="Orders Work Flow">مسار عمل الطلبات</span>
+                </div>
+                <i class="fa-solid fa-chevron-left text-[10px] rtl:rotate-180"></i>
+            </a>
+
+            @if (auth()->user() && auth()->user()->role == 'admin')
+                <div class="h-px bg-secondaryCream my-2 w-4/5 mx-auto"></div>
+
+                <a href="{{ route('dashboard') }}" class="nav-link flex items-center gap-3 px-4 py-3 rounded-xl text-mutedBrown {{ request()->routeIs('dashboard') ? 'active-tab' : '' }}">
+                    <i class="fa-solid fa-chart-line w-5"></i>
+                    <span data-ar="لوحة التحكم" data-en="Dashboard">لوحة التحكم</span>
+                </a>
+                <a href="{{ route('payments.index') }}" class="nav-link flex items-center gap-3 px-4 py-3 rounded-xl text-mutedBrown {{ request()->routeIs('payments.*') ? 'active-tab' : '' }}">
+                    <i class="fa-regular fa-credit-card w-5"></i>
+                    <span data-ar="الدفعات" data-en="Payments">الدفعات</span>
+                </a>
+                <a href="{{ route('suppliers.index') }}" class="nav-link flex items-center gap-3 px-4 py-3 rounded-xl text-mutedBrown {{ request()->routeIs('suppliers.*') ? 'active-tab' : '' }}">
+                    <i class="fa-solid fa-truck-field w-5"></i>
+                    <span data-ar="الموردون" data-en="Suppliers">الموردون</span>
+                </a>
+                <a href="{{ route('users.index') }}" class="nav-link flex items-center gap-3 px-4 py-3 rounded-xl text-mutedBrown {{ request()->routeIs('users.*') ? 'active-tab' : '' }}">
+                    <i class="fa-regular fa-user w-5"></i>
+                    <span data-ar="المستخدمون" data-en="Users">المستخدمون</span>
+                </a>
+                <a href="{{ route('employees.index') }}" class="nav-link flex items-center gap-3 px-4 py-3 rounded-xl text-mutedBrown {{ request()->routeIs('employees.*') ? 'active-tab' : '' }}">
+                    <i class="fa-solid fa-users w-5"></i>
+                    <span data-ar="الموظفون" data-en="Employees">الموظفون</span>
+                </a>
+                <a href="{{ route('payroll.index') }}" class="nav-link flex items-center gap-3 px-4 py-3 rounded-xl text-mutedBrown {{ request()->routeIs('payroll.*') ? 'active-tab' : '' }}">
+                    <i class="fa-solid fa-file-invoice-dollar w-5"></i>
+                    <span data-ar="الرواتب" data-en="Payroll">الرواتب</span>
+                </a>
+                <a href="{{ route('reports.index') }}" class="nav-link flex items-center gap-3 px-4 py-3 rounded-xl text-mutedBrown {{ request()->routeIs('reports.*') ? 'active-tab' : '' }}">
+                    <i class="fa-solid fa-chart-bar w-5"></i>
+                    <span data-ar="التقارير" data-en="Reports">التقارير</span>
+                </a>
+            @endif
+
+            <div class="h-px bg-secondaryCream my-2 w-4/5 mx-auto"></div>
+
+            <a href="{{ route('returns.index') }}" class="nav-link flex items-center gap-3 px-4 py-3 rounded-xl text-mutedBrown {{ request()->routeIs('returns.*') ? 'active-tab' : '' }}">
+                <i class="fa-solid fa-rotate-left w-5"></i>
+                <span data-ar="المرتجعات" data-en="Returns">المرتجعات</span>
+            </a>
+            <a href="{{ route('order_classifications.index') }}" class="nav-link flex items-center gap-3 px-4 py-3 rounded-xl text-mutedBrown {{ request()->routeIs('order_classifications.*') ? 'active-tab' : '' }}">
+                <i class="fa-solid fa-tags w-5"></i>
+                <span data-ar="تصنيفات الطلبات" data-en="Order Classifications">تصنيفات الطلبات</span>
+            </a>
+            <a href="{{ route('settings.index') }}" class="nav-link flex items-center gap-3 px-4 py-3 rounded-xl text-mutedBrown {{ request()->routeIs('settings.*') ? 'active-tab' : '' }}">
+                <i class="fa-solid fa-gear w-5"></i>
+                <span data-ar="الإعدادات" data-en="Settings">الإعدادات</span>
+            </a>
+        </nav>
+
+        @php $user = auth()->user(); @endphp
+
+        <!-- Profile Section -->
+        <div class="p-4 mt-auto border-t border-secondaryCream relative bg-white">
+            <div id="profileDropdownBtn"
+                class="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-secondaryCream cursor-pointer transition-all duration-300 select-none">
+                <div
+                    class="w-10 h-10 rounded-full bg-softBeige flex items-center justify-center text-primaryBrown font-bold text-sm shrink-0 border-2 border-white shadow-sm">
+                    @if ($user && $user->name)
+                        {{ strtoupper(substr($user->name, 0, 1)) }}
+                    @else
+                        <i class="fa-solid fa-user"></i>
+                    @endif
+                </div>
+                @php
+                    $roles = ['admin' => ['ar' => 'مدير النظام', 'en' => 'Administrator']];
+                    $role = $roles[$user->role ?? 'admin'] ?? ['ar' => 'مدير', 'en' => 'Manager'];
+                @endphp
+                <div class="flex-1 overflow-hidden">
+                    <p class="text-darkText text-sm font-bold truncate">{{ $user->name ?? 'اسم المستخدم' }}</p>
+                    <p class="text-[11px] text-primaryBrown truncate font-medium" data-ar="{{ $role['ar'] }}"
+                        data-en="{{ $role['en'] }}">{{ $role['ar'] }}</p>
+                </div>
+                <i class="fa-solid fa-chevron-up text-mutedBrown text-xs transition-transform duration-300"
+                    id="profileChevron"></i>
+            </div>
+
+            <!-- Dropdown Menu -->
+            <div id="profileDropdown"
+                class="absolute bottom-[85px] left-4 right-4 bg-white border border-secondaryCream rounded-xl shadow-[0_10px_40px_rgba(146,104,87,0.15)] overflow-hidden hidden dropdown-enter z-50">
+                <div class="p-2 space-y-1">
+                    <div class="px-3 py-3 border-b border-secondaryCream bg-primaryBg/50">
+                        <p class="text-darkText text-sm font-bold">{{ $user->name ?? 'اسم المستخدم' }}</p>
+                        <p class="text-xs text-mutedBrown mt-0.5">{{ $user->email ?? 'user@tagmedix.com' }}</p>
+                    </div>
+                    <form method="POST" action="{{ route('logout') }}" class="pt-1">
+                        @csrf
+                        <button type="submit"
+                            class="w-full flex items-center gap-3 px-3 py-2.5 text-sm text-red-600 hover:text-red-700 hover:bg-red-50 rounded-lg transition-colors text-left rtl:text-right font-medium">
+                            <i class="fa-solid fa-arrow-right-from-bracket w-4 text-center"></i>
+                            <span data-ar="تسجيل الخروج" data-en="Logout">تسجيل الخروج</span>
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="flex-1 flex flex-col h-full overflow-hidden w-full bg-primaryBg relative z-0">
+
+        <!-- Animated Background Element -->
+        <div
+            class="absolute top-0 right-0 w-[500px] h-[500px] bg-white opacity-40 rounded-full blur-[100px] -z-10 pointer-events-none">
+        </div>
+        <div
+            class="absolute bottom-0 left-0 w-[400px] h-[400px] bg-softPink opacity-20 rounded-full blur-[120px] -z-10 pointer-events-none">
+        </div>
+
+        <!-- غلاف الهيدر (المسؤول عن حركة الإخفاء والإظهار) -->
+        <div id="headerWrapper" class="sticky top-0 z-30 transition-transform duration-500 ease-in-out w-full shrink-0">
+            <!-- Header الأصلي -->
+            <header
+                class="bg-white/70 backdrop-blur-md border-b border-secondaryCream p-4 flex justify-between items-center shadow-sm relative">
+                <div class="flex items-center gap-4">
+                    <button id="openSidebarBtn"
+                        class="md:hidden text-primaryBrown hover:text-darkText focus:outline-none p-2 rounded-lg hover:bg-secondaryCream transition-colors">
+                        <i class="fa-solid fa-bars text-xl"></i>
+                    </button>
+                    <div>
+                        <h1 class="text-xl font-bold text-darkText" data-ar="لوحة التحكم" data-en="Dashboard">لوحة
+                            التحكم</h1>
+                        <p class="text-sm text-mutedBrown hidden sm:block mt-0.5"
+                            data-ar="مرحباً بك في نظام إدارة تاجميديكس" data-en="Welcome to Tagmedix System">مرحباً بك
+                            في
+                            نظام إدارة تاجميديكس</p>
+                    </div>
+                </div>
+
+                <div class="flex items-center gap-3 md:gap-5">
+                    <button
+                        class="flex items-center gap-2 bg-white border border-secondaryCream shadow-sm rounded-xl px-3 py-1.5 md:px-4 md:py-2 text-xs md:text-sm font-semibold text-darkText hover:bg-secondaryCream hover:border-softBeige transition-all transform hover:-translate-y-0.5">
+                        <span class="hidden sm:inline" data-ar="اليوم" data-en="Today">اليوم</span>
+                        <i class="fa-regular fa-calendar sm:mx-1 text-primaryBrown"></i>
+                    </button>
+                    <button id="languageBtn"
+                        class="bg-white border border-secondaryCream shadow-sm rounded-xl px-4 py-2 text-sm font-semibold text-darkText transition-all hover:bg-secondaryCream hover:-translate-y-0.5">
+                        🇪🇬 العربية
+                    </button>
+                    <button
+                        class="relative p-2.5 bg-white border border-secondaryCream shadow-sm rounded-xl text-primaryBrown hover:text-darkText hover:bg-secondaryCream transition-all transform hover:-translate-y-0.5">
+                        <i class="fa-regular fa-bell text-lg md:text-xl"></i>
+                        <span
+                            class="absolute top-2 right-2 w-2.5 h-2.5 bg-roseAccent rounded-full border-2 border-white animate-pulse"></span>
+                    </button>
+                </div>
+            </header>
+
+            <!-- زر إخفاء/إظهار الهيدر -->
+            <button id="headerToggleBtn"
+                class="absolute -bottom-8 left-1/2 -translate-x-1/2 z-40 bg-white border border-secondaryCream rounded-full w-8 h-8 flex items-center justify-center text-primaryBrown shadow-md hover:bg-secondaryCream transition-all duration-300">
+                <i class="fa-solid fa-chevron-up transition-transform duration-300" id="headerArrowIcon"></i>
+            </button>
+        </div>
+
+      <!-- Dynamic Content Area -->
+        <div class="flex-1 overflow-y-auto p-4 md:p-6 space-y-6 page-transition relative z-10 flex flex-col">
+            
+            <!-- محتوى الصفحات الديناميكي -->
+            <div class="flex-1">
+                @yield('content')
+            </div>
+
+            <!-- حقوق التطوير -->
+            <div class="mt-8 pt-4 border-t border-secondaryCream/40 text-center w-full shrink-0">
+                <p class="text-xs text-mutedBrown font-medium flex items-center justify-center gap-1.5">
+                    <span data-ar="تم تطوير النظام بواسطة" data-en="System developed by">تم تطوير النظام بواسطة</span>
+                    <span class="font-bold text-primaryBrown hover:text-roseAccent transition-colors cursor-default">
+                        <i class="fa-solid fa-code text-[10px] mr-0.5"></i> Moemen Team
+                    </span>
+                </p>
+            </div>
+        </div>
+    </main>
+    
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // ============================================
+            // كود إخفاء وإظهار الـ Sidebar (لأجهزة الديسكتوب)
+            // ============================================
+            const desktopSidebarToggle = document.getElementById('desktopSidebarToggle');
+            const sidebarIconWrapper = document.getElementById('sidebarIconWrapper');
+            const sidebar = document.getElementById('sidebar');
+
+            if (desktopSidebarToggle) {
+                desktopSidebarToggle.addEventListener('click', () => {
+                    // الاعتماد على المارجن السالب لجعل المحتوى الأساسي يتمدد لملء الفراغ
+                    sidebar.classList.toggle('md:-ms-64');
+                    // لف السهم
+                    sidebarIconWrapper.classList.toggle('rotate-180');
+                });
+            }
+
+            // ============================================
+            // كود إخفاء وإظهار الـ Header (فوق/تحت)
+            // ============================================
+            const headerToggleBtn = document.getElementById('headerToggleBtn');
+            const headerWrapper = document.getElementById('headerWrapper');
+            const headerArrowIcon = document.getElementById('headerArrowIcon');
+
+            if (headerToggleBtn) {
+                headerToggleBtn.addEventListener('click', () => {
+                    // سحب الهيدر للأعلى بنسبة 100% من حجمه بحيث لا يؤثر على باقي المساحة
+                    headerWrapper.classList.toggle('-translate-y-full');
+                    // لف السهم
+                    headerArrowIcon.classList.toggle('rotate-180');
+                });
+            }
+
+            // ============================================
+            // الأكواد الأصلية المتبقية (الموبايل واللغة الخ..)
+            // ============================================
+            const openBtn = document.getElementById('openSidebarBtn');
+            const closeBtn = document.getElementById('closeSidebarBtn');
+            const overlay = document.getElementById('mobileOverlay');
+            const profileBtn = document.getElementById('profileDropdownBtn');
+            const profileDropdown = document.getElementById('profileDropdown');
+            const profileChevron = document.getElementById('profileChevron');
+
+            function toggleSidebar() {
+                const isOpen = !sidebar.classList.contains('-translate-x-full');
+                if (isOpen) {
+                    sidebar.classList.add('-translate-x-full');
+                    overlay.classList.remove('opacity-100');
+                    overlay.classList.add('opacity-0');
+                    setTimeout(() => overlay.classList.add('hidden'), 300);
+                } else {
+                    overlay.classList.remove('hidden');
+                    setTimeout(() => {
+                        sidebar.classList.remove('-translate-x-full');
+                        overlay.classList.remove('opacity-0');
+                        overlay.classList.add('opacity-100');
+                    }, 10);
+                }
+            }
+
+            openBtn.addEventListener('click', toggleSidebar);
+            closeBtn.addEventListener('click', toggleSidebar);
+            overlay.addEventListener('click', toggleSidebar);
+
+            profileBtn.addEventListener('click', function(e) {
+                e.stopPropagation();
+                const isHidden = profileDropdown.classList.contains('hidden');
+                if (isHidden) {
+                    profileDropdown.classList.remove('hidden');
+                    setTimeout(() => {
+                        profileDropdown.classList.remove('dropdown-enter');
+                        profileDropdown.classList.add('dropdown-enter-active');
+                        profileChevron.classList.add('rotate-180');
+                    }, 10);
+                } else {
+                    profileDropdown.classList.add('dropdown-enter');
+                    profileDropdown.classList.remove('dropdown-enter-active');
+                    profileChevron.classList.remove('rotate-180');
+                    setTimeout(() => profileDropdown.classList.add('hidden'), 250);
+                }
+            });
+
+            document.addEventListener('click', function(e) {
+                if (!profileDropdown.contains(e.target) && !profileBtn.contains(e.target) && !
+                    profileDropdown.classList.contains('hidden')) {
+                    profileDropdown.classList.add('dropdown-enter');
+                    profileDropdown.classList.remove('dropdown-enter-active');
+                    profileChevron.classList.remove('rotate-180');
+                    setTimeout(() => profileDropdown.classList.add('hidden'), 250);
+                }
+            });
+        });
+
+        // Language Script
+        const html = document.getElementById("htmlRoot");
+        const btn = document.getElementById("languageBtn");
+
+        function applyLanguage(lang) {
+            localStorage.setItem("lang", lang);
+            html.lang = lang;
+            html.dir = lang === "ar" ? "rtl" : "ltr";
+            document.body.classList.remove("ar", "en");
+            document.body.classList.add(lang);
+            document.querySelectorAll("[data-ar]").forEach(el => {
+                el.innerHTML = lang === "ar" ? el.dataset.ar : el.dataset.en;
+            });
+            btn.innerHTML = lang === "ar" ? "🇪🇬 العربية" : "🇺🇸 English";
+        }
+
+        const saved = localStorage.getItem("lang") || "ar";
+        applyLanguage(saved);
+
+        btn.onclick = () => {
+            const current = localStorage.getItem("lang");
+            applyLanguage(current === "ar" ? "en" : "ar");
+        }
+    </script>
+
+    @stack('scripts')
+</body>
+
+</html>

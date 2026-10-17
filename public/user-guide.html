@@ -1,0 +1,1117 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tagmedix - دليل الاستخدام الشامل للميزات الجديدة</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800;900&family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Cairo', 'Inter', 'sans-serif'],
+                    },
+                    colors: {
+                        primaryBg: '#EAE9DF',
+                        secondaryCream: '#DBD0C3',
+                        softBeige: '#CABCB0',
+                        primaryBrown: '#926857',
+                        darkText: '#2A2120',
+                        mutedBrown: '#503E39',
+                        roseAccent: '#C19077',
+                        softPink: '#EAAD99',
+                        white: '#FFFFFF'
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body {
+            font-family: 'Cairo', sans-serif;
+            background-color: #EAE9DF;
+            color: #2A2120;
+        }
+        .guide-accordion-header {
+            transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .guide-accordion-header:hover {
+            background-color: rgba(219, 208, 195, 0.25);
+        }
+        .guide-accordion-header.is-open {
+            background-color: rgba(146, 104, 87, 0.06);
+            border-bottom-color: rgba(219, 208, 195, 0.8);
+        }
+        .guide-chevron {
+            transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .guide-accordion-header.is-open .guide-chevron {
+            transform: rotate(180deg);
+            color: #926857;
+        }
+        .badge-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.35rem;
+            padding: 0.35rem 0.85rem;
+            border-radius: 9999px;
+            font-size: 0.75rem;
+            font-weight: 700;
+            transition: all 0.2s ease;
+            cursor: pointer;
+        }
+        .step-number {
+            width: 32px;
+            height: 32px;
+            border-radius: 10px;
+            background: #926857;
+            color: #ffffff;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 800;
+            font-size: 0.875rem;
+            flex-shrink: 0;
+            box-shadow: 0 2px 8px rgba(146, 104, 87, 0.3);
+        }
+        @media print {
+            .no-print {
+                display: none !important;
+            }
+            .guide-accordion-content {
+                display: block !important;
+            }
+            body {
+                background: white !important;
+            }
+        }
+    </style>
+</head>
+<body class="min-h-screen p-4 sm:p-8">
+
+    <div class="max-w-6xl mx-auto space-y-8 pb-16">
+
+        <!-- Top Header Navigation -->
+        <header class="bg-white/80 backdrop-blur-md border border-secondaryCream rounded-2xl p-4 flex justify-between items-center shadow-sm no-print">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-xl bg-primaryBrown flex items-center justify-center text-white font-bold text-lg shadow-sm">
+                    <i class="fa-solid fa-shirt"></i>
+                </div>
+                <div>
+                    <h2 class="text-lg font-black text-darkText leading-none">TAGMEDIX</h2>
+                    <p class="text-xs text-mutedBrown mt-0.5 font-medium">نظام الإدارة والتشغيل الطبي والمهني</p>
+                </div>
+            </div>
+            <div class="flex items-center gap-2">
+                <a href="/user-guide" class="px-4 py-2 bg-primaryBrown text-white text-xs font-bold rounded-xl hover:bg-mutedBrown transition shadow-sm flex items-center gap-1.5">
+                    <i class="fa-solid fa-gauge-high"></i>
+                    <span>العودة للوحة التحكم</span>
+                </a>
+            </div>
+        </header>
+
+        <!-- Hero Card -->
+        <div class="relative overflow-hidden rounded-3xl bg-gradient-to-r from-[#2A2120] via-[#503E39] to-[#926857] text-white p-6 sm:p-10 shadow-xl border border-[#DBD0C3]/30">
+            <div class="absolute -right-16 -top-16 w-72 h-72 bg-[#C19077]/20 rounded-full blur-3xl pointer-events-none"></div>
+            <div class="absolute left-10 -bottom-16 w-60 h-60 bg-[#EAAD99]/15 rounded-full blur-2xl pointer-events-none"></div>
+
+            <div class="relative z-10 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
+                <div class="space-y-3 max-w-3xl">
+                    <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/10 text-[#DBD0C3] text-xs font-semibold backdrop-blur-md border border-white/15">
+                        <i class="fa-solid fa-graduation-cap text-[#EAAD99]"></i>
+                        <span>دليل الاستخدام الرسمي والمستقل | Tagmedix User Manual</span>
+                    </div>
+                    <h1 class="text-2xl sm:text-4xl font-extrabold tracking-tight text-white leading-tight">
+                        دليل تشغيل الميزات الجديدة في نظام تاجميديكس
+                    </h1>
+                    <p class="text-sm sm:text-base text-[#DBD0C3]/90 leading-relaxed font-normal">
+                        دليل تفاعلي متقدم يجيب على كافة التساؤلات التشغيلية الدقيقة: فواتير الشراء، إدارة المرتجعات وفحص الجودة، مسير الرواتب الآلي للترزية، سلف الموظفين، وشحن توربو، مع شرح العلاقة العضوية التي تجمع هذه الميزات بباقي أجزاء النظام.
+                    </p>
+                </div>
+
+                <div class="flex flex-wrap items-center gap-3 no-print">
+                    <button type="button" onclick="expandAllQuestions()" 
+                        class="px-4 py-2.5 bg-white/10 hover:bg-white/20 text-white rounded-xl text-xs font-bold transition flex items-center gap-2 border border-white/20 shadow-sm">
+                        <i class="fa-solid fa-angles-down text-[#EAAD99]"></i>
+                        <span>توسيع الكل</span>
+                    </button>
+                    <button type="button" onclick="collapseAllQuestions()" 
+                        class="px-4 py-2.5 bg-white/10 hover:bg-white/20 text-white rounded-xl text-xs font-bold transition flex items-center gap-2 border border-white/20 shadow-sm">
+                        <i class="fa-solid fa-angles-up text-[#EAAD99]"></i>
+                        <span>طي الكل</span>
+                    </button>
+                    <button type="button" onclick="window.print()" 
+                        class="px-4 py-2.5 bg-[#C19077] hover:bg-[#a6745d] text-white rounded-xl text-xs font-bold transition flex items-center gap-2 shadow-lg">
+                        <i class="fa-solid fa-print"></i>
+                        <span>طباعة</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Stats -->
+            <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4 mt-8 pt-6 border-t border-white/15">
+                <div class="bg-white/10 backdrop-blur-md p-3.5 rounded-2xl border border-white/10">
+                    <p class="text-[11px] text-[#DBD0C3] font-medium">عدد الميزات المغطاة</p>
+                    <p class="text-xl sm:text-2xl font-black text-white mt-0.5">6 ميزات جديدة</p>
+                </div>
+                <div class="bg-white/10 backdrop-blur-md p-3.5 rounded-2xl border border-white/10">
+                    <p class="text-[11px] text-[#DBD0C3] font-medium">إجمالي التساؤلات</p>
+                    <p class="text-xl sm:text-2xl font-black text-[#EAAD99] mt-0.5" id="totalQuestionsCount">21 سؤالاً مفصلاً</p>
+                </div>
+                <div class="bg-white/10 backdrop-blur-md p-3.5 rounded-2xl border border-white/10">
+                    <p class="text-[11px] text-[#DBD0C3] font-medium">دورة العمل (Ecosystem)</p>
+                    <p class="text-xl sm:text-2xl font-black text-emerald-400 mt-0.5">تكامل آلي 100%</p>
+                </div>
+                <div class="bg-white/10 backdrop-blur-md p-3.5 rounded-2xl border border-white/10">
+                    <p class="text-[11px] text-[#DBD0C3] font-medium">دقة البيانات المالية</p>
+                    <p class="text-xl sm:text-2xl font-black text-amber-300 mt-0.5">صفر تكرار يدوي</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Search & Filter Controls -->
+        <div class="bg-white p-5 rounded-3xl border border-secondaryCream shadow-sm space-y-4 no-print">
+            <div class="flex flex-col md:flex-row gap-4 justify-between items-center">
+                <div class="relative w-full md:w-1/2">
+                    <i class="fa-solid fa-magnifying-glass absolute right-4 top-1/2 -translate-y-1/2 text-mutedBrown"></i>
+                    <input type="text" id="guideSearchInput" oninput="filterQuestions()" placeholder="ابحث في الأسئلة والشروحات (مثال: فاتورة شراء، سلفة، ترزي، مرتجع، توربو...)"
+                        class="w-full pr-11 pl-10 py-3 rounded-2xl border border-secondaryCream bg-primaryBg/30 focus:bg-white text-sm font-medium text-darkText outline-none focus:ring-2 focus:ring-primaryBrown transition">
+                    <button type="button" id="clearSearchBtn" onclick="clearSearch()" class="hidden absolute left-3 top-1/2 -translate-y-1/2 text-mutedBrown hover:text-darkText p-1.5 rounded-lg text-xs">
+                        <i class="fa-solid fa-xmark"></i>
+                    </button>
+                </div>
+
+                <div class="text-xs text-mutedBrown font-bold flex items-center gap-2 self-start md:self-center">
+                    <i class="fa-solid fa-filter text-primaryBrown"></i>
+                    <span>يتم عرض: <strong id="visibleCount" class="text-primaryBrown">21</strong> سؤال</span>
+                </div>
+            </div>
+
+            <!-- Category Pills -->
+            <div class="flex flex-wrap items-center gap-2 pt-2 border-t border-secondaryCream/40" id="categoryFilterContainer">
+                <button type="button" onclick="selectCategory('all', this)" class="badge-pill bg-primaryBrown text-white shadow-sm active-cat-btn">
+                    <i class="fa-solid fa-layer-group text-xs"></i>
+                    <span>الكل</span>
+                </button>
+                <button type="button" onclick="selectCategory('general', this)" class="badge-pill bg-secondaryCream/60 hover:bg-secondaryCream text-darkText">
+                    <i class="fa-solid fa-diagram-project text-xs text-primaryBrown"></i>
+                    <span>التكامل العام وتناغم النظام ⭐</span>
+                </button>
+                <button type="button" onclick="selectCategory('purchases', this)" class="badge-pill bg-secondaryCream/60 hover:bg-secondaryCream text-darkText">
+                    <i class="fa-solid fa-cart-flatbed text-xs text-primaryBrown"></i>
+                    <span>فواتير الشراء والمخزون</span>
+                </button>
+                <button type="button" onclick="selectCategory('returns', this)" class="badge-pill bg-secondaryCream/60 hover:bg-secondaryCream text-darkText">
+                    <i class="fa-solid fa-rotate-left text-xs text-primaryBrown"></i>
+                    <span>المرتجعات وفحص الجودة (QC)</span>
+                </button>
+                <button type="button" onclick="selectCategory('payroll', this)" class="badge-pill bg-secondaryCream/60 hover:bg-secondaryCream text-darkText">
+                    <i class="fa-solid fa-file-invoice-dollar text-xs text-primaryBrown"></i>
+                    <span>الرواتب وحساب القطعة</span>
+                </button>
+                <button type="button" onclick="selectCategory('advances', this)" class="badge-pill bg-secondaryCream/60 hover:bg-secondaryCream text-darkText">
+                    <i class="fa-solid fa-hand-holding-dollar text-xs text-primaryBrown"></i>
+                    <span>السلف والمكافآت</span>
+                </button>
+                <button type="button" onclick="selectCategory('turbo', this)" class="badge-pill bg-secondaryCream/60 hover:bg-secondaryCream text-darkText">
+                    <i class="fa-solid fa-truck-fast text-xs text-primaryBrown"></i>
+                    <span>الشحن وشركة Turbo</span>
+                </button>
+                <button type="button" onclick="selectCategory('production', this)" class="badge-pill bg-secondaryCream/60 hover:bg-secondaryCream text-darkText">
+                    <i class="fa-solid fa-industry text-xs text-primaryBrown"></i>
+                    <span>مسار الإنتاج والتصنيفات</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- Questions List -->
+        <div class="space-y-6" id="questionsList">
+
+            <!-- ⭐ QUESTION 1: GENERAL SYSTEM HARMONY -->
+            <div class="question-item bg-white rounded-3xl border-2 border-[#926857]/40 shadow-md overflow-hidden transition-all duration-300 hover:shadow-lg" 
+                data-category="general" 
+                data-keywords="عام جينيرال تناغم تكامل النظام دورة العمل التشغيلية فواتير شراء مخزون انتاج رواتب سلف شحن توربو مرتجعات workflow lifecycle">
+                
+                <button type="button" onclick="toggleAccordion(this)" 
+                    class="guide-accordion-header is-open w-full p-6 sm:p-7 flex items-center justify-between text-right gap-4 bg-gradient-to-r from-primaryBrown/5 to-roseAccent/5 border-b border-secondaryCream cursor-pointer select-none">
+                    <div class="flex items-start sm:items-center gap-4">
+                        <span class="w-12 h-12 rounded-2xl bg-[#926857] text-white flex items-center justify-center text-xl font-bold shrink-0 shadow-md">
+                            <i class="fa-solid fa-diagram-project"></i>
+                        </span>
+                        <div>
+                            <div class="flex flex-wrap items-center gap-2 mb-1.5">
+                                <span class="px-2.5 py-0.5 text-[10px] font-black rounded-full bg-[#926857] text-white uppercase tracking-wider">
+                                    سؤال النظام العام والأهم ⭐
+                                </span>
+                                <span class="px-2.5 py-0.5 text-[10px] font-bold rounded-full bg-emerald-100 text-emerald-800">
+                                    تناغم وتكامل المنظومة (Ecosystem Harmony)
+                                </span>
+                            </div>
+                            <h2 class="text-lg sm:text-xl font-black text-darkText leading-snug">
+                                كيف تعمل هذه الميزات الجديدة بتناغم وتكامل تام مع باقي أجزاء نظام تاجميديكس؟ وما هي دورة التشغيل الشاملة (End-to-End Workflow)؟
+                            </h2>
+                        </div>
+                    </div>
+                    <div class="guide-chevron text-primaryBrown text-lg px-2 shrink-0">
+                        <i class="fa-solid fa-chevron-down"></i>
+                    </div>
+                </button>
+
+                <div class="guide-accordion-content p-6 sm:p-8 space-y-6 bg-white">
+                    <div class="prose max-w-none text-darkText text-sm leading-relaxed space-y-4">
+                        <p class="font-bold text-base text-primaryBrown">
+                            نظام Tagmedix تم بناؤه بهندسة برمجية متماسكة، حيث لا توجد أي ميزة تعمل في جزيرة منعزلة. كل ميزة جديدة تمثل حلقة وصل في سلسلة تشغيلية ومحاسبية مغلقة تبدأ من شراء الخامات وتنتهي بتسليم العميل وإدارة المرتجعات:
+                        </p>
+
+                        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 my-6">
+                            <div class="p-5 rounded-2xl bg-primaryBg/40 border border-secondaryCream space-y-2">
+                                <div class="flex items-center gap-2.5">
+                                    <span class="step-number">1</span>
+                                    <h4 class="font-black text-darkText text-sm">المشتريات والموردين</h4>
+                                </div>
+                                <p class="text-xs text-mutedBrown leading-normal">
+                                    شراء الأقمشة والخيوط والمستلزمات عبر فواتير الشراء. عند اعتماد الفاتورة (Received)، تزيد أرصدة الخامات تلقائياً في المخزن وتُسجل حركة وارد رسمية بمتوسط التكلفة.
+                                </p>
+                            </div>
+
+                            <div class="p-5 rounded-2xl bg-primaryBg/40 border border-secondaryCream space-y-2">
+                                <div class="flex items-center gap-2.5">
+                                    <span class="step-number">2</span>
+                                    <h4 class="font-black text-darkText text-sm">صرف الخامات وأمر التشغيل</h4>
+                                </div>
+                                <p class="text-xs text-mutedBrown leading-normal">
+                                    عند إنشاء طلب عميل، يمر بمراحل التصنيع (قص، خياطة، مكواة، تشطيب). يتم استهلاك الخامات من المخزن، ويقوم الترزي بتنفيذ مهام الخياطة الموكلة إليه وتوثيقها في النظام.
+                                </p>
+                            </div>
+
+                            <div class="p-5 rounded-2xl bg-primaryBg/40 border border-secondaryCream space-y-2">
+                                <div class="flex items-center gap-2.5">
+                                    <span class="step-number">3</span>
+                                    <h4 class="font-black text-darkText text-sm">احتساب إنتاجية الترزي بالقطعة</h4>
+                                </div>
+                                <p class="text-xs text-mutedBrown leading-normal">
+                                    يرتبط سجل إنجاز الترزي بجدول أسعار القطع. كل قطعة ينهيها الترزي تضاف قيمتها فوراً لحسابه المستحق لهذا الشهر آلياً دون أي دفاتر ورقية.
+                                </p>
+                            </div>
+
+                            <div class="p-5 rounded-2xl bg-primaryBg/40 border border-secondaryCream space-y-2">
+                                <div class="flex items-center gap-2.5">
+                                    <span class="step-number">4</span>
+                                    <h4 class="font-black text-darkText text-sm">السلف والخصومات والمكافآت</h4>
+                                </div>
+                                <p class="text-xs text-mutedBrown leading-normal">
+                                    طوال الشهر، يمكن تسجيل أي سلفة نقدية، مكافأة، أو خصم للموظف. تظل المعاملات معلقة وتحت الحماية حتى وقت إعداد المرتبات.
+                                </p>
+                            </div>
+
+                            <div class="p-5 rounded-2xl bg-primaryBg/40 border border-secondaryCream space-y-2">
+                                <div class="flex items-center gap-2.5">
+                                    <span class="step-number">5</span>
+                                    <h4 class="font-black text-darkText text-sm">توليد مسير الرواتب الآلي</h4>
+                                </div>
+                                <p class="text-xs text-mutedBrown leading-normal">
+                                    بنقرة زر واحدة في نهاية الشهر: يجمع النظام (الراتب الأساسي أو إنتاجية القطع + المكافآت) ويخصم آلياً (السلف المسحوبة + الجزاءات)، ويغلق السلف المسواة لمنع التكرار نهائياً.
+                                </p>
+                            </div>
+
+                            <div class="p-5 rounded-2xl bg-primaryBg/40 border border-secondaryCream space-y-2">
+                                <div class="flex items-center gap-2.5">
+                                    <span class="step-number">6</span>
+                                    <h4 class="font-black text-darkText text-sm">الشحن مع Turbo والـ QC بالمرتجع</h4>
+                                </div>
+                                <p class="text-xs text-mutedBrown leading-normal">
+                                    بمجرد انتهاء المنتج ينتقل للطلبات التامة ليتم شحنه فردياً أو جماعياً عبر Turbo. وإذا حدث مرتجع، يُفحص بالجودة (QC) لتعود القطع السليمة فوراً لمخزن المنتجات التامة جاهزة للبيع مجدداً!
+                                </p>
+                            </div>
+                        </div>
+
+                        <div class="p-4 rounded-2xl bg-amber-50 border-r-4 border-amber-500 text-amber-900 text-xs leading-relaxed space-y-1">
+                            <p class="font-bold flex items-center gap-1.5 text-sm">
+                                <i class="fa-solid fa-shield-halved text-amber-600"></i>
+                                القيمة التشغيلية المضافة لإدارة تاجميديكس:
+                            </p>
+                            <p>
+                                أصبحت المنظومة خالية من الأخطاء الشائعة: لن يُصرف راتب ترزي بأقل أو أكثر من قطعه المنفذة، ولن تُنسى سلفة نقدية دون خصمها، ولن تضيع خامات دخلت المخزن دون فاتورة شراء، ولن تُهدر قطعة مرتجعة صالحة لأن نظام فحص الجودة يعيدها فوراً لرصيد المنتجات التامة!
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Q2: Purchase Invoice Create -->
+            <div class="question-item bg-white rounded-3xl border border-secondaryCream shadow-sm overflow-hidden transition-all duration-300 hover:shadow-md" 
+                data-category="purchases" 
+                data-keywords="فاتورة شراء إضافة إنشاء مورد موردين خامات اقمشة مخزون purchase invoice supplier create items">
+                <button type="button" onclick="toggleAccordion(this)" 
+                    class="guide-accordion-header w-full p-6 flex items-center justify-between text-right gap-4 cursor-pointer select-none">
+                    <div class="flex items-center gap-4">
+                        <span class="w-10 h-10 rounded-2xl bg-secondaryCream/50 text-primaryBrown flex items-center justify-center text-lg font-bold shrink-0">
+                            <i class="fa-solid fa-cart-plus"></i>
+                        </span>
+                        <div>
+                            <div class="flex items-center gap-2 mb-1">
+                                <span class="px-2 py-0.5 text-[10px] font-bold rounded-md bg-secondaryCream text-mutedBrown">فواتير الشراء</span>
+                                <span class="text-xs text-mutedBrown hidden sm:inline">القائمة الجانبية > فواتير الشراء > إنشاء فاتورة جديدة</span>
+                            </div>
+                            <h3 class="text-base sm:text-lg font-black text-darkText">
+                                إزاي أقدر أضيف وأسجل فاتورة شراء جديدة للخامات والمستلزمات في النظام؟
+                            </h3>
+                        </div>
+                    </div>
+                    <div class="guide-chevron text-mutedBrown text-base px-2 shrink-0">
+                        <i class="fa-solid fa-chevron-down"></i>
+                    </div>
+                </button>
+                <div class="guide-accordion-content hidden p-6 sm:p-8 space-y-4 bg-white border-t border-secondaryCream/60">
+                    <div class="space-y-4 text-xs sm:text-sm text-darkText">
+                        <p class="font-bold text-primaryBrown text-sm">خطوات تسجيل فاتورة شراء جديدة بالتفصيل الدقيق:</p>
+                        <div class="space-y-3">
+                            <div class="flex items-start gap-3">
+                                <span class="step-number">1</span>
+                                <div><strong>الدخول لشاشة إنشاء الفاتورة:</strong> من القائمة الجانبية، اختر "فواتير الشراء" ثم انقر على "إنشاء فاتورة شراء جديدة".</div>
+                            </div>
+                            <div class="flex items-start gap-3">
+                                <span class="step-number">2</span>
+                                <div><strong>بيانات المورد والتواريخ:</strong> اختر المورد، أدخل رقم فاتورة المورد الورقية إن وجد، وحدد تاريخ الفاتورة وتاريخ الاستحقاق.</div>
+                            </div>
+                            <div class="flex items-start gap-3">
+                                <span class="step-number">3</span>
+                                <div><strong>إضافة بنود الأصناف والخامات:</strong> انقر "إضافة بند صنف"، اختر الصنف المخزني، اللون/المتغير، الكمية والوحدة، وسعر الوحدة.</div>
+                            </div>
+                            <div class="flex items-start gap-3">
+                                <span class="step-number">4</span>
+                                <div><strong>الخصومات والمدفوع:</strong> حدد الخصم الإجمالي والضريبة ومصاريف الشحن، واكتب الدفعة المسددة مقدماً وطريقة الدفع.</div>
+                            </div>
+                            <div class="flex items-start gap-3">
+                                <span class="step-number">5</span>
+                                <div><strong>حفظ الفاتورة:</strong> اختر "مسودة (Draft)" للمراجعة، أو "مستلمة (Received)" للتوريد الفوري للمخزن، ثم اضغط حفظ.</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Q3: Draft vs Received -->
+            <div class="question-item bg-white rounded-3xl border border-secondaryCream shadow-sm overflow-hidden transition-all duration-300 hover:shadow-md" 
+                data-category="purchases" 
+                data-keywords="مسودة مستلمة فرق حالة فاتورة الشراء draft received inventory stock">
+                <button type="button" onclick="toggleAccordion(this)" 
+                    class="guide-accordion-header w-full p-6 flex items-center justify-between text-right gap-4 cursor-pointer select-none">
+                    <div class="flex items-center gap-4">
+                        <span class="w-10 h-10 rounded-2xl bg-secondaryCream/50 text-primaryBrown flex items-center justify-center text-lg font-bold shrink-0">
+                            <i class="fa-solid fa-scale-balanced"></i>
+                        </span>
+                        <div>
+                            <div class="flex items-center gap-2 mb-1">
+                                <span class="px-2 py-0.5 text-[10px] font-bold rounded-md bg-secondaryCream text-mutedBrown">فواتير الشراء</span>
+                                <span class="text-xs text-mutedBrown hidden sm:inline">مقارنة الحالات المخزنية</span>
+                            </div>
+                            <h3 class="text-base sm:text-lg font-black text-darkText">
+                                إيه الفرق الجوهري بين حالة الفاتورة "مسودة (Draft)" وحالة "مستلمة (Received)"؟
+                            </h3>
+                        </div>
+                    </div>
+                    <div class="guide-chevron text-mutedBrown text-base px-2 shrink-0">
+                        <i class="fa-solid fa-chevron-down"></i>
+                    </div>
+                </button>
+                <div class="guide-accordion-content hidden p-6 sm:p-8 space-y-4 bg-white border-t border-secondaryCream/60">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs sm:text-sm">
+                        <div class="p-5 rounded-2xl bg-amber-50/60 border border-amber-200 space-y-2">
+                            <div class="flex items-center gap-2 text-amber-800 font-black">
+                                <i class="fa-solid fa-file-pen text-base"></i>
+                                <span>حالة مسودة (Draft)</span>
+                            </div>
+                            <p>تُستخدم للمراجعة قبل وصول الشحنة. <strong>لا تؤثر على رصيد المخزن</strong> ولا ينشأ عنها أي حركة وارد حتى يتم الاعتماد.</p>
+                        </div>
+                        <div class="p-5 rounded-2xl bg-emerald-50/60 border border-emerald-200 space-y-2">
+                            <div class="flex items-center gap-2 text-emerald-800 font-black">
+                                <i class="fa-solid fa-boxes-packing text-base"></i>
+                                <span>حالة مستلمة (Received)</span>
+                            </div>
+                            <p>تُستخدم عند استلام الخامات بالمخزن. <strong>تزيد رصيد المخزن فوراً</strong> بالكميات وتنشئ حركة وارد رسمية بمتوسط التكلفة.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Q4: Receive Draft Invoice -->
+            <div class="question-item bg-white rounded-3xl border border-secondaryCream shadow-sm overflow-hidden transition-all duration-300 hover:shadow-md" 
+                data-category="purchases" 
+                data-keywords="اعتماد استلام فاتورة توريد للمخزن وارد حركات المخزون receive stock inventory transaction">
+                <button type="button" onclick="toggleAccordion(this)" 
+                    class="guide-accordion-header w-full p-6 flex items-center justify-between text-right gap-4 cursor-pointer select-none">
+                    <div class="flex items-center gap-4">
+                        <span class="w-10 h-10 rounded-2xl bg-secondaryCream/50 text-primaryBrown flex items-center justify-center text-lg font-bold shrink-0">
+                            <i class="fa-solid fa-dolly"></i>
+                        </span>
+                        <div>
+                            <div class="flex items-center gap-2 mb-1">
+                                <span class="px-2 py-0.5 text-[10px] font-bold rounded-md bg-secondaryCream text-mutedBrown">فواتير الشراء</span>
+                                <span class="text-xs text-mutedBrown hidden sm:inline">اعتماد التوريد للمخزن</span>
+                            </div>
+                            <h3 class="text-base sm:text-lg font-black text-darkText">
+                                إزاي اعتمد استلام فاتورة شراء كانت "مسودة" وأورد أصنافها للمخزن لاحقاً (Receive)؟
+                            </h3>
+                        </div>
+                    </div>
+                    <div class="guide-chevron text-mutedBrown text-base px-2 shrink-0">
+                        <i class="fa-solid fa-chevron-down"></i>
+                    </div>
+                </button>
+                <div class="guide-accordion-content hidden p-6 sm:p-8 space-y-4 bg-white border-t border-secondaryCream/60">
+                    <div class="space-y-4 text-xs sm:text-sm text-darkText leading-relaxed">
+                        <p>1. افتح صفحة تفاصيل الفاتورة المسودة (<code class="bg-primaryBg px-1 rounded">purchase-invoices.show</code>).</p>
+                        <p>2. اضغط على الزر الأخضر بأعلى الصفحة <strong>"اعتماد الاستلام وتوريد للمخزن"</strong>.</p>
+                        <p>3. يضيف النظام الكميات تلقائياً لرصيد المخزن ويسجل حركة توريد رسمي (Receipt) موثقة بالتاريخ والوقت والتكلفة وتتحول حالة الفاتورة لمستلمة.</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Q5: Add supplier payment -->
+            <div class="question-item bg-white rounded-3xl border border-secondaryCream shadow-sm overflow-hidden transition-all duration-300 hover:shadow-md" 
+                data-category="purchases" 
+                data-keywords="سداد دفعة مورد سداد جزئي كلي شيك كاش تحويل بنكي supplier payment add">
+                <button type="button" onclick="toggleAccordion(this)" 
+                    class="guide-accordion-header w-full p-6 flex items-center justify-between text-right gap-4 cursor-pointer select-none">
+                    <div class="flex items-center gap-4">
+                        <span class="w-10 h-10 rounded-2xl bg-secondaryCream/50 text-primaryBrown flex items-center justify-center text-lg font-bold shrink-0">
+                            <i class="fa-solid fa-money-bill-transfer"></i>
+                        </span>
+                        <div>
+                            <div class="flex items-center gap-2 mb-1">
+                                <span class="px-2 py-0.5 text-[10px] font-bold rounded-md bg-secondaryCream text-mutedBrown">فواتير الشراء</span>
+                                <span class="text-xs text-mutedBrown hidden sm:inline">سداد دفعات الموردين</span>
+                            </div>
+                            <h3 class="text-base sm:text-lg font-black text-darkText">
+                                إزاي أقدر أسجل دفعة مالية جديدة لمورد على فاتورة شراء قائمة (سداد جزئي أو كامل)؟
+                            </h3>
+                        </div>
+                    </div>
+                    <div class="guide-chevron text-mutedBrown text-base px-2 shrink-0">
+                        <i class="fa-solid fa-chevron-down"></i>
+                    </div>
+                </button>
+                <div class="guide-accordion-content hidden p-6 sm:p-8 space-y-4 bg-white border-t border-secondaryCream/60">
+                    <div class="space-y-4 text-xs sm:text-sm text-darkText leading-relaxed">
+                        <p>من صفحة تفاصيل الفاتورة، انزل لبطاقة <strong>"دفعات المورد وسجل السداد"</strong> واضغط <strong>"تسجيل دفعة جديدة"</strong>. أدخل المبلغ وطريقة الدفع والمرجع البنكي، وسيقوم النظام بتوليد كود صرف (SPAY-...) وتحديث المبلغ المتبقي على الفاتورة فورياً.</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Q6: Create Order Return -->
+            <div class="question-item bg-white rounded-3xl border border-secondaryCream shadow-sm overflow-hidden transition-all duration-300 hover:shadow-md" 
+                data-category="returns" 
+                data-keywords="مرتجع طلب تسجيل مرتجع كلي جزئي عميل فحص استرجاع order return create refund">
+                <button type="button" onclick="toggleAccordion(this)" 
+                    class="guide-accordion-header w-full p-6 flex items-center justify-between text-right gap-4 cursor-pointer select-none">
+                    <div class="flex items-center gap-4">
+                        <span class="w-10 h-10 rounded-2xl bg-secondaryCream/50 text-primaryBrown flex items-center justify-center text-lg font-bold shrink-0">
+                            <i class="fa-solid fa-rotate-left"></i>
+                        </span>
+                        <div>
+                            <div class="flex items-center gap-2 mb-1">
+                                <span class="px-2 py-0.5 text-[10px] font-bold rounded-md bg-rose-100 text-rose-800">المرتجعات وفحص الجودة</span>
+                                <span class="text-xs text-mutedBrown hidden sm:inline">القائمة الجانبية > المرتجعات > تسجيل مرتجع</span>
+                            </div>
+                            <h3 class="text-base sm:text-lg font-black text-darkText">
+                                إزاي أقدر أسجل طلب مرتجع لأوردر مسبق (كلي أو جزئي) مع خصم مصاريف الشحن؟
+                            </h3>
+                        </div>
+                    </div>
+                    <div class="guide-chevron text-mutedBrown text-base px-2 shrink-0">
+                        <i class="fa-solid fa-chevron-down"></i>
+                    </div>
+                </button>
+                <div class="guide-accordion-content hidden p-6 sm:p-8 space-y-4 bg-white border-t border-secondaryCream/60">
+                    <div class="space-y-4 text-xs sm:text-sm text-darkText leading-relaxed">
+                        <p>1. ابحث عن الأوردر برقم الأوردر أو رقم هاتف العميل في شاشة تسجيل المرتجع.</p>
+                        <p>2. حدد نوع المرتجع (كلي أو جزئي) وسبب الإرجاع ومصاريف الشحن المخصومة إن وجدت.</p>
+                        <p>3. حدد الكميات المرتجعة لكل قطعة واضغط "حفظ طلب المرتجع"، فيصدر النظام كود مرتجع (RET-...) وتكون حالته "قيد الانتظار والفحص".</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Q7: QC Quality Check -->
+            <div class="question-item bg-white rounded-3xl border border-secondaryCream shadow-sm overflow-hidden transition-all duration-300 hover:shadow-md" 
+                data-category="returns" 
+                data-keywords="فحص جودة كواليتي تشيك qc سليم تالف معيب quality check good damaged">
+                <button type="button" onclick="toggleAccordion(this)" 
+                    class="guide-accordion-header w-full p-6 flex items-center justify-between text-right gap-4 cursor-pointer select-none">
+                    <div class="flex items-center gap-4">
+                        <span class="w-10 h-10 rounded-2xl bg-secondaryCream/50 text-primaryBrown flex items-center justify-center text-lg font-bold shrink-0">
+                            <i class="fa-solid fa-clipboard-check"></i>
+                        </span>
+                        <div>
+                            <div class="flex items-center gap-2 mb-1">
+                                <span class="px-2 py-0.5 text-[10px] font-bold rounded-md bg-rose-100 text-rose-800">المرتجعات وفحص الجودة</span>
+                                <span class="text-xs text-mutedBrown hidden sm:inline">فحص الجودة QC</span>
+                            </div>
+                            <h3 class="text-base sm:text-lg font-black text-darkText">
+                                إزاي أنفذ عملية فحص الجودة (QC) للقطع المرتجعة؟ وما الفرق بين السليم والتالف؟
+                            </h3>
+                        </div>
+                    </div>
+                    <div class="guide-chevron text-mutedBrown text-base px-2 shrink-0">
+                        <i class="fa-solid fa-chevron-down"></i>
+                    </div>
+                </button>
+                <div class="guide-accordion-content hidden p-6 sm:p-8 space-y-4 bg-white border-t border-secondaryCream/60">
+                    <div class="space-y-4 text-xs sm:text-sm text-darkText leading-relaxed">
+                        <p>في صفحة تفاصيل المرتجع، يحدد مسؤول الفحص أمام كل قطعة إما <strong>"سليم ومطابق Good"</strong> أو <strong>"تالف / معيب Damaged"</strong>، ثم يفعل خيار <strong>"إعادة الأصناف السليمة تلقائياً لمخزون المنتجات التامة"</strong> ويضغط اعتماد نتيجة الفحص.</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Q8: Restocking to Finished Goods -->
+            <div class="question-item bg-white rounded-3xl border border-secondaryCream shadow-sm overflow-hidden transition-all duration-300 hover:shadow-md" 
+                data-category="returns" 
+                data-keywords="إعادة تخزين ريستوك منتجات تامة جاهزة للبيع restock finished goods inventory">
+                <button type="button" onclick="toggleAccordion(this)" 
+                    class="guide-accordion-header w-full p-6 flex items-center justify-between text-right gap-4 cursor-pointer select-none">
+                    <div class="flex items-center gap-4">
+                        <span class="w-10 h-10 rounded-2xl bg-secondaryCream/50 text-primaryBrown flex items-center justify-center text-lg font-bold shrink-0">
+                            <i class="fa-solid fa-boxes-stacked"></i>
+                        </span>
+                        <div>
+                            <div class="flex items-center gap-2 mb-1">
+                                <span class="px-2 py-0.5 text-[10px] font-bold rounded-md bg-rose-100 text-rose-800">المرتجعات وفحص الجودة</span>
+                                <span class="text-xs text-mutedBrown hidden sm:inline">إعادة التخزين Restock</span>
+                            </div>
+                            <h3 class="text-base sm:text-lg font-black text-darkText">
+                                إزاي الأصناف المرتجعة السليمة بترجع تلقائياً لمخزون المنتجات التامة (Restock to Finished Goods)؟
+                            </h3>
+                        </div>
+                    </div>
+                    <div class="guide-chevron text-mutedBrown text-base px-2 shrink-0">
+                        <i class="fa-solid fa-chevron-down"></i>
+                    </div>
+                </button>
+                <div class="guide-accordion-content hidden p-6 sm:p-8 space-y-4 bg-white border-t border-secondaryCream/60">
+                    <div class="space-y-4 text-xs sm:text-sm text-darkText leading-relaxed">
+                        <p>يبحث النظام تلقائياً في مخزن المنتجات التامة عن نفس الموديل واللون والمقاس ونوع البنطلون والكم، ويضيف القطع السليمة فوراً للرصيد المتاح للبيع بكود (RESTOCK-...) دون الحاجة لإعادة قصها أو خياطتها وتكبد تكاليف إضافية.</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Q9: Refund -->
+            <div class="question-item bg-white rounded-3xl border border-secondaryCream shadow-sm overflow-hidden transition-all duration-300 hover:shadow-md" 
+                data-category="returns" 
+                data-keywords="استرداد اموال تسوية مالية مرتجع ريفاند refund finance customer">
+                <button type="button" onclick="toggleAccordion(this)" 
+                    class="guide-accordion-header w-full p-6 flex items-center justify-between text-right gap-4 cursor-pointer select-none">
+                    <div class="flex items-center gap-4">
+                        <span class="w-10 h-10 rounded-2xl bg-secondaryCream/50 text-primaryBrown flex items-center justify-center text-lg font-bold shrink-0">
+                            <i class="fa-solid fa-hand-holding-dollar"></i>
+                        </span>
+                        <div>
+                            <div class="flex items-center gap-2 mb-1">
+                                <span class="px-2 py-0.5 text-[10px] font-bold rounded-md bg-rose-100 text-rose-800">المرتجعات وفحص الجودة</span>
+                                <span class="text-xs text-mutedBrown hidden sm:inline">التسوية المالية Refund</span>
+                            </div>
+                            <h3 class="text-base sm:text-lg font-black text-darkText">
+                                إزاي اثبت استرداد المبلغ المالي للعميل (Refund Process) وإغلاق المرتجع مالياً؟
+                            </h3>
+                        </div>
+                    </div>
+                    <div class="guide-chevron text-mutedBrown text-base px-2 shrink-0">
+                        <i class="fa-solid fa-chevron-down"></i>
+                    </div>
+                </button>
+                <div class="guide-accordion-content hidden p-6 sm:p-8 space-y-4 bg-white border-t border-secondaryCream/60">
+                    <div class="space-y-4 text-xs sm:text-sm text-darkText leading-relaxed">
+                        <p>اضغط على زر <strong>"تأكيد استرداد المبلغ للعميل"</strong> في صفحة تفاصيل المرتجع، ثم اكتب طريقة رد المبلغ (تحويل، محفظة، كاش)، فتتحول حالة الاسترداد إلى "تم استرداد المبلغ (Refunded)".</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Q10: Employee Advances Record -->
+            <div class="question-item bg-white rounded-3xl border border-secondaryCream shadow-sm overflow-hidden transition-all duration-300 hover:shadow-md" 
+                data-category="advances" 
+                data-keywords="سلفة مكافأة خصم موظف موظفين ترزية عامل سلفيات advance bonus deduction employee">
+                <button type="button" onclick="toggleAccordion(this)" 
+                    class="guide-accordion-header w-full p-6 flex items-center justify-between text-right gap-4 cursor-pointer select-none">
+                    <div class="flex items-center gap-4">
+                        <span class="w-10 h-10 rounded-2xl bg-secondaryCream/50 text-primaryBrown flex items-center justify-center text-lg font-bold shrink-0">
+                            <i class="fa-solid fa-receipt"></i>
+                        </span>
+                        <div>
+                            <div class="flex items-center gap-2 mb-1">
+                                <span class="px-2 py-0.5 text-[10px] font-bold rounded-md bg-purple-100 text-purple-800">شؤون الموظفين والسلف</span>
+                                <span class="text-xs text-mutedBrown hidden sm:inline">القائمة الجانبية > الموظفون</span>
+                            </div>
+                            <h3 class="text-base sm:text-lg font-black text-darkText">
+                                إزاي أسجل سلفة نقدية، مكافأة تشجيعية، أو خصم جزائي لموظف من شاشة الموظفين؟
+                            </h3>
+                        </div>
+                    </div>
+                    <div class="guide-chevron text-mutedBrown text-base px-2 shrink-0">
+                        <i class="fa-solid fa-chevron-down"></i>
+                    </div>
+                </button>
+                <div class="guide-accordion-content hidden p-6 sm:p-8 space-y-4 bg-white border-t border-secondaryCream/60">
+                    <div class="space-y-4 text-xs sm:text-sm text-darkText leading-relaxed">
+                        <p>ادخل على ملف الموظف في شاشة الموظفين، واضغط على زر <strong>"سلفة / مكافأة / خصم"</strong>، حدد النوع والمبلغ والتاريخ والسبب واحفظ. ستظهر الحركة في كشف حساب الموظف وتكون جاهزة للخصم التلقائي عند مسير الرواتب.</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Q11: Advance Protection -->
+            <div class="question-item bg-white rounded-3xl border border-secondaryCream shadow-sm overflow-hidden transition-all duration-300 hover:shadow-md" 
+                data-category="advances" 
+                data-keywords="دورة حياة السلفة تسوية حماية الغاء حذف unsettled settled advances">
+                <button type="button" onclick="toggleAccordion(this)" 
+                    class="guide-accordion-header w-full p-6 flex items-center justify-between text-right gap-4 cursor-pointer select-none">
+                    <div class="flex items-center gap-4">
+                        <span class="w-10 h-10 rounded-2xl bg-secondaryCream/50 text-primaryBrown flex items-center justify-center text-lg font-bold shrink-0">
+                            <i class="fa-solid fa-lock"></i>
+                        </span>
+                        <div>
+                            <div class="flex items-center gap-2 mb-1">
+                                <span class="px-2 py-0.5 text-[10px] font-bold rounded-md bg-purple-100 text-purple-800">شؤون الموظفين والسلف</span>
+                                <span class="text-xs text-mutedBrown hidden sm:inline">أمان السجلات</span>
+                            </div>
+                            <h3 class="text-base sm:text-lg font-black text-darkText">
+                                ما هي دورة حياة السلفة؟ وإزاي النظام بيحمي السلف بعد تسويتها في مسير الرواتب؟
+                            </h3>
+                        </div>
+                    </div>
+                    <div class="guide-chevron text-mutedBrown text-base px-2 shrink-0">
+                        <i class="fa-solid fa-chevron-down"></i>
+                    </div>
+                </button>
+                <div class="guide-accordion-content hidden p-6 sm:p-8 space-y-4 bg-white border-t border-secondaryCream/60">
+                    <div class="space-y-4 text-xs sm:text-sm text-darkText leading-relaxed">
+                        <p>تكون السلفة غير مسواة (Unsettled) وقابلة للحذف والتعديل طوال الشهر. وعند توليد مسير الرواتب الشهري، تتحول آلياً إلى مسواة (Settled) ويغلق النظام إمكانية حذفها أو التلاعب بها لمنع الخلل المحاسبي.</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Q12: Payroll Generate -->
+            <div class="question-item bg-white rounded-3xl border border-secondaryCream shadow-sm overflow-hidden transition-all duration-300 hover:shadow-md" 
+                data-category="payroll" 
+                data-keywords="توليد مسير الرواتب الشهر الرواتب حساب تلقائي مرتبات payroll generate bulk">
+                <button type="button" onclick="toggleAccordion(this)" 
+                    class="guide-accordion-header w-full p-6 flex items-center justify-between text-right gap-4 cursor-pointer select-none">
+                    <div class="flex items-center gap-4">
+                        <span class="w-10 h-10 rounded-2xl bg-secondaryCream/50 text-primaryBrown flex items-center justify-center text-lg font-bold shrink-0">
+                            <i class="fa-solid fa-calculator"></i>
+                        </span>
+                        <div>
+                            <div class="flex items-center gap-2 mb-1">
+                                <span class="px-2 py-0.5 text-[10px] font-bold rounded-md bg-blue-100 text-blue-800">مسير الرواتب والإنتاج</span>
+                                <span class="text-xs text-mutedBrown hidden sm:inline">القائمة الجانبية > الرواتب</span>
+                            </div>
+                            <h3 class="text-base sm:text-lg font-black text-darkText">
+                                إزاي أولّد مسير الرواتب الشهري لجميع موظفي الشركة بنقرة زر واحدة (Generate Payroll)؟
+                            </h3>
+                        </div>
+                    </div>
+                    <div class="guide-chevron text-mutedBrown text-base px-2 shrink-0">
+                        <i class="fa-solid fa-chevron-down"></i>
+                    </div>
+                </button>
+                <div class="guide-accordion-content hidden p-6 sm:p-8 space-y-4 bg-white border-t border-secondaryCream/60">
+                    <div class="space-y-4 text-xs sm:text-sm text-darkText leading-relaxed">
+                        <p>من شاشة الرواتب، حدد الشهر والسنة واضغط على زر <strong>"توليد مسير الشهر آلياً"</strong>. يقوم النظام بمسح شامل وحساب أجور العمل وإنتاجية القطع وخصم السلف وإصدار المسير بحالة مسودة (Draft).</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Q13: Piece-Rate Tailors -->
+            <div class="question-item bg-white rounded-3xl border border-secondaryCream shadow-sm overflow-hidden transition-all duration-300 hover:shadow-md" 
+                data-category="payroll" 
+                data-keywords="حساب بالقطعة ترزي ترزية خياطين اسعار القطع خطوات الانتاج piece rate tailor earnings">
+                <button type="button" onclick="toggleAccordion(this)" 
+                    class="guide-accordion-header w-full p-6 flex items-center justify-between text-right gap-4 cursor-pointer select-none">
+                    <div class="flex items-center gap-4">
+                        <span class="w-10 h-10 rounded-2xl bg-secondaryCream/50 text-primaryBrown flex items-center justify-center text-lg font-bold shrink-0">
+                            <i class="fa-solid fa-scissors"></i>
+                        </span>
+                        <div>
+                            <div class="flex items-center gap-2 mb-1">
+                                <span class="px-2 py-0.5 text-[10px] font-bold rounded-md bg-blue-100 text-blue-800">مسير الرواتب والإنتاج</span>
+                                <span class="text-xs text-mutedBrown hidden sm:inline">محرك القطعة Piece-Rate</span>
+                            </div>
+                            <h3 class="text-base sm:text-lg font-black text-darkText">
+                                إزاي النظام بيحسب أجر عمال الخياطة والترزية تلقائياً بناءً على الإنتاج بالقطعة (Piece-Rate)؟
+                            </h3>
+                        </div>
+                    </div>
+                    <div class="guide-chevron text-mutedBrown text-base px-2 shrink-0">
+                        <i class="fa-solid fa-chevron-down"></i>
+                    </div>
+                </button>
+                <div class="guide-accordion-content hidden p-6 sm:p-8 space-y-4 bg-white border-t border-secondaryCream/60">
+                    <div class="space-y-4 text-xs sm:text-sm text-darkText leading-relaxed">
+                        <p>يربط النظام بين سجلات خطوات الإنتاج المنفذة للترزي خلال الشهر المعني وجدول أسعار القطع الخاص بالترزية (TailorPiecePrice)، ويضرب عدد القطع المنجزة في سعر القطعة آلياً.</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Q14: Net Salary Formula -->
+            <div class="question-item bg-white rounded-3xl border border-secondaryCream shadow-sm overflow-hidden transition-all duration-300 hover:shadow-md" 
+                data-category="payroll" 
+                data-keywords="معادلة صافي الراتب خصم السلف مكافآت جزاءات net salary formula deductions">
+                <button type="button" onclick="toggleAccordion(this)" 
+                    class="guide-accordion-header w-full p-6 flex items-center justify-between text-right gap-4 cursor-pointer select-none">
+                    <div class="flex items-center gap-4">
+                        <span class="w-10 h-10 rounded-2xl bg-secondaryCream/50 text-primaryBrown flex items-center justify-center text-lg font-bold shrink-0">
+                            <i class="fa-solid fa-equals"></i>
+                        </span>
+                        <div>
+                            <div class="flex items-center gap-2 mb-1">
+                                <span class="px-2 py-0.5 text-[10px] font-bold rounded-md bg-blue-100 text-blue-800">مسير الرواتب والإنتاج</span>
+                                <span class="text-xs text-mutedBrown hidden sm:inline">المعادلة المحاسبية</span>
+                            </div>
+                            <h3 class="text-base sm:text-lg font-black text-darkText">
+                                إزاي بتتحسب المعادلة المالية لصافي الراتب وخصم السلف والجزاءات وإضافة المكافآت آلياً؟
+                            </h3>
+                        </div>
+                    </div>
+                    <div class="guide-chevron text-mutedBrown text-base px-2 shrink-0">
+                        <i class="fa-solid fa-chevron-down"></i>
+                    </div>
+                </button>
+                <div class="guide-accordion-content hidden p-6 sm:p-8 space-y-4 bg-white border-t border-secondaryCream/60">
+                    <div class="space-y-4 text-xs sm:text-sm text-darkText leading-relaxed">
+                        <p class="font-bold font-mono text-primaryBrown">صافي الراتب = (الأساسي أو إنتاج القطع + المكافآت) - (السلف المسحوبة + الخصومات)</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Q15: Bulk Approve & Bulk Pay -->
+            <div class="question-item bg-white rounded-3xl border border-secondaryCream shadow-sm overflow-hidden transition-all duration-300 hover:shadow-md" 
+                data-category="payroll" 
+                data-keywords="اعتماد جماعي صرف جماعي bulk approve bulk pay payroll تسليم الرواتب">
+                <button type="button" onclick="toggleAccordion(this)" 
+                    class="guide-accordion-header w-full p-6 flex items-center justify-between text-right gap-4 cursor-pointer select-none">
+                    <div class="flex items-center gap-4">
+                        <span class="w-10 h-10 rounded-2xl bg-secondaryCream/50 text-primaryBrown flex items-center justify-center text-lg font-bold shrink-0">
+                            <i class="fa-solid fa-money-check-dollar"></i>
+                        </span>
+                        <div>
+                            <div class="flex items-center gap-2 mb-1">
+                                <span class="px-2 py-0.5 text-[10px] font-bold rounded-md bg-blue-100 text-blue-800">مسير الرواتب والإنتاج</span>
+                                <span class="text-xs text-mutedBrown hidden sm:inline">الاعتماد والصرف الجماعي</span>
+                            </div>
+                            <h3 class="text-base sm:text-lg font-black text-darkText">
+                                ما هي خطوات اعتماد وصرف الرواتب فردياً أو جماعياً (Bulk Approve & Bulk Pay)؟
+                            </h3>
+                        </div>
+                    </div>
+                    <div class="guide-chevron text-mutedBrown text-base px-2 shrink-0">
+                        <i class="fa-solid fa-chevron-down"></i>
+                    </div>
+                </button>
+                <div class="guide-accordion-content hidden p-6 sm:p-8 space-y-4 bg-white border-t border-secondaryCream/60">
+                    <div class="space-y-4 text-xs sm:text-sm text-darkText leading-relaxed">
+                        <p>1. <strong>مسودة Draft:</strong> مراجعة المسير بعد التوليد.</p>
+                        <p>2. <strong>اعتماد Approved:</strong> الضغط على "اعتماد الكل Bulk Approve" لتحويل جميع رواتب الشهر لمعتمدة.</p>
+                        <p>3. <strong>صرف وتسليم Paid:</strong> الضغط على "صرف وتسليم الكل Bulk Pay" وتحديد طريقة الصرف لتوثيق التسليم رسمياً.</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Q16: Payslip -->
+            <div class="question-item bg-white rounded-3xl border border-secondaryCream shadow-sm overflow-hidden transition-all duration-300 hover:shadow-md" 
+                data-category="payroll" 
+                data-keywords="كشف راتب قسيمة راتب طباعة payslip payroll show employee piece details">
+                <button type="button" onclick="toggleAccordion(this)" 
+                    class="guide-accordion-header w-full p-6 flex items-center justify-between text-right gap-4 cursor-pointer select-none">
+                    <div class="flex items-center gap-4">
+                        <span class="w-10 h-10 rounded-2xl bg-secondaryCream/50 text-primaryBrown flex items-center justify-center text-lg font-bold shrink-0">
+                            <i class="fa-solid fa-print"></i>
+                        </span>
+                        <div>
+                            <div class="flex items-center gap-2 mb-1">
+                                <span class="px-2 py-0.5 text-[10px] font-bold rounded-md bg-blue-100 text-blue-800">مسير الرواتب والإنتاج</span>
+                                <span class="text-xs text-mutedBrown hidden sm:inline">كشف الراتب Payslip</span>
+                            </div>
+                            <h3 class="text-base sm:text-lg font-black text-darkText">
+                                إزاي استعرض وأطبع كشف الراتب التفصيلي (Payslip) لكل موظف موضحاً فيه تفاصيل القطع والسلف؟
+                            </h3>
+                        </div>
+                    </div>
+                    <div class="guide-chevron text-mutedBrown text-base px-2 shrink-0">
+                        <i class="fa-solid fa-chevron-down"></i>
+                    </div>
+                </button>
+                <div class="guide-accordion-content hidden p-6 sm:p-8 space-y-4 bg-white border-t border-secondaryCream/60">
+                    <div class="space-y-4 text-xs sm:text-sm text-darkText leading-relaxed">
+                        <p>اضغط على أيقونة العين أمام اسم الموظف في جدول الرواتب لفتح قسيمة الراتب التفصيلية، والتي تضم جدولاً بكل حركة إنتاج نفذها وجدول السلف وخانة مخصصة لتوقيع واستلام العامل.</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Q17: Send to Turbo -->
+            <div class="question-item bg-white rounded-3xl border border-secondaryCream shadow-sm overflow-hidden transition-all duration-300 hover:shadow-md" 
+                data-category="turbo" 
+                data-keywords="شحن توربو طلبات تامة بوليصة شحن تتبع turbo shipment bulk ship finished goods">
+                <button type="button" onclick="toggleAccordion(this)" 
+                    class="guide-accordion-header w-full p-6 flex items-center justify-between text-right gap-4 cursor-pointer select-none">
+                    <div class="flex items-center gap-4">
+                        <span class="w-10 h-10 rounded-2xl bg-secondaryCream/50 text-primaryBrown flex items-center justify-center text-lg font-bold shrink-0">
+                            <i class="fa-solid fa-truck-ramp-box"></i>
+                        </span>
+                        <div>
+                            <div class="flex items-center gap-2 mb-1">
+                                <span class="px-2 py-0.5 text-[10px] font-bold rounded-md bg-amber-100 text-amber-800">الشحن وعمليات Turbo</span>
+                                <span class="text-xs text-mutedBrown hidden sm:inline">الطلبات التامة</span>
+                            </div>
+                            <h3 class="text-base sm:text-lg font-black text-darkText">
+                                إزاي أشحن أوردر منفرد أو شحن جماعي (Bulk Ship) لشركة الشحن توربو مباشرة؟
+                            </h3>
+                        </div>
+                    </div>
+                    <div class="guide-chevron text-mutedBrown text-base px-2 shrink-0">
+                        <i class="fa-solid fa-chevron-down"></i>
+                    </div>
+                </button>
+                <div class="guide-accordion-content hidden p-6 sm:p-8 space-y-4 bg-white border-t border-secondaryCream/60">
+                    <div class="space-y-4 text-xs sm:text-sm text-darkText leading-relaxed">
+                        <p>من شاشة <strong>الطلبات التامة</strong>، اضغط على زر "شحن عبر Turbo" لشحن طلب منفرد، أو حدد عدة طلبات واضغط "شحن المحدد جماعياً" لإرسال الشحنات فوراً والحصول على أرقام التتبع.</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Q18: Turbo Live Sync -->
+            <div class="question-item bg-white rounded-3xl border border-secondaryCream shadow-sm overflow-hidden transition-all duration-300 hover:shadow-md" 
+                data-category="turbo" 
+                data-keywords="مزامنة شحنات توربو تحديث الحالات تحصيلات مندوب live sync turbo shipments">
+                <button type="button" onclick="toggleAccordion(this)" 
+                    class="guide-accordion-header w-full p-6 flex items-center justify-between text-right gap-4 cursor-pointer select-none">
+                    <div class="flex items-center gap-4">
+                        <span class="w-10 h-10 rounded-2xl bg-secondaryCream/50 text-primaryBrown flex items-center justify-center text-lg font-bold shrink-0">
+                            <i class="fa-solid fa-arrows-rotate"></i>
+                        </span>
+                        <div>
+                            <div class="flex items-center gap-2 mb-1">
+                                <span class="px-2 py-0.5 text-[10px] font-bold rounded-md bg-amber-100 text-amber-800">الشحن وعمليات Turbo</span>
+                                <span class="text-xs text-mutedBrown hidden sm:inline">مركز إدارة الشحنات</span>
+                            </div>
+                            <h3 class="text-base sm:text-lg font-black text-darkText">
+                                إزاي أحدث حالات الشحنات والتحصيلات المالية لحظياً من خوادم Turbo (Live Sync)؟
+                            </h3>
+                        </div>
+                    </div>
+                    <div class="guide-chevron text-mutedBrown text-base px-2 shrink-0">
+                        <i class="fa-solid fa-chevron-down"></i>
+                    </div>
+                </button>
+                <div class="guide-accordion-content hidden p-6 sm:p-8 space-y-4 bg-white border-t border-secondaryCream/60">
+                    <div class="space-y-4 text-xs sm:text-sm text-darkText leading-relaxed">
+                        <p>من تبويب <strong>"أوردرات تم شحنها"</strong>، اضغط زر <strong>"مزامنة الشحنات من Turbo"</strong>، فيقوم النظام بجلب الحالات المحدثة والمبالغ المحصلة فعلياً من المناديب تلقائياً.</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Q19: Turbo Return Amounts -->
+            <div class="question-item bg-white rounded-3xl border border-secondaryCream shadow-sm overflow-hidden transition-all duration-300 hover:shadow-md" 
+                data-category="turbo" 
+                data-keywords="مبالغ مرتجعات توربو تكلفة شحن المرتجع مناطق محافظات turbo return amounts settings">
+                <button type="button" onclick="toggleAccordion(this)" 
+                    class="guide-accordion-header w-full p-6 flex items-center justify-between text-right gap-4 cursor-pointer select-none">
+                    <div class="flex items-center gap-4">
+                        <span class="w-10 h-10 rounded-2xl bg-secondaryCream/50 text-primaryBrown flex items-center justify-center text-lg font-bold shrink-0">
+                            <i class="fa-solid fa-gear"></i>
+                        </span>
+                        <div>
+                            <div class="flex items-center gap-2 mb-1">
+                                <span class="px-2 py-0.5 text-[10px] font-bold rounded-md bg-amber-100 text-amber-800">الشحن وعمليات Turbo</span>
+                                <span class="text-xs text-mutedBrown hidden sm:inline">إعدادات المرتجعات</span>
+                            </div>
+                            <h3 class="text-base sm:text-lg font-black text-darkText">
+                                كيف يتعامل النظام مع مبالغ مرتجعات توربو وتكاليف الشحن المعلقة؟
+                            </h3>
+                        </div>
+                    </div>
+                    <div class="guide-chevron text-mutedBrown text-base px-2 shrink-0">
+                        <i class="fa-solid fa-chevron-down"></i>
+                    </div>
+                </button>
+                <div class="guide-accordion-content hidden p-6 sm:p-8 space-y-4 bg-white border-t border-secondaryCream/60">
+                    <div class="space-y-4 text-xs sm:text-sm text-darkText leading-relaxed">
+                        <p>يتيح قسم <strong>"مبالغ مرتجعات Turbo"</strong> في الإعدادات ضبط تكلفة شحن المرتجع حسب المحافظة والمنطقة لضمان الدقة المحاسبية عند تسوية حسابات شركة الشحن.</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Q20: Production Workflow -->
+            <div class="question-item bg-white rounded-3xl border border-secondaryCream shadow-sm overflow-hidden transition-all duration-300 hover:shadow-md" 
+                data-category="production" 
+                data-keywords="مسار عمل الطلبات مراحل الانتاج قص خياطة مكواة تشطيب جاهز للشحن production workflow kanban">
+                <button type="button" onclick="toggleAccordion(this)" 
+                    class="guide-accordion-header w-full p-6 flex items-center justify-between text-right gap-4 cursor-pointer select-none">
+                    <div class="flex items-center gap-4">
+                        <span class="w-10 h-10 rounded-2xl bg-secondaryCream/50 text-primaryBrown flex items-center justify-center text-lg font-bold shrink-0">
+                            <i class="fa-solid fa-industry"></i>
+                        </span>
+                        <div>
+                            <div class="flex items-center gap-2 mb-1">
+                                <span class="px-2 py-0.5 text-[10px] font-bold rounded-md bg-teal-100 text-teal-800">مسار عمل الإنتاج</span>
+                                <span class="text-xs text-mutedBrown hidden sm:inline">لوحة مراحل التشغيل</span>
+                            </div>
+                            <h3 class="text-base sm:text-lg font-black text-darkText">
+                                إزاي اتابع مراحل تصنيع الأوردرات (قص، خياطة، مكواة، تشطيب، جاهز للشحن) وإسنادها للمشرفين؟
+                            </h3>
+                        </div>
+                    </div>
+                    <div class="guide-chevron text-mutedBrown text-base px-2 shrink-0">
+                        <i class="fa-solid fa-chevron-down"></i>
+                    </div>
+                </button>
+                <div class="guide-accordion-content hidden p-6 sm:p-8 space-y-4 bg-white border-t border-secondaryCream/60">
+                    <div class="space-y-4 text-xs sm:text-sm text-darkText leading-relaxed">
+                        <p>تعرض شاشة <strong>مسار عمل الطلبات</strong> لوحة بصرية بالمراحل الست للتصنيع، وتتيح إسناد كل مرحلة للمشرف أو الترزي المعني ومتابعة تواريخ الإنجاز المستهدفة.</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Q21: Order Classifications -->
+            <div class="question-item bg-white rounded-3xl border border-secondaryCream shadow-sm overflow-hidden transition-all duration-300 hover:shadow-md" 
+                data-category="production" 
+                data-keywords="تصنيفات الطلبات ألوان مقاسات موديلات اكمام بناطيل order classifications styles sizes colors">
+                <button type="button" onclick="toggleAccordion(this)" 
+                    class="guide-accordion-header w-full p-6 flex items-center justify-between text-right gap-4 cursor-pointer select-none">
+                    <div class="flex items-center gap-4">
+                        <span class="w-10 h-10 rounded-2xl bg-secondaryCream/50 text-primaryBrown flex items-center justify-center text-lg font-bold shrink-0">
+                            <i class="fa-solid fa-tags"></i>
+                        </span>
+                        <div>
+                            <div class="flex items-center gap-2 mb-1">
+                                <span class="px-2 py-0.5 text-[10px] font-bold rounded-md bg-teal-100 text-teal-800">مسار عمل الإنتاج</span>
+                                <span class="text-xs text-mutedBrown hidden sm:inline">المعايير والتصنيفات</span>
+                            </div>
+                            <h3 class="text-base sm:text-lg font-black text-darkText">
+                                إزاي أهيئ تصنيفات الطلبات والمعايير (الألوان، المقاسات، الموديلات، الأكمام، البناطيل)؟
+                            </h3>
+                        </div>
+                    </div>
+                    <div class="guide-chevron text-mutedBrown text-base px-2 shrink-0">
+                        <i class="fa-solid fa-chevron-down"></i>
+                    </div>
+                </button>
+                <div class="guide-accordion-content hidden p-6 sm:p-8 space-y-4 bg-white border-t border-secondaryCream/60">
+                    <div class="space-y-4 text-xs sm:text-sm text-darkText leading-relaxed">
+                        <p>من تبويب <strong>تصنيفات الطلبات</strong>، يمكنك إضافة وتعديل الألوان والمقاسات والموديلات وأنواع البناطيل والأكمام، والتي تنعكس فوراً في شاشات إنشاء الأوردرات وفواتير التصنيع.</p>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+
+    </div>
+
+    <!-- JavaScript Controls -->
+    <script>
+        let activeCategory = 'all';
+
+        function toggleAccordion(headerBtn) {
+            const content = headerBtn.nextElementSibling;
+            const isOpen = headerBtn.classList.contains('is-open');
+
+            if (isOpen) {
+                headerBtn.classList.remove('is-open');
+                content.classList.add('hidden');
+            } else {
+                headerBtn.classList.add('is-open');
+                content.classList.remove('hidden');
+            }
+        }
+
+        function expandAllQuestions() {
+            document.querySelectorAll('.question-item').forEach(item => {
+                if (!item.classList.contains('hidden')) {
+                    const header = item.querySelector('.guide-accordion-header');
+                    const content = item.querySelector('.guide-accordion-content');
+                    if (header && content) {
+                        header.classList.add('is-open');
+                        content.classList.remove('hidden');
+                    }
+                }
+            });
+        }
+
+        function collapseAllQuestions() {
+            document.querySelectorAll('.question-item').forEach(item => {
+                const header = item.querySelector('.guide-accordion-header');
+                const content = item.querySelector('.guide-accordion-content');
+                if (header && content) {
+                    header.classList.remove('is-open');
+                    content.classList.add('hidden');
+                }
+            });
+        }
+
+        function selectCategory(cat, btn) {
+            activeCategory = cat;
+            document.querySelectorAll('#categoryFilterContainer .badge-pill').forEach(b => {
+                b.classList.remove('bg-primaryBrown', 'text-white', 'shadow-sm', 'active-cat-btn');
+                b.classList.add('bg-secondaryCream/60', 'text-darkText');
+            });
+            btn.classList.add('bg-primaryBrown', 'text-white', 'shadow-sm', 'active-cat-btn');
+            btn.classList.remove('bg-secondaryCream/60', 'text-darkText');
+            filterQuestions();
+        }
+
+        function filterQuestions() {
+            const query = document.getElementById('guideSearchInput').value.toLowerCase().trim();
+            const clearBtn = document.getElementById('clearSearchBtn');
+            const items = document.querySelectorAll('.question-item');
+            let visibleCount = 0;
+
+            if (query.length > 0) {
+                clearBtn.classList.remove('hidden');
+            } else {
+                clearBtn.classList.add('hidden');
+            }
+
+            items.forEach(item => {
+                const itemCat = item.getAttribute('data-category');
+                const itemKeywords = (item.getAttribute('data-keywords') || '').toLowerCase();
+                const textContent = item.textContent.toLowerCase();
+
+                const matchesCategory = (activeCategory === 'all' || itemCat === activeCategory);
+                const matchesQuery = (query === '' || itemKeywords.includes(query) || textContent.includes(query));
+
+                if (matchesCategory && matchesQuery) {
+                    item.classList.remove('hidden');
+                    visibleCount++;
+                    if (query.length > 0) {
+                        const header = item.querySelector('.guide-accordion-header');
+                        const content = item.querySelector('.guide-accordion-content');
+                        if (header && content) {
+                            header.classList.add('is-open');
+                            content.classList.remove('hidden');
+                        }
+                    }
+                } else {
+                    item.classList.add('hidden');
+                }
+            });
+
+            document.getElementById('visibleCount').textContent = visibleCount;
+        }
+
+        function clearSearch() {
+            const input = document.getElementById('guideSearchInput');
+            input.value = '';
+            selectCategory('all', document.querySelector('#categoryFilterContainer .badge-pill'));
+            filterQuestions();
+            input.focus();
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const total = document.querySelectorAll('.question-item').length;
+            const totalElem = document.getElementById('totalQuestionsCount');
+            const visibleElem = document.getElementById('visibleCount');
+            if (totalElem) totalElem.textContent = total + ' سؤالاً مفصلاً';
+            if (visibleElem) visibleElem.textContent = total;
+        });
+    </script>
+</body>
+</html>

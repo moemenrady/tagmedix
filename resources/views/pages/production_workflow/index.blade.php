@@ -1,0 +1,557 @@
+@extends('layouts.app')
+@section('title', 'مسار الإنتاج - Work Flow')
+@section('page_title', 'إدارة مسار الإنتاج')
+
+@section('content')
+    <div class="h-full flex flex-col font-sans transition-all duration-300 relative">
+        
+        {{-- رأس الصفحة والفلترة والبحث --}}
+        <div class="flex flex-col lg:flex-row justify-between items-stretch lg:items-center mb-6 gap-4">
+            <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 flex-1">
+                {{-- كبسولات المواعيد والمستعجل --}}
+                <div class="flex bg-white rounded-lg p-1 shadow-sm border border-gray-200 overflow-x-auto custom-scrollbar flex-shrink-0 items-center">
+                    <button class="flex-1 sm:flex-none px-3.5 py-2 rounded-md bg-red-50 text-red-600 font-bold text-xs border border-red-100 transition hover:bg-red-100 flex items-center justify-center gap-1.5 min-w-max">
+                        <i class="fa-solid fa-triangle-exclamation"></i>
+                        <span data-ar="متأخر ({{ $lateTasks }})" data-en="Late ({{ $lateTasks }})">متأخر ({{ $lateTasks }})</span>
+                    </button>
+                    <button class="flex-1 sm:flex-none px-3.5 py-2 rounded-md bg-[#8A704C] text-white font-bold text-xs mx-1 shadow-md flex items-center justify-center gap-1.5 min-w-max">
+                        <i class="fa-solid fa-calendar-day"></i>
+                        <span data-ar="تسليم اليوم ({{ $todayTasks }})" data-en="Today's Delivery ({{ $todayTasks }})">تسليم اليوم ({{ $todayTasks }})</span>
+                    </button>
+                    <button class="flex-1 sm:flex-none px-3.5 py-2 rounded-md text-gray-600 hover:bg-gray-100 font-bold text-xs transition flex items-center justify-center gap-1.5 min-w-max">
+                        <i class="fa-solid fa-calendar-days"></i>
+                        <span data-ar="قادم ({{ $futureTasks }})" data-en="Upcoming ({{ $futureTasks }})">قادم ({{ $futureTasks }})</span>
+                    </button>
+
+                    {{-- عدد الطلبيات المستعجلة الإجمالي --}}
+                    <div class="px-3.5 py-2 rounded-md bg-amber-50 text-amber-800 border border-amber-200 font-black text-xs flex items-center gap-1.5 min-w-max">
+                        <i class="fa-solid fa-bolt text-red-500 animate-pulse"></i>
+                        <span>مستعجل: {{ $urgentOrdersCount ?? 0 }}</span>
+                    </div>
+
+                    {{-- زر تفعيل/إلغاء أولوية المستعجل (تفاعلي) --}}
+                    @php
+                        $toggleUrl = request()->fullUrlWithQuery(['urgent_priority' => $urgentPriority ? '0' : '1']);
+                    @endphp
+                    <a href="{{ $toggleUrl }}"
+                        class="px-3.5 py-2 rounded-md font-black text-xs transition flex items-center justify-center gap-1.5 min-w-max mr-1 {{ $urgentPriority ? 'bg-red-600 text-white shadow-md ring-2 ring-red-400' : 'bg-gray-100 hover:bg-gray-200 text-gray-700 border border-gray-300' }}"
+                        title="{{ $urgentPriority ? 'إلغاء أولوية المستعجل والعودة للترتيب الافتراضي' : 'تفعيل أولوية المستعجل لعرض الطلبات العاجلة في المقدمة' }}">
+                        <i class="fa-solid fa-arrow-down-short-wide"></i>
+                        <span>{{ $urgentPriority ? 'أولوية المستعجل: مفعلة ✓' : 'أولوية المستعجل' }}</span>
+                    </a>
+                </div>
+
+                {{-- حقل البحث الفوري في مسار العمل --}}
+                <div class="relative flex-1 max-w-md">
+                    <i class="fa-solid fa-magnifying-glass absolute right-3.5 top-1/2 -translate-y-1/2 text-gray-400 text-sm"></i>
+                    <input type="text" id="workflowSearchInput" value="{{ $searchQuery ?? '' }}"
+                           placeholder="بحث برقم الطلب، اسم العميل، الهاتف..."
+                           class="w-full pr-10 pl-10 py-2.5 bg-white border border-gray-200 rounded-xl text-sm font-medium text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#8A704C]/40 focus:border-[#8A704C] shadow-sm transition">
+                    <button type="button" id="clearSearchBtn" onclick="clearWorkflowSearch()" class="hidden absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 p-1">
+                        <i class="fa-solid fa-xmark text-sm"></i>
+                    </button>
+                </div>
+            </div>
+
+            @if (auth()->user()->isAdmin())
+                <div class="flex gap-2 flex-shrink-0">
+                    <button onclick="openAssignModal()" class="w-full sm:w-auto bg-gray-900 text-white px-5 py-2.5 rounded-lg text-sm font-bold hover:bg-gray-800 transition shadow-lg flex items-center justify-center gap-2">
+                        <i class="fa-solid fa-plus"></i>
+                        <span data-ar="تكليف مشرف بطلبات جديدة" data-en="Assign Supervisor to New Orders">تكليف مشرف بطلبات جديدة</span>
+                    </button>
+                </div>
+            @endif
+        </div>
+
+        {{-- لوحة العمل (Kanban Board) - مهيئة تماماً للموبايل --}}
+        <div class="flex-1 overflow-x-auto overflow-y-hidden pb-4 custom-scrollbar snap-x snap-mandatory">
+            <div class="flex gap-4 h-full items-start px-1 sm:min-w-max" id="kanban-board">
+
+                @php
+                    // المراحل الأربعة فقط حسب طلبك
+                    $stages = [
+                        ['id' => 'new', 'title_ar' => 'لم يتم البدء', 'title_en' => 'Not Started', 'color' => 'gray', 'icon' => 'fa-box'],
+                        ['id' => 'cutting', 'title_ar' => 'القص', 'title_en' => 'Cutting', 'color' => 'blue', 'icon' => 'fa-scissors'],
+                        ['id' => 'sewing', 'title_ar' => 'الخياطة', 'title_en' => 'Sewing', 'color' => 'purple', 'icon' => 'fa-tape'],
+                        ['id' => 'ready-to-ship', 'title_ar' => 'التقفيل', 'title_en' => 'Finishing', 'color' => 'teal', 'icon' => 'fa-check-double'],
+                    ];
+                @endphp
+
+                @foreach ($stages as $stage)
+                    {{-- تعديل العرض ليكون متجاوب جداً مع شاشات الموبايل (85vw) --}}
+                    <div class="w-[85vw] sm:w-80 h-full flex flex-col bg-gray-50/50 border border-gray-200 rounded-xl flex-shrink-0 shadow-sm snap-center">
+                        <div class="p-4 border-b border-gray-200 bg-white rounded-t-xl flex justify-between items-center">
+                            <div class="flex justify-between items-center gap-2 w-full">
+                                <h3 class="font-bold text-gray-800 flex items-center gap-2">
+                                    <i class="fa-solid {{ $stage['icon'] }} text-{{ $stage['color'] }}-500"></i>
+                                    <span data-ar="{{ $stage['title_ar'] }}" data-en="{{ $stage['title_en'] }}">{{ $stage['title_ar'] }}</span>
+                                </h3>
+
+                                <div class="flex items-center gap-2">
+                                    {{-- زر تصدير الإكسيل يظهر فقط في مرحلة "لم يتم البدء" --}}
+                                    @if ($stage['id'] === 'new')
+                                        <a href="{{ route('production.workflow.export-not-started') }}" class="bg-[#107c41] text-white px-3 py-1.5 rounded-lg hover:bg-green-800 transition flex items-center gap-1 shadow-sm" title="تصدير إكسيل">
+                                            <i class="fa-solid fa-file-excel"></i>
+                                            <span class="text-xs font-bold hidden sm:inline">إكسيل</span>
+                                        </a>
+                                    @endif
+
+                                    <span id="count-{{ $stage['id'] }}" class="bg-gray-100 text-gray-700 px-3 py-1 rounded-full text-xs font-bold shadow-inner">
+                                        {{ $stageCounts[$stage['id']] ?? 0 }}
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+
+                        {{-- منطقة الكروت --}}
+                        <div class="flex-1 p-3 overflow-y-auto space-y-3 kanban-column custom-scrollbar" data-status="{{ $stage['id'] }}">
+                            @foreach ($ordersByStage[$stage['id']] ?? [] as $order)
+                                @php
+                                    $task = $order->productionTasks->last();
+                                    $isUrgent = $order->is_urgent || ($task && $task->priority == 'urgent');
+                                    $deliveryInfo = $order->delivery_status_info;
+                                    $searchPayload = strtolower($order->order_number . ' ' . $order->customer_name . ' ' . ($order->customer_phone_1 ?? '') . ' ' . ($order->customer_phone_2 ?? ''));
+                                @endphp
+                                <div class="relative p-3 rounded-xl bg-white border border-gray-200 shadow-sm hover:shadow-md cursor-grab active:cursor-grabbing transition-all duration-300 kanban-card {{ $isUrgent ? 'border-r-4 border-r-red-500' : 'border-r-4 border-r-[#8A704C]' }}"
+                                    id="order-{{ $order->id }}" data-order-id="{{ $order->id }}" data-search="{{ $searchPayload }}">
+
+                                    <div class="flex justify-between items-start mb-2.5 gap-2">
+                                        <div class="flex flex-wrap items-center gap-1">
+                                            <span class="text-xs font-black text-gray-800 block">#{{ $order->order_number }}</span>
+                                            @if ($isUrgent)
+                                                <span class="text-[10px] font-black bg-red-100 text-red-600 px-2 py-0.5 rounded-md flex items-center gap-0.5 border border-red-200">
+                                                    <i class="fa-solid fa-bolt text-[9px]"></i> عاجل
+                                                </span>
+                                            @endif
+                                            @if ($deliveryInfo['has_date'])
+                                                <span class="text-[10px] font-bold px-1.5 py-0.5 rounded border {{ $deliveryInfo['badge_class'] }}">
+                                                    {{ $deliveryInfo['label'] }}
+                                                </span>
+                                            @endif
+                                        </div>
+                                        
+                                        {{-- زر النقل اليدوي تم تكبيره --}}
+                                        <button type="button" onclick="openMoveModal('{{ $order->id }}', '{{ $stage['id'] }}')"
+                                            class="flex-shrink-0 text-gray-700 hover:text-white hover:bg-[#8A704C] bg-gray-100 px-3.5 py-1.5 rounded-lg text-xs font-bold transition border border-gray-200 shadow-sm flex items-center gap-1"
+                                            title="نقل الأوردر">
+                                            <i class="fa-solid fa-arrows-turn-right text-xs"></i> نقل
+                                        </button>
+                                    </div>
+
+                                    <div class="cursor-pointer" onclick="window.location='{{ route('orders.show', $order->id) }}'">
+                                        <h4 class="font-bold text-gray-800 text-sm mb-1">{{ $order->customer_name }}</h4>
+                                        <div class="flex items-center justify-between text-xs text-gray-500">
+                                            <span class="flex items-center gap-1 font-semibold text-gray-600">
+                                                <i class="fa-solid fa-layer-group text-gray-400"></i> {{ $order->items->sum('quantity') }} قطعة
+                                            </span>
+                                            @if ($order->delivery_date)
+                                                <span class="text-[11px] text-gray-500 font-mono flex items-center gap-1">
+                                                    <i class="fa-regular fa-calendar text-[10px]"></i> {{ $order->delivery_date->format('m/d') }}
+                                                </span>
+                                            @endif
+                                            @if ($order->customer_phone_1)
+                                                <span class="text-[11px] text-gray-400 font-medium dir-ltr" dir="ltr">
+                                                    {{ $order->customer_phone_1 }}
+                                                </span>
+                                            @endif
+                                        </div>
+                                    </div>
+                                </div>
+                            @endforeach
+                        </div>
+                    </div>
+                @endforeach
+            </div>
+        </div>
+    </div>
+
+    {{-- واجهة التحميل --}}
+    <div id="loadingOverlay" class="fixed inset-0 bg-white/80 z-[99999] hidden flex-col items-center justify-center backdrop-blur-sm transition-all">
+        <i class="fa-solid fa-circle-notch fa-spin text-4xl text-[#8A704C] mb-4"></i>
+        <p class="font-bold text-gray-700">جاري المعالجة...</p>
+    </div>
+
+    {{-- نافذة النقل --}}
+    <div id="statusModal" class="fixed inset-0 bg-black/60 z-[60] hidden flex items-center justify-center p-4 backdrop-blur-sm">
+        <div class="bg-white rounded-xl shadow-2xl w-full max-w-md overflow-hidden">
+            <div class="p-4 bg-[#8A704C] text-white flex justify-between items-center">
+                <h3 class="font-bold text-lg" id="statusModalTitle">تأكيد النقل</h3>
+                <button onclick="closeStatusModal()" class="text-white/80 hover:text-white transition"><i class="fa-solid fa-xmark text-xl"></i></button>
+            </div>
+            <form id="changeStatusForm" class="p-5 space-y-4">
+                <input type="hidden" id="modal_order_id">
+
+                <div id="targetStageDiv" class="hidden">
+                    <label class="block text-sm font-bold text-gray-700 mb-1">نقل إلى مرحلة:</label>
+                    <select id="modal_to_status" onchange="toggleEmployeeField(this.value)" class="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-[#8A704C] outline-none">
+                        <option value="">اختر المرحلة...</option>
+                        @foreach ($stages as $st)
+                            <option value="{{ $st['id'] }}">{{ $st['title_ar'] }}</option>
+                        @endforeach
+                    </select>
+                </div>
+
+                {{-- حقل الموظف --}}
+                <div id="employeeSelectionDiv" class="hidden bg-blue-50 border border-blue-100 p-3 rounded-lg">
+                    <label class="block text-sm font-bold text-blue-900 mb-1">
+                        الموظف المنفذ (الذي قام بالعمل) <span class="text-red-500">*</span>
+                    </label>
+                    <select name="employee_id" id="employee_id" class="w-full border border-blue-200 rounded-lg p-2 focus:ring-2 focus:ring-blue-400 outline-none">
+                        <option value="">اختر الموظف...</option>
+                        @foreach ($employees as $emp)
+                            <option value="{{ $emp->id }}">{{ $emp->name }}</option>
+                        @endforeach
+                    </select>
+                </div>
+
+                <div>
+                    <label class="block text-sm font-bold text-gray-700 mb-1">وقت التنفيذ الفعلي <span class="text-red-500">*</span></label>
+                    <input type="datetime-local" name="executed_at" id="executed_at" required class="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-[#8A704C] outline-none ltr-input" dir="ltr">
+                </div>
+
+                <div>
+                    <label class="block text-sm font-bold text-gray-700 mb-1">ملاحظات (اختياري)</label>
+                    <textarea name="note" id="status_note" rows="2" class="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-[#8A704C] outline-none"></textarea>
+                </div>
+
+                <div class="flex justify-end gap-3 mt-6 pt-4 border-t border-gray-100">
+                    <button type="button" onclick="cancelDrop()" class="px-4 py-2 bg-gray-100 text-gray-700 font-bold rounded-lg hover:bg-gray-200 transition">إلغاء</button>
+                    <button type="button" onclick="confirmStatusChange()" class="px-4 py-2 bg-green-600 text-white font-bold rounded-lg hover:bg-green-700 transition flex items-center gap-2">
+                        <i class="fa-solid fa-check"></i> حفظ النقل
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    {{-- Toast Message (رسالة النجاح) تم تعديل top-24 لتنزل تحت الهيدر --}}
+    <div id="modernToast" class="fixed top-24 right-6 z-[99999] hidden">
+        <div class="bg-white rounded-2xl shadow-2xl border border-green-200 overflow-hidden w-[360px]">
+            <div class="h-1 bg-green-500" id="toastProgress"></div>
+            <div class="p-5 flex items-start gap-4">
+                <div class="w-12 h-12 rounded-full bg-green-100 flex items-center justify-center shrink-0">
+                    <i class="fa-solid fa-check text-green-600 text-xl"></i>
+                </div>
+                <div class="flex-1">
+                    <h3 class="font-bold text-gray-800 text-base">تم التنفيذ بنجاح</h3>
+                    <p id="toastMessage" class="text-sm text-gray-600 mt-1 leading-6"></p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <style>
+        .custom-scrollbar::-webkit-scrollbar { height: 6px; width: 6px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+        
+        .ltr-input { text-align: left; }
+        html[dir="rtl"] .ltr-input { text-align: right; direction: ltr; }
+
+        /* تأثيرات رسالة النجاح */
+        #modernToast {
+            transform: translateX(120%);
+            opacity: 0;
+            transition: .45s cubic-bezier(.2, .8, .2, 1);
+        }
+        #modernToast.show {
+            transform: translateX(0);
+            opacity: 1;
+        }
+        #toastProgress {
+            width: 100%;
+            transition: 4s linear;
+        }
+    </style>
+@endsection
+
+@push('scripts')
+    {{-- استدعاء SortableJS لضمان عمل السحب على الموبايل بدون مشاكل --}}
+    <script src="https://cdn.jsdelivr.net/npm/sortablejs@latest/Sortable.min.js"></script>
+    <script>
+        let draggedElement = null;
+        let originalParent = null;
+        let pendingDropData = {};
+
+        document.addEventListener("DOMContentLoaded", function() {
+            let now = new Date();
+            now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
+            document.getElementById('executed_at').value = now.toISOString().slice(0, 16);
+
+            // تفعيل SortableJS
+            document.querySelectorAll('.kanban-column').forEach(column => {
+                new Sortable(column, {
+                    group: 'kanban',
+                    animation: 150,
+                    delay: 100, 
+                    delayOnTouchOnly: true,
+                    ghostClass: 'bg-gray-100',
+                    onEnd: function(evt) {
+                        let itemEl = evt.item;
+                        let toColumn = evt.to;
+                        let fromColumn = evt.from;
+
+                        if (toColumn === fromColumn) return;
+
+                        let newStatus = toColumn.getAttribute('data-status');
+                        let currentStatus = fromColumn.getAttribute('data-status');
+                        let orderId = itemEl.getAttribute('data-order-id');
+
+                        draggedElement = itemEl;
+                        originalParent = fromColumn;
+
+                        openStatusChangeModal(orderId, currentStatus, newStatus, toColumn, false);
+                    },
+                });
+            });
+        });
+
+        function closeStatusModal() {
+            document.getElementById('statusModal').classList.add('hidden');
+        }
+
+        function openMoveModal(orderId, currentStatus) {
+            // يتم استدعائها عند الضغط على زر "نقل" المكبر
+            draggedElement = document.getElementById('order-' + orderId);
+            originalParent = draggedElement.closest('.kanban-column');
+            openStatusChangeModal(orderId, currentStatus, null, null, true);
+        }
+
+        function openStatusChangeModal(orderId, fromStatus, toStatus, dropZoneEl, isManualMove) {
+            pendingDropData = { orderId, fromStatus, toStatus, dropZoneEl, isManualMove };
+
+            document.getElementById('modal_order_id').value = orderId;
+            document.getElementById('changeStatusForm').reset();
+
+            let now = new Date();
+            now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
+            document.getElementById('executed_at').value = now.toISOString().slice(0, 16);
+
+            let targetStageDiv = document.getElementById('targetStageDiv');
+            let targetStageSelect = document.getElementById('modal_to_status');
+
+            if (isManualMove) {
+                targetStageDiv.classList.remove('hidden');
+                targetStageSelect.value = "";
+                toggleEmployeeField("");
+                document.getElementById('statusModalTitle').innerText = `نقل الطلب #${orderId}`;
+            } else {
+                targetStageDiv.classList.add('hidden');
+                targetStageSelect.value = toStatus;
+                toggleEmployeeField(toStatus);
+                document.getElementById('statusModalTitle').innerText = `تأكيد النقل`;
+            }
+
+            document.getElementById('statusModal').classList.remove('hidden');
+        }
+
+        function toggleEmployeeField(statusId) {
+            let requiresEmployee = ['cutting', 'sewing', 'ready-to-ship'].includes(statusId);
+            let employeeDiv = document.getElementById('employeeSelectionDiv');
+            let employeeInput = document.getElementById('employee_id');
+
+            if (requiresEmployee) {
+                employeeDiv.classList.remove('hidden');
+                employeeInput.setAttribute('required', 'required');
+            } else {
+                employeeDiv.classList.add('hidden');
+                employeeInput.removeAttribute('required');
+            }
+        }
+
+        function cancelDrop() {
+            if (draggedElement && originalParent && !pendingDropData.isManualMove) {
+                originalParent.appendChild(draggedElement);
+            }
+            closeStatusModal();
+        }
+
+        function confirmStatusChange() {
+            let finalTargetStatus = pendingDropData.isManualMove ?
+                document.getElementById('modal_to_status').value :
+                pendingDropData.toStatus;
+
+            let empId = document.getElementById('employee_id').value;
+            let executedAt = document.getElementById('executed_at').value;
+            let note = document.getElementById('status_note').value;
+
+            if (!finalTargetStatus) {
+                alert('يجب اختيار المرحلة التي سيتم النقل إليها.');
+                return;
+            }
+
+            let requiresEmployee = ['cutting', 'sewing', 'ready-to-ship'].includes(finalTargetStatus);
+            if (requiresEmployee && !empId) {
+                alert('يجب اختيار الموظف المنفذ لهذه المرحلة.');
+                return;
+            }
+
+            if (!executedAt) {
+                alert('يجب تحديد وقت التنفيذ.');
+                return;
+            }
+
+            let payload = {
+                to_status: finalTargetStatus,
+                employee_id: empId || null,
+                executed_at: executedAt,
+                note: note || null
+            };
+
+            let url = `/production/workflow/order/${pendingDropData.orderId}/move`;
+
+            document.getElementById('loadingOverlay').classList.remove('hidden');
+            document.getElementById('loadingOverlay').classList.add('flex');
+            closeStatusModal();
+
+            fetch(url, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json',
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
+                    },
+                    body: JSON.stringify(payload)
+                })
+                .then(async res => {
+                    let rawText = await res.text();
+                    let data;
+                    try {
+                        data = JSON.parse(rawText);
+                    } catch (e) {
+                        throw new Error(`Server returned invalid response. HTTP ${res.status}`);
+                    }
+
+                    if (!res.ok) throw new Error(data.message || data.error || `HTTP Error ${res.status}`);
+                    return data;
+                })
+                .then(data => {
+                    if (data.success) {
+                        if (pendingDropData.isManualMove) {
+                            let destColumn = document.querySelector(`.kanban-column[data-status="${finalTargetStatus}"]`);
+                            if (destColumn && draggedElement) {
+                                destColumn.appendChild(draggedElement);
+                            }
+                        }
+
+                        if (data.counts) {
+                            for (const [status, count] of Object.entries(data.counts)) {
+                                let countEl = document.getElementById(`count-${status}`);
+                                if (countEl) countEl.innerText = count;
+                            }
+                        }
+
+                        showSuccessToast(data.user, data.order, data.stage);
+                    } else {
+                        alert(data.message || 'حدث خطأ أثناء نقل الطلب.');
+                        if (draggedElement && originalParent) originalParent.appendChild(draggedElement);
+                    }
+                })
+                .catch(err => {
+                    alert('حدث خطأ أثناء نقل الطلب.\n\n' + err.message);
+                    if (draggedElement && originalParent) {
+                        originalParent.appendChild(draggedElement);
+                    }
+                })
+                .finally(() => {
+                    document.getElementById('loadingOverlay').classList.add('hidden');
+                    document.getElementById('loadingOverlay').classList.remove('flex');
+                });
+        }
+
+        function showSuccessToast(user, order, stage) {
+            const stagesText = {
+                "new": "لم يتم البدء",
+                "cutting": "القص",
+                "sewing": "الخياطة",
+                "ready-to-ship": "التقفيل"
+            };
+
+            let toast = document.getElementById("modernToast");
+            let progress = document.getElementById("toastProgress");
+
+            document.getElementById("toastMessage").innerHTML = `
+                أهلاً <b>${user}</b> 👋<br>
+                تم نقل الطلب <b>${order}</b> إلى مرحلة <span class="text-green-600 font-bold">${stagesText[stage]}</span>
+            `;
+
+            progress.style.transition = "none";
+            progress.style.width = "100%";
+            toast.classList.remove("hidden");
+
+            requestAnimationFrame(() => {
+                toast.classList.add("show");
+                progress.style.transition = "4s linear";
+                progress.style.width = "0%";
+            });
+
+            setTimeout(() => {
+                toast.classList.remove("show");
+                setTimeout(() => toast.classList.add("hidden"), 400);
+            }, 4000);
+        }
+
+        // --- Live Search in Production Workflow (Kanban) ---
+        const workflowSearchInput = document.getElementById('workflowSearchInput');
+        const clearSearchBtn = document.getElementById('clearSearchBtn');
+
+        function performWorkflowSearch(query) {
+            const normalized = (query || '').trim().toLowerCase();
+            if (clearSearchBtn) {
+                clearSearchBtn.classList.toggle('hidden', normalized.length === 0);
+            }
+
+            document.querySelectorAll('.kanban-column').forEach(column => {
+                const status = column.dataset.status;
+                const cards = column.querySelectorAll('.kanban-card');
+                let visibleCount = 0;
+
+                cards.forEach(card => {
+                    const searchData = (card.dataset.search || '').toLowerCase();
+                    const isMatch = normalized === '' || searchData.includes(normalized);
+                    if (isMatch) {
+                        card.classList.remove('hidden');
+                        visibleCount++;
+                    } else {
+                        card.classList.add('hidden');
+                    }
+                });
+
+                const countBadge = document.getElementById(`count-${status}`);
+                if (countBadge) {
+                    countBadge.innerText = visibleCount;
+                }
+
+                let emptyNotice = column.querySelector('.kanban-empty-search');
+                if (visibleCount === 0 && cards.length > 0) {
+                    if (!emptyNotice) {
+                        emptyNotice = document.createElement('div');
+                        emptyNotice.className = 'kanban-empty-search text-center py-6 text-gray-400 text-xs font-semibold bg-white/60 rounded-xl border border-dashed border-gray-200';
+                        emptyNotice.innerHTML = '<i class="fa-solid fa-magnifying-glass mb-1 block text-base text-gray-300"></i>لا توجد نتائج مطابقة';
+                        column.appendChild(emptyNotice);
+                    }
+                    emptyNotice.classList.remove('hidden');
+                } else if (emptyNotice) {
+                    emptyNotice.classList.add('hidden');
+                }
+            });
+        }
+
+        function clearWorkflowSearch() {
+            if (workflowSearchInput) {
+                workflowSearchInput.value = '';
+                performWorkflowSearch('');
+                workflowSearchInput.focus();
+            }
+        }
+
+        if (workflowSearchInput) {
+            workflowSearchInput.addEventListener('input', function() {
+                performWorkflowSearch(this.value);
+            });
+            if (workflowSearchInput.value.trim().length > 0) {
+                performWorkflowSearch(workflowSearchInput.value);
+            }
+        }
+    </script>
+@endpush

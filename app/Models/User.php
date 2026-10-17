@@ -11,16 +11,13 @@ class User extends Authenticatable implements MustVerifyEmail
 {
   use HasFactory, Notifiable;
 
-  protected $fillable = [
+ protected $fillable = [
     'name',
     'email',
     'password',
     'role',
-    'is_cutting',
-    'is_sewing',
-    'is_finishing',
+    'email_verified_at', // <--- قم بإضافة هذا السطر
   ];
-
   protected $hidden = [
     'password',
     'remember_token',
@@ -31,10 +28,6 @@ class User extends Authenticatable implements MustVerifyEmail
     return [
       'email_verified_at' => 'datetime',
       'password' => 'hashed',
-
-      'is_cutting' => 'boolean',
-      'is_sewing' => 'boolean',
-      'is_finishing' => 'boolean',
     ];
   }
 
@@ -59,40 +52,50 @@ class User extends Authenticatable implements MustVerifyEmail
     return $this->role === 'supervisor';
   }
 
-  public function isProduction(): bool
+  public function payments()
   {
-    return $this->role === 'production';
+    return $this->hasMany(Payment::class, 'created_by');
+  }
+  public function assignedTasks()
+  {
+    return $this->hasMany(ProductionTask::class, 'assigned_to');
   }
 
-  /*
-    |--------------------------------------------------------------------------
-    | Production Helpers
-    |--------------------------------------------------------------------------
-    */
-
-  public function isCutter(): bool
+  public function createdTasks()
   {
-    return $this->is_cutting;
+    return $this->hasMany(ProductionTask::class, 'assigned_by');
+  }
+  public function changedProductionLogs()
+  {
+    return $this->hasMany(ProductionStepLog::class, 'changed_by');
   }
 
-  public function isTailor(): bool
+  public function executedProductionLogs()
   {
-    return $this->is_sewing;
+    return $this->hasMany(ProductionStepLog::class, 'employee_id');
+  }
+  // الموظف المعين على مراحل الإنتاج
+  public function productionAssignments()
+  {
+    return $this->hasMany(
+      ProductionAssignment::class,
+      'employee_id'
+    );
   }
 
-  public function isFinisher(): bool
+  // المدير أو المشرف الذي قام بالتعيين
+  public function assignedProductionTasks()
   {
-    return $this->is_finishing;
+    return $this->hasMany(
+      ProductionAssignment::class,
+      'assigned_by'
+    );
   }
-
-  /*
-    |--------------------------------------------------------------------------
-    | Relations
-    |--------------------------------------------------------------------------
-    */
-
-  public function invoices()
+  public function productionHistories()
   {
-    return $this->hasMany(Invoice::class, 'client_id');
+    return $this->hasMany(
+      ProductionHistory::class,
+      'user_id'
+    );
   }
 }

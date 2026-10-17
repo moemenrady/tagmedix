@@ -8,58 +8,34 @@ use Illuminate\Http\Request;
 class SettingController extends Controller
 {
     /**
-     * Display a listing of the resource.
+     * Display a listing of the settings.
      */
-   public function index()
+    public function index()
     {
-        return view('pages.settings.index');
+        $defaultDeliveryDays = (int) Setting::get('default_delivery_days', 7);
+        $urgentDeliveryDays = (int) Setting::get('urgent_delivery_days', 3);
+
+        return view('pages.settings.index', compact('defaultDeliveryDays', 'urgentDeliveryDays'));
     }
 
     /**
-     * Show the form for creating a new resource.
+     * Update delivery duration settings.
      */
-    public function create()
+    public function updateDeliverySettings(Request $request)
     {
-        //
-    }
+        $validated = $request->validate([
+            'default_delivery_days' => 'required|integer|min:1|max:365',
+            'urgent_delivery_days'  => 'required|integer|min:1|max:365',
+        ], [
+            'default_delivery_days.required' => 'يرجى إدخال مدة تسليم الطلب العادي بالأيام.',
+            'urgent_delivery_days.required'  => 'يرجى إدخال مدة تسليم الطلب المستعجل بالأيام.',
+        ]);
 
-    /**
-     * Store a newly created resource in storage.
-     */
-    public function store(Request $request)
-    {
-        //
-    }
+        Setting::set('default_delivery_days', $validated['default_delivery_days']);
+        Setting::set('urgent_delivery_days', $validated['urgent_delivery_days']);
 
-    /**
-     * Display the specified resource.
-     */
-    public function show(Setting $setting)
-    {
-        //
-    }
-
-    /**
-     * Show the form for editing the specified resource.
-     */
-    public function edit(Setting $setting)
-    {
-        //
-    }
-
-    /**
-     * Update the specified resource in storage.
-     */
-    public function update(Request $request, Setting $setting)
-    {
-        //
-    }
-
-    /**
-     * Remove the specified resource from storage.
-     */
-    public function destroy(Setting $setting)
-    {
-        //
+        return redirect()
+            ->route('settings.index')
+            ->with('success', 'تم حفظ وتحديث إعدادات مدة تسليم الطلبات بنجاح.');
     }
 }

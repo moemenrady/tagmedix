@@ -37,13 +37,19 @@ class AuthenticatedSessionController extends Controller
       Auth::logout();
       return back()->withErrors(['email' => 'من فضلك فعّل بريدك الإلكتروني أولًا.']);
     }
-   
 
 
 
-    return redirect()->intended(route('dashboard'))
-    ;
 
+    if ($user->role === 'admin') {
+      return redirect()->route('dashboard');
+    }
+
+    if ($user->role === 'supervisor') {
+      return redirect()->route('production.workflow.index');
+    }
+
+    return redirect()->route('home');
   }
 
 
@@ -62,5 +68,4 @@ class AuthenticatedSessionController extends Controller
 
     return redirect('/'); // أو صفحة login حسب ما تحب
   }
-
 }

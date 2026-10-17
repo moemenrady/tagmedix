@@ -25,17 +25,16 @@ class AppServiceProvider extends ServiceProvider
     {
         $modulesPath = app_path('Modules');
 
-        if (!is_dir($modulesPath)) {
-            return;
-        }
+        if (is_dir($modulesPath)) {
+            foreach (File::directories($modulesPath) as $module) {
+                $migrationPath = $module . '/Database/Migrations';
 
-        foreach (File::directories($modulesPath) as $module) {
-
-            $migrationPath = $module . '/Database/Migrations';
-
-            if (is_dir($migrationPath)) {
-                $this->loadMigrationsFrom($migrationPath);
+                if (is_dir($migrationPath)) {
+                    $this->loadMigrationsFrom($migrationPath);
+                }
             }
         }
+
+        $this->loadMigrationsFrom(database_path('migrations/turbo'));
     }
 }

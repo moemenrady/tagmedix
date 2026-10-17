@@ -2,37 +2,182 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Partner;
-use App\Models\Transaction;
 use App\Models\User;
-use Symfony\Component\HttpFoundation\Request;
+use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
+use Illuminate\Support\Facades\Hash;
 
 class UserController extends Controller
 {
-    public function index()
+    /**
+     * ==========================================================================
+     * Display Users Page
+     * ==========================================================================
+     *
+     * Method:
+     * GET /users
+     *
+     * Description:
+     * يرجع صفحة إدارة المستخدمين مع جميع المستخدمين.
+     *
+     * Query Parameters (اختياري):
+     * search => البحث بالاسم أو الإيميل
+     *
+     * Example:
+     * GET /users
+     *
+     * GET /users?search=Ahmed
+     */
+    public function index(Request $request)
     {
-    
-        return view('pages.users.index', );
+        $users = User::query()
+
+            ->when($request->search, function ($query) use ($request) {
+
+                $query->where(function ($q) use ($request) {
+
+                    $q->where('name', 'like', "%{$request->search}%")
+                        ->orWhere('email', 'like', "%{$request->search}%");
+                });
+            })
+
+            ->latest()
+            ->paginate(15)
+            ->withQueryString();
+
+        return view('pages.users.index', compact('users'));
     }
-    public function blockAccount(Request $request, $id)
+
+    /**
+     * ==========================================================================
+     * Store New User
+     * ==========================================================================
+     *
+     * Method:
+     * POST /users
+     *
+     * Body (JSON / FormData)
+     *
+     * {
+     *   "name":"Ahmed Mohamed",
+     *   "email":"ahmed@gmail.com",
+     *   "password":"12345678",
+     *   "password_confirmation":"12345678",
+     *   "role":"supervisor"
+     * }
+     *
+     * Available Roles:
+     * admin
+     * supervisor
+     *
+     */
+   public function store(Request $request)
     {
-        // التأكد أن من يقوم بالعملية هو الأدمن فقط
-        if (auth()->user()->role !== 'admin') {
-            abort(403, 'غير مصرح لك باتخاذ هذا الإجراء');
+        $data = $request->validate([
+            'name' => ['required', 'string', 'max:255'],
+            'email' => ['required', 'email', 'max:255', 'unique:users,email'],
+            'password' => ['required', 'confirmed', 'min:8'],
+            'role' => ['required', \Illuminate\Validation\Rule::in(['admin', 'supervisor'])],
+        ]);
+
+        $data['password'] = Hash::make($data['password']);
+        
+        // إعطاء الحقل قيمة الوقت الحالي لتفعيل الحساب فوراً
+        $data['email_verified_at'] = now(); 
+
+        User::create($data);
+
+        return back()->with('success', 'تم إضافة المستخدم وتفعيل حسابه بنجاح.');
+    }
+
+    /**
+     * ==========================================================================
+     * Update Existing User
+     * ==========================================================================
+     *
+     * Method:
+     * PUT /users/{user}
+     *
+     * Example:
+     * PUT /users/5
+     *
+     * Body:
+     *
+     * {
+     *   "name":"Ahmed Ali",
+     *   "email":"ahmed@gmail.com",
+     *   "role":"admin",
+     *
+     *   // Optional
+     *   "password":"12345678",
+     *   "password_confirmation":"12345678"
+     * }
+     *
+     * Notes:
+     * - password اختياري.
+     * - لو متبعتش هيظل كما هو.
+     *
+     */
+    public function update(Request $request, User $user)
+    {
+        $data = $request->validate([
+
+            'name' => ['required', 'string', 'max:255'],
+
+            'email' => [
+                'required',
+                'email',
+                Rule::unique('users')->ignore($user->id),
+            ],
+
+            'role' => ['required', Rule::in(['admin', 'supervisor'])],
+
+            'password' => ['nullable', 'confirmed', 'min:8'],
+
+        ]);
+
+        if (!empty($data['password'])) {
+
+            $data['password'] = Hash::make($data['password']);
+        } else {
+
+            unset($data['password']);
         }
 
-        $user = \App\Models\User::findOrFail($id);
+        $user->update($data);
 
-        // منع الأدمن من حظر نفسه بالخطأ
-        if (auth()->id() === $user->id) {
-            return back()->with('error', 'لا يمكنك حظر حسابك الشخصي!');
+        return back()->with('success', 'تم تحديث بيانات المستخدم بنجاح.');
+    }
+
+    /**
+     * ==========================================================================
+     * Delete User
+     * ==========================================================================
+     *
+     * Method:
+     * DELETE /users/{user}
+     *
+     * Example:
+     *
+     * DELETE /users/5
+     *
+     * Notes:
+     *
+     * - لا يوجد Body.
+     * - يمنع حذف الحساب الحالي.
+     *
+     */
+    public function destroy(User $user)
+    {
+        if (auth()->id() == $user->id) {
+
+            return back()->withErrors([
+                'error' => 'لا يمكن حذف المستخدم الحالي لأنه الحساب المستخدم لتسجيل الدخول.'
+            ]);
         }
 
-        // تنفيذ الحظر بجعل القيمة null
-        $user->email_verified_at = null;
-        $user->save();
+        $user->delete();
 
-        // السناك بار (Snackbar) سيظهر إذا كنت مبرمجه لالتقاط الـ Session ('success')
-        return back()->with('success', 'تم حظر الحساب بنجاح، لن يتمكن من استخدام النظام.');
+        return back()->with('success', 'تم حذف المستخدم بنجاح.');
     }
 }
